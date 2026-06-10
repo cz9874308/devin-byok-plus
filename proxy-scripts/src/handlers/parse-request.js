@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseFields, getField, getAllFields } from "../proto.js";
 import { unwrapRequest } from "../connect.js";
-import { KNOWN_TOOL_NAMES, normalizeToolInvocation } from "./tool-normalization.js";
+import { KNOWN_TOOL_NAMES, isAllowedToolName, normalizeToolInvocation } from "./tool-normalization.js";
 const SYSTEM_PROMPT_OVERRIDE = process.env.SYSTEM_PROMPT_OVERRIDE === "true";
 const SYSTEM_PROMPT_PATH = process.env.SYSTEM_PROMPT_PATH || "";
 const DEBUG_UNKNOWN_FIELDS = process.env.DEBUG_UNKNOWN_FIELDS === "1";
@@ -430,7 +430,7 @@ export function parseGetChatMessageRequest(arg0, arg1) {
       if (!tmp02.name) {
         continue;
       }
-      if (!KNOWN_TOOL_NAMES.has(tmp02.name) && !tmp02.name.startsWith("mcp0_")) {
+      if (!isAllowedToolName(tmp02.name)) {
         console.log("  ⚠️  Dropping unknown tool definition: " + tmp02.name);
         continue;
       }

@@ -887,7 +887,7 @@ class SidebarProvider {
     tmp02.push(this.checkInlineFastTimeoutRisk(tmp3));
     tmp02.push(await this.checkWindsurfProcessRouting(tmp3));
     tmp02.push(await this.checkGatewayModelCatalog(tmp3));
-    const tmp21 = path.join(tmp1, "prompts", "system-prompt.md");
+    const tmp21 = this.proxyManager.getDefaultSystemPromptFilePath();
     tmp02.push(this.envCheckItem("system-prompt", "默认提示词", fs.existsSync(tmp21) ? "ok" : "warning", fs.existsSync(tmp21) ? tmp21 : "缺少默认 system-prompt.md", !fs.existsSync(tmp21)));
     const tmp22 = this.getPatchStatus();
     const tmp23 = tmp22.patches.filter(arg0 => arg0.status !== "applied");
@@ -1132,7 +1132,7 @@ class SidebarProvider {
       tmp2.COMPLETION_TIMEOUT_MS = "12000";
     }
     this.proxyManager.writeEnvConfig(tmp2);
-    const tmp3 = path.join(this.proxyManager.getProxyRootPath(), "prompts", "system-prompt.md");
+    const tmp3 = this.proxyManager.getDefaultSystemPromptFilePath();
     if (!fs.existsSync(tmp3)) {
       fs.mkdirSync(path.dirname(tmp3), {
         recursive: true

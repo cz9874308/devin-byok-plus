@@ -1,4 +1,4 @@
-import { KNOWN_TOOL_NAMES, normalizeToolArguments, normalizeToolInvocation } from "./tool-normalization.js";
+import { isAllowedToolName, normalizeToolArguments, normalizeToolInvocation } from "./tool-normalization.js";
 const TOOL_CALL_START_MARKERS = ["<tool_call>", "<tool>", "<minimax:tool_call", "<tool_calls_section_begin>", "{\"action\":\"tool_call\"", "{\"action\": \"tool_call\""];
 const MAX_TOOL_MARKER_LOOKBEHIND = Math.max(...TOOL_CALL_START_MARKERS.map(arg0 => arg0.length));
 function toRecoveredCalls(arg0) {
@@ -8,7 +8,7 @@ function toRecoveredCalls(arg0) {
       continue;
     }
     const tmp02 = normalizeToolInvocation(tmp0.name, tmp0.input ?? tmp0.arguments ?? tmp0.params ?? {});
-    if (!tmp02.toolName || !KNOWN_TOOL_NAMES.has(tmp02.toolName)) {
+    if (!tmp02.toolName || !isAllowedToolName(tmp02.toolName)) {
       continue;
     }
     const tmp12 = tmp02.params ?? {};

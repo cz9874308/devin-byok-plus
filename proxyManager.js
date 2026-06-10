@@ -67,7 +67,7 @@ class ProxyManager {
     this.deviceId = tmp1;
     this.clientVersion = tmp2;
     this.proxyRoot = this.findProxyRoot();
-    this.migrateLegacyEnvIfNeeded();
+    this.migrateUserConfigIfNeeded();
     this.statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.statusBar.command = "devin-byok-bridge.startProxy";
     this.updateStatusBar();
@@ -136,29 +136,149 @@ class ProxyManager {
     }
     return undefined;
   }
-  migrateLegacyEnvIfNeeded() {
+  usesPersistentUserConfig() {
     const tmp0 = this.getBundledProxyRoot();
-    if (!tmp0 || this.proxyRoot !== tmp0) {
-      return;
+    return tmp0 !== undefined && this.proxyRoot === tmp0;
+  }
+  getUserConfigDir() {
+    return path.join(this.context.globalStorageUri.fsPath, "config");
+  }
+  ensureUserConfigDir() {
+    const tmp0 = this.getUserConfigDir();
+    fs.mkdirSync(tmp0, {
+      recursive: true
+    });
+    fs.mkdirSync(path.join(tmp0, "prompts"), {
+      recursive: true
+    });
+    return tmp0;
+  }
+  getDefaultSystemPromptFilePath() {
+    if (this.usesPersistentUserConfig()) {
+      return path.join(this.getUserConfigDir(), "prompts", "system-prompt.md");
     }
-    const tmp1 = path.join(tmp0, ".env");
-    if (fs.existsSync(tmp1)) {
-      return;
-    }
+    return path.join(this.proxyRoot, "prompts", "system-prompt.md");
+  }
+  findLegacyEnvCandidates() {
+    const tmp0 = [];
+    const tmp1 = new Set();
+    const fn = arg0 => {
+      if (!arg0 || tmp1.has(arg0)) {
+        return;
+      }
+      tmp1.add(arg0);
+      tmp0.push(arg0);
+    };
+    fn(path.join(this.proxyRoot, ".env"));
     const tmp2 = this.findWorkspaceProxyRoot();
-    if (!tmp2 || tmp2 === tmp0) {
-      return;
-    }
-    const tmp3 = path.join(tmp2, ".env");
-    if (!fs.existsSync(tmp3)) {
-      return;
+    if (tmp2) {
+      fn(path.join(tmp2, ".env"));
     }
     try {
-      fs.copyFileSync(tmp3, tmp1);
-      console.log("[Devin BYOK Bridge] 已迁移旧配置: " + tmp3 + " -> " + tmp1);
-    } catch (tmp02) {
-      const tmp12 = tmp02 instanceof Error ? tmp02.message : String(tmp02);
-      console.log("[Devin BYOK Bridge] 迁移旧配置失败: " + tmp12);
+      const tmp3 = path.dirname(this.context.extensionPath);
+      for (const tmp02 of fs.readdirSync(tmp3)) {
+        if (!/devin-byok-bridge|windsurf-byok-bridge/i.test(tmp02)) {
+          continue;
+        }
+        if (path.join(tmp3, tmp02) === this.context.extensionPath) {
+          continue;
+        }
+        fn(path.join(tmp3, tmp02, "proxy-scripts", ".env"));
+      }
+    } catch {}
+    return tmp0.sort((arg0, arg1) => {
+      try {
+        return fs.statSync(arg1).mtimeMs - fs.statSync(arg0).mtimeMs;
+      } catch {
+        return 0;
+      }
+    });
+  }
+  findLegacySystemPromptCandidates() {
+    const tmp0 = [];
+    const tmp1 = new Set();
+    const fn = arg0 => {
+      if (!arg0 || tmp1.has(arg0)) {
+        return;
+      }
+      tmp1.add(arg0);
+      tmp0.push(arg0);
+    };
+    fn(path.join(this.proxyRoot, "prompts", "system-prompt.md"));
+    const tmp2 = this.findWorkspaceProxyRoot();
+    if (tmp2) {
+      fn(path.join(tmp2, "prompts", "system-prompt.md"));
+    }
+    try {
+      const tmp3 = path.dirname(this.context.extensionPath);
+      for (const tmp02 of fs.readdirSync(tmp3)) {
+        if (!/devin-byok-bridge|windsurf-byok-bridge/i.test(tmp02)) {
+          continue;
+        }
+        if (path.join(tmp3, tmp02) === this.context.extensionPath) {
+          continue;
+        }
+        fn(path.join(tmp3, tmp02, "proxy-scripts", "prompts", "system-prompt.md"));
+      }
+    } catch {}
+    return tmp0.sort((arg0, arg1) => {
+      try {
+        return fs.statSync(arg1).mtimeMs - fs.statSync(arg0).mtimeMs;
+      } catch {
+        return 0;
+      }
+    });
+  }
+  migrateUserConfigIfNeeded() {
+    if (!this.usesPersistentUserConfig()) {
+      return;
+    }
+    this.ensureUserConfigDir();
+    const tmp0 = this.getEnvFilePath();
+    if (!fs.existsSync(tmp0)) {
+      for (const tmp02 of this.findLegacyEnvCandidates()) {
+        try {
+          fs.copyFileSync(tmp02, tmp0);
+          this.log("已迁移配置到持久目录: " + tmp02);
+          break;
+        } catch (tmp03) {
+          const tmp12 = tmp03 instanceof Error ? tmp03.message : String(tmp03);
+          this.log("迁移配置失败: " + tmp12);
+        }
+      }
+    }
+    const tmp1 = this.getDefaultSystemPromptFilePath();
+    if (!fs.existsSync(tmp1)) {
+      for (const tmp02 of this.findLegacySystemPromptCandidates()) {
+        try {
+          fs.copyFileSync(tmp02, tmp1);
+          this.log("已迁移系统提示词到持久目录");
+          break;
+        } catch {}
+      }
+    }
+    if (fs.existsSync(tmp0)) {
+      this.rewritePersistentEnvPaths(tmp0);
+    }
+  }
+  rewritePersistentEnvPaths(tmp0) {
+    if (!this.usesPersistentUserConfig() || !fs.existsSync(tmp0)) {
+      return;
+    }
+    const tmp1 = this.readEnvConfig();
+    const tmp2 = this.getDefaultSystemPromptFilePath();
+    let tmp3 = false;
+    if (tmp1.SYSTEM_PROMPT_OVERRIDE === "true") {
+      const tmp02 = (tmp1.SYSTEM_PROMPT_PATH || "").trim();
+      const tmp12 = tmp02 ? this.getResolvedSystemPromptPath(tmp1) : tmp2;
+      const tmp22 = path.normalize(tmp12);
+      if (tmp02 !== tmp22) {
+        tmp1.SYSTEM_PROMPT_PATH = tmp22;
+        tmp3 = true;
+      }
+    }
+    if (tmp3) {
+      this.writeEnvConfig(tmp1);
     }
   }
   onLog(tmp0) {
@@ -330,6 +450,9 @@ class ProxyManager {
     return false;
   }
   getEnvFilePath() {
+    if (this.usesPersistentUserConfig()) {
+      return path.join(this.getUserConfigDir(), ".env");
+    }
     return path.join(this.proxyRoot, ".env");
   }
   getProxyRootPath() {
@@ -389,6 +512,12 @@ class ProxyManager {
         return "./prompts/system-prompt.md";
       }
     }
+    if (this.usesPersistentUserConfig()) {
+      const tmp5 = path.normalize(this.getDefaultSystemPromptFilePath());
+      if (tmp2 === tmp5) {
+        return tmp5;
+      }
+    }
     return tmp1;
   }
   getCompletionTimeoutMs(tmp0) {
@@ -407,7 +536,17 @@ class ProxyManager {
     if (path.isAbsolute(tmp1)) {
       return tmp1;
     }
-    return path.normalize(path.join(this.proxyRoot, tmp1));
+    const tmp2 = this.usesPersistentUserConfig() ? this.getUserConfigDir() : this.proxyRoot;
+    return path.normalize(path.join(tmp2, tmp1));
+  }
+  resolveEnvForProxySpawn(tmp0) {
+    const tmp1 = {
+      ...tmp0
+    };
+    if (String(tmp1.SYSTEM_PROMPT_OVERRIDE || "").toLowerCase() === "true") {
+      tmp1.SYSTEM_PROMPT_PATH = this.getResolvedSystemPromptPath(tmp1);
+    }
+    return tmp1;
   }
   writeEnvConfig(tmp0) {
     const tmp1 = this.getEnvFilePath();
@@ -462,7 +601,8 @@ class ProxyManager {
     tmp6.push("COMPLETION_TIMEOUT_MS=" + this.getCompletionTimeoutMs(tmp0).toString());
     if (tmp0.SYSTEM_PROMPT_OVERRIDE) {
       tmp6.push("SYSTEM_PROMPT_OVERRIDE=" + tmp0.SYSTEM_PROMPT_OVERRIDE);
-      tmp6.push("SYSTEM_PROMPT_PATH=" + tmp5);
+      const tmp13 = this.usesPersistentUserConfig() ? this.getResolvedSystemPromptPath(tmp0) : tmp5;
+      tmp6.push("SYSTEM_PROMPT_PATH=" + tmp13);
     }
     if (tmp4.length > 0) {
       tmp6.push("", ...tmp4);
@@ -725,10 +865,10 @@ class ProxyManager {
       return false;
     }
     const tmp3 = this.readEnvConfig();
-    const tmp4 = tmp1 ? {
+    const tmp4 = this.resolveEnvForProxySpawn(tmp1 ? {
       ...tmp3,
       ...tmp1
-    } : tmp3;
+    } : tmp3);
     const tmp5 = this.getHybridPort(tmp4);
     let tmp6 = this.getInferencePort(tmp4);
     if (!(await this.isPortAvailable(tmp5))) {

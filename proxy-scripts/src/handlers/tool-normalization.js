@@ -1,4 +1,12 @@
 export const KNOWN_TOOL_NAMES = new Set(["read_file", "edit", "multi_edit", "write_to_file", "run_command", "grep_search", "find_by_name", "list_dir", "code_search", "command_status", "browser_preview", "todo_list", "ask_user_question", "deploy_web_app", "read_deployment_config", "check_deploy_status", "create_memory", "search_web", "read_url_content", "view_content_chunk", "skill", "edit_notebook", "read_notebook", "trajectory_search", "read_resource", "list_resources", "read_terminal"]);
+const MCP_TOOL_NAME_RE = /^mcp\d+_/i;
+export function isMcpToolName(name) {
+  return MCP_TOOL_NAME_RE.test(String(name || "").trim());
+}
+export function isAllowedToolName(name) {
+  const trimmed = String(name || "").trim();
+  return KNOWN_TOOL_NAMES.has(trimmed) || isMcpToolName(trimmed);
+}
 export function normalizeToolInvocation(arg0, arg1) {
   let tmp2 = arg0;
   const tmp3 = normalizeToolArguments(arg1);
