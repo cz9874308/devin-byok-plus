@@ -170,21 +170,25 @@ export function getActiveMonitorTarget() {
   return activeMonitorTargetId;
 }
 export function emitToolCall(arg0, arg1, arg2, tmp3 = null) {
+  // 增大截断限制以支持大参数的 tool call（如包含大量数据的 heredoc）
+  const MAX_ARGS_LENGTH = 50000; // 从 2000 提升到 50000 字符
   broadcast({
     type: "tool_call",
     ts: Date.now(),
     targetId: monitorTarget(tmp3),
     tool: arg0,
-    args: typeof arg1 === "string" ? arg1.slice(0, 2000) : JSON.stringify(arg1).slice(0, 2000),
+    args: typeof arg1 === "string" ? arg1.slice(0, MAX_ARGS_LENGTH) : JSON.stringify(arg1).slice(0, MAX_ARGS_LENGTH),
     callId: arg2
   });
 }
 export function emitToolResult(arg0, arg1, arg2) {
+  // 增大截断限制以支持大结果的 tool result
+  const MAX_RESULT_LENGTH = 50000; // 从 2000 提升到 50000 字符
   broadcast({
     type: "tool_result",
     ts: Date.now(),
     tool: arg0,
-    result: typeof arg1 === "string" ? arg1.slice(0, 2000) : JSON.stringify(arg1).slice(0, 2000),
+    result: typeof arg1 === "string" ? arg1.slice(0, MAX_RESULT_LENGTH) : JSON.stringify(arg1).slice(0, MAX_RESULT_LENGTH),
     callId: arg2
   });
 }
