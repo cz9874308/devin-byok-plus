@@ -481,7 +481,51 @@ export async function handleModelsRequest(arg0, arg1, arg2) {
 }
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const ALLOW_UNAUTH_CONFIG_POST = process.env.ALLOW_UNAUTH_CONFIG_POST === "true";
-export async function handleConfigRequest(arg0, arg1) {
+const CONFIG_POST_MAX_BYTES = 16384;
+function authorizeConfigPost(arg0, arg1) {
+  if (ADMIN_TOKEN) {
+    const tmp02 = arg0.headers.authorization || "";
+    const tmp12 = tmp02.startsWith("Bearer ") ? tmp02.slice(7) : arg0.headers["x-admin-token"] || "";
+    if (tmp12 !== ADMIN_TOKEN) {
+      jsonResponse(arg0, arg1, 403, {
+        error: "Forbidden: invalid ADMIN_TOKEN"
+      });
+      return false;
+    }
+    return true;
+  }
+  if (!ALLOW_UNAUTH_CONFIG_POST) {
+    const tmp02 = arg0.socket?.remoteAddress || "";
+    const tmp12 = tmp02 === "127.0.0.1" || tmp02 === "::1" || tmp02 === "::ffff:127.0.0.1";
+    if (!tmp12) {
+      jsonResponse(arg0, arg1, 403, {
+        error: "Forbidden: set ADMIN_TOKEN or use localhost"
+      });
+      return false;
+    }
+  }
+  return true;
+}
+function applyConfigPostBody(arg0, arg1, arg2) {
+  const tmp1 = typeof arg2 === "string" ? arg2 : Buffer.isBuffer(arg2) ? arg2.toString("utf8") : "";
+  if (Buffer.byteLength(tmp1, "utf8") > CONFIG_POST_MAX_BYTES) {
+    jsonResponse(arg0, arg1, 413, {
+      error: "Body too large (max " + CONFIG_POST_MAX_BYTES + " bytes)"
+    });
+    return;
+  }
+  try {
+    const tmp02 = JSON.parse(tmp1 || "{}");
+    const tmp12 = setRuntimeConfig(tmp02);
+    console.log("  ⚙️  Config updated: model=" + tmp12.defaultModel + ", maxTokens=" + tmp12.maxTokens);
+    jsonResponse(arg0, arg1, 200, tmp12);
+  } catch (tmp02) {
+    jsonResponse(arg0, arg1, 400, {
+      error: "Invalid JSON: " + tmp02.message
+    });
+  }
+}
+export async function handleConfigRequest(arg0, arg1, arg2 = null) {
   if (arg0.method === "OPTIONS") {
     arg1.writeHead(204, corsHeaders(arg0));
     arg1.end();
@@ -509,35 +553,23 @@ export async function handleConfigRequest(arg0, arg1) {
     return;
   }
   if (arg0.method === "POST") {
-    if (ADMIN_TOKEN) {
-      const tmp02 = arg0.headers.authorization || "";
-      const tmp12 = tmp02.startsWith("Bearer ") ? tmp02.slice(7) : arg0.headers["x-admin-token"] || "";
-      if (tmp12 !== ADMIN_TOKEN) {
-        return jsonResponse(arg0, arg1, 403, {
-          error: "Forbidden: invalid ADMIN_TOKEN"
-        });
-      }
-    } else if (!ALLOW_UNAUTH_CONFIG_POST) {
-      const tmp02 = arg0.socket?.remoteAddress || "";
-      const tmp12 = tmp02 === "127.0.0.1" || tmp02 === "::1" || tmp02 === "::ffff:127.0.0.1";
-      if (!tmp12) {
-        return jsonResponse(arg0, arg1, 403, {
-          error: "Forbidden: set ADMIN_TOKEN or use localhost"
-        });
-      }
+    if (!authorizeConfigPost(arg0, arg1)) {
+      return;
     }
-    const tmp0 = 16384;
+    if (arg2 !== null && arg2 !== undefined) {
+      applyConfigPostBody(arg0, arg1, arg2);
+      return;
+    }
     let tmp1 = "";
     let tmp2 = false;
     arg0.setEncoding("utf8");
     arg0.on("data", arg02 => {
       tmp1 += arg02;
-      if (tmp1.length > tmp0 && !tmp2) {
+      if (tmp1.length > CONFIG_POST_MAX_BYTES && !tmp2) {
         tmp2 = true;
-        const tmp02 = {
-          error: "Body too large (max " + tmp0 + " bytes)"
-        };
-        jsonResponse(arg0, arg1, 413, tmp02);
+        jsonResponse(arg0, arg1, 413, {
+          error: "Body too large (max " + CONFIG_POST_MAX_BYTES + " bytes)"
+        });
         arg0.destroy();
       }
     });
@@ -545,17 +577,7 @@ export async function handleConfigRequest(arg0, arg1) {
       if (tmp2) {
         return;
       }
-      try {
-        const tmp02 = JSON.parse(tmp1);
-        const tmp12 = setRuntimeConfig(tmp02);
-        console.log("  ⚙️  Config updated: model=" + tmp12.defaultModel + ", maxTokens=" + tmp12.maxTokens);
-        jsonResponse(arg0, arg1, 200, tmp12);
-      } catch (tmp02) {
-        const tmp12 = {
-          error: "Invalid JSON: " + tmp02.message
-        };
-        jsonResponse(arg0, arg1, 400, tmp12);
-      }
+      applyConfigPostBody(arg0, arg1, tmp1);
     });
     return;
   }

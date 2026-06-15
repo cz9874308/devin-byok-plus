@@ -77,8 +77,9 @@ function requiresConfiguredDefaultModel(arg0) {
     return !getSlotModel(tmp2);
   }
   const tmp3 = tmp1 && !tmp1.startsWith("MODEL_") ? tmp1 : "";
-  return (MODEL_MAP[tmp1] || MODEL_MAP[tmp3]) === "__DEFAULT__";
+  return (MODEL_MAP[tmp1] || MODEL_MAP[tmp3]) === "__DEFAULT__" && !getDefaultModel();
 }
+export { requiresConfiguredDefaultModel };
 function writeModelConfigError(arg0, arg1, arg2) {
   arg0.writeHead(200, streamHeaders());
   arg0.write(wrapEnvelope(buildErrorChunk(arg1, arg2)));

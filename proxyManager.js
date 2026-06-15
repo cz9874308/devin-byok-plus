@@ -675,7 +675,7 @@ class ProxyManager {
           fn();
         });
       });
-      tmp32.setTimeout(2000, () => tmp32.destroy(new Error("timeout")));
+      tmp32.setTimeout(10000, () => tmp32.destroy(new Error("timeout")));
       tmp32.on("error", fn2);
       tmp32.end(tmp4);
     });
@@ -701,7 +701,7 @@ class ProxyManager {
           fn();
         }
       };
-      tmp6 = setTimeout(() => fn3(new Error("timeout")), 2000);
+      tmp6 = setTimeout(() => fn3(new Error("timeout")), 10000);
       tmp22.on("error", fn3);
       const tmp8 = {
         ":method": "POST",

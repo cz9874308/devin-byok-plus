@@ -3,10 +3,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import http from "node:http";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 import { sanitizeAnthropicMessages } from "../proxy-scripts/src/handlers/parse-request.js";
-import { shouldFallbackToChatCompletions, toChatCompletionsMessages, buildOpenAIChatCompletionsBody } from "../proxy-scripts/src/handlers/chat.js";
+import { shouldFallbackToChatCompletions, toChatCompletionsMessages, buildOpenAIChatCompletionsBody, requiresConfiguredDefaultModel } from "../proxy-scripts/src/handlers/chat.js";
+import { setRuntimeConfig, handleConfigRequest } from "../proxy-scripts/src/handlers/models.js";
 import { buildAnthropicThinkingPayload, supportsAdaptiveClaudeThinking } from "../proxy-scripts/src/handlers/byok-slots.js";
 import { buildGatewayCapabilityKey, clearGatewayCapabilityCache, getGatewayCapability, markGatewayCapability, _getGatewayCapabilityCacheSizeForTests } from "../proxy-scripts/src/handlers/gateway-capability.js";
 
@@ -14,6 +18,54 @@ const require = createRequire(import.meta.url);
 const { readClaudeUserConfig, readCodexUserConfig } = require("../externalConfigImporter.js");
 const { PatchManager } = require("../patchManager.js");
 const gatewayUrl = require("../gatewayUrl.js");
+const proxyRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "proxy-scripts");
+
+function httpJsonRequest(port, method, reqPath, body = null, timeoutMs = 3000) {
+  return new Promise((resolve, reject) => {
+    const payload = body == null ? null : JSON.stringify(body);
+    const started = Date.now();
+    const req = http.request({
+      hostname: "127.0.0.1",
+      port,
+      path: reqPath,
+      method,
+      headers: payload ? {
+        "content-type": "application/json",
+        "content-length": Buffer.byteLength(payload)
+      } : {}
+    }, res => {
+      const chunks = [];
+      res.on("data", chunk => chunks.push(chunk));
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode || 0,
+          body: Buffer.concat(chunks).toString("utf8"),
+          ms: Date.now() - started
+        });
+      });
+    });
+    req.setTimeout(timeoutMs, () => req.destroy(new Error("timeout")));
+    req.on("error", reject);
+    if (payload) {
+      req.end(payload);
+    } else {
+      req.end();
+    }
+  });
+}
+
+async function waitForHybridConfigEndpoint(port, attempts = 40) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const result = await httpJsonRequest(port, "GET", "/api/config", null, 1000);
+      if (result.status === 200) {
+        return;
+      }
+    } catch {}
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error("hybrid-server did not become ready on port " + port);
+}
 
 test("sanitizeAnthropicMessages strips unsigned thinking and keeps signed thinking", () => {
   const messages = [{
@@ -70,6 +122,69 @@ test("sanitizeAnthropicMessages normalizes Bedrock-incompatible tool ids", () =>
   assert.match(toolUseId, /^[a-zA-Z0-9_-]+$/);
   assert.notEqual(toolUseId, "toolu_01.bad:id");
   assert.equal(result[1].content[0].tool_use_id, toolUseId);
+});
+
+test("requiresConfiguredDefaultModel allows __DEFAULT__ models when default model is configured", () => {
+  setRuntimeConfig({
+    defaultModel: "gpt-5.5",
+    BYOK1_MODEL: "gpt-5.5"
+  });
+  assert.equal(requiresConfiguredDefaultModel("MODEL_GOOGLE_GEMINI_2_5_FLASH"), false);
+  assert.equal(requiresConfiguredDefaultModel("MODEL_CHAT"), false);
+  assert.equal(requiresConfiguredDefaultModel("MODEL_CLAUDE_4_OPUS"), false);
+});
+
+test("requiresConfiguredDefaultModel blocks __DEFAULT__ models when default model is missing", () => {
+  setRuntimeConfig({
+    defaultModel: "",
+    DEFAULT_MODEL: "",
+    BYOK1_MODEL: ""
+  });
+  assert.equal(requiresConfiguredDefaultModel("MODEL_GOOGLE_GEMINI_2_5_FLASH"), true);
+  assert.equal(requiresConfiguredDefaultModel("MODEL_CHAT"), true);
+});
+
+test("requiresConfiguredDefaultModel blocks missing BYOK slot models independently", () => {
+  setRuntimeConfig({
+    defaultModel: "gpt-5.5",
+    BYOK1_MODEL: "gpt-5.5",
+    BYOK2_MODEL: ""
+  });
+  assert.equal(requiresConfiguredDefaultModel("MODEL_CLAUDE_4_OPUS_BYOK"), false);
+  assert.equal(requiresConfiguredDefaultModel("MODEL_CLAUDE_4_OPUS_THINKING_BYOK"), true);
+});
+
+test("handleConfigRequest applies POST body when hybrid passes buffered body", async () => {
+  setRuntimeConfig({
+    defaultModel: "",
+    BYOK1_MODEL: ""
+  });
+  let status = 0;
+  let body = "";
+  const req = {
+    method: "POST",
+    headers: {},
+    socket: {
+      remoteAddress: "127.0.0.1"
+    }
+  };
+  const res = {
+    writeHead(code) {
+      status = code;
+    },
+    end(payload) {
+      body = payload;
+    }
+  };
+  await handleConfigRequest(req, res, JSON.stringify({
+    defaultModel: "claude-sonnet-4-6",
+    BYOK1_MODEL: "claude-sonnet-4-6",
+    BYOK2_MODEL: "claude-opus-4-8-thinking"
+  }));
+  assert.equal(status, 200);
+  const parsed = JSON.parse(body);
+  assert.equal(parsed.defaultModel, "claude-sonnet-4-6");
+  assert.equal(parsed.byok2.model, "claude-opus-4-8-thinking");
 });
 
 test("shouldFallbackToChatCompletions detects unsupported responses gateways", () => {
@@ -252,4 +367,46 @@ test("PatchManager recognizes dynamic loopback patch URLs", () => {
   assert.match(content, /127\.0\.0\.1:4444/);
   assert.equal(PatchManager.isPatched(content, rules[0], "http://127.0.0.1:3333", "http://127.0.0.1:4444"), true);
   assert.equal(PatchManager.isPatched(content, rules[2], "http://127.0.0.1:3333", "http://127.0.0.1:4444"), true);
+});
+
+test("hybrid-server POST /api/config hot reload responds without timeout", {
+  timeout: 15000
+}, async () => {
+  const port = 31997;
+  const child = spawn(process.execPath, ["src/hybrid-server.js"], {
+    cwd: proxyRoot,
+    env: {
+      ...process.env,
+      HYBRID_PORT: String(port),
+      BIND_HOST: "127.0.0.1"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  try {
+    await waitForHybridConfigEndpoint(port);
+    const posted = await httpJsonRequest(port, "POST", "/api/config", {
+      defaultModel: "integration-test-model",
+      BYOK1_MODEL: "integration-test-model",
+      BYOK2_MODEL: "integration-test-thinking"
+    }, 2000);
+    assert.equal(posted.status, 200, posted.body);
+    assert.ok(posted.ms < 2000, "POST /api/config took " + posted.ms + "ms");
+    const updated = JSON.parse(posted.body);
+    assert.equal(updated.defaultModel, "integration-test-model");
+    assert.equal(updated.byok2.model, "integration-test-thinking");
+    const fetched = await httpJsonRequest(port, "GET", "/api/config");
+    assert.equal(fetched.status, 200);
+    const current = JSON.parse(fetched.body);
+    assert.equal(current.defaultModel, "integration-test-model");
+    assert.equal(current.byok2.model, "integration-test-thinking");
+  } finally {
+    child.kill("SIGTERM");
+    await new Promise(resolve => {
+      const timer = setTimeout(resolve, 3000);
+      child.once("exit", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
 });
