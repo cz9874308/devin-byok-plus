@@ -27,6 +27,18 @@ esbuild
   .then(() => {
     console.log('✅ Build completed successfully');
 
+    // 复制 WebView 资源
+    console.log('📦 Copying WebView resources...');
+    const mediaDir = path.join(__dirname, '..', 'media');
+    if (!fs.existsSync(mediaDir)) {
+      fs.mkdirSync(mediaDir, { recursive: true });
+    }
+
+    const sidebarSource = path.join(__dirname, '..', 'resources', 'webviews', 'sidebar.js');
+    const sidebarTarget = path.join(mediaDir, 'sidebar.js');
+    fs.copyFileSync(sidebarSource, sidebarTarget);
+    console.log('✅ WebView resources copied successfully');
+
     // 复制 proxy 运行时代码
     console.log('📦 Copying proxy runtime...');
     const proxySource = path.join(__dirname, '..', 'src', 'proxy');
