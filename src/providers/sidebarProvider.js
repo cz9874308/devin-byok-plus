@@ -3050,7 +3050,7 @@ input:focus, select:focus {
             </div>
             <input type="hidden" id="patchApiUrl" value="${esc(tmp3)}">
             <input type="hidden" id="patchInferenceUrl" value="${esc(tmp4)}">
-            <div id="patchPathDisplay" class="patch-path">${tmp6 ? "<b>补丁路径</b> " + esc(tmp6) : "<b>补丁路径</b> 自动检测；非默认安装请点“选择路径”"}</div>
+            <div id="patchPathDisplay" class="patch-path">${tmp6 ? "<b>补丁路径</b> " + esc(tmp6) : "<b>补丁路径</b> 自动检测；非默认安装请点\"选择路径\""}</div>
             <div class="btns" style="margin-bottom:8px">
                 <button type="button" class="btn btn-s sm" data-ws-action="locateExtJs">选择路径</button>
                 <button type="button" class="btn btn-s sm" data-ws-action="clearExtJsPath">自动检测</button>
