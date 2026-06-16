@@ -965,6 +965,55 @@
     tmp0.setState(tmp3);
   }
 
+  // 更新标签页徽章
+  function updateTabBadges() {
+    // 检查配置完整性
+    const byok1Key = fn4("cfgByok1Key")?.value || "";
+    const byok1Model = fn4("cfgByok1Model")?.value || "";
+    const byok2Key = fn4("cfgByok2Key")?.value || "";
+    const byok2Model = fn4("cfgByok2Model")?.value || "";
+
+    const configBadge = fn4("configBadge");
+    if (configBadge) {
+      // 如果任一 BYOK 未配置，显示警告徽章
+      if (!byok1Key || !byok1Model || !byok2Key || !byok2Model) {
+        configBadge.classList.remove("hidden", "badge-success");
+        configBadge.classList.add("badge-warning");
+        configBadge.textContent = "!";
+      } else {
+        configBadge.classList.add("hidden");
+      }
+    }
+  }
+
+  // 监听配置变更，更新徽章
+  const configFields = ["cfgByok1Key", "cfgByok1Model", "cfgByok2Key", "cfgByok2Model"];
+  configFields.forEach(fieldId => {
+    const field = fn4(fieldId);
+    if (field) {
+      field.addEventListener("change", updateTabBadges);
+    }
+  });
+
+  // 初始更新徽章
+  updateTabBadges();
+
+  // 快捷键支持：Cmd/Ctrl + 1/2/3 切换标签页
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === "1") {
+        e.preventDefault();
+        switchTab("tab-config");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        switchTab("tab-control");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        switchTab("tab-system");
+      }
+    }
+  });
+
   // 恢复上次选择的标签页
   const initialTab = tmp3.activeTab || "tab-config";
   switchTab(initialTab);

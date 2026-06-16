@@ -2417,12 +2417,47 @@ input:focus, select:focus {
   color: ${tmp15};
   border: 1px solid ${tmp21};
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  background: ${tmp15};
+  border-radius: 3px 3px 0 0;
 }
 .tab-content {
   display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
 }
 .tab-content.active {
   display: block;
+  animation: fadeIn 0.2s ease-in-out forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* 响应式设计：窄屏幕优化 */
+@media (max-width: 400px) {
+  .tabs {
+    gap: 2px;
+    padding: 2px;
+  }
+  .tab-btn {
+    font-size: 10px;
+    padding: 5px 2px;
+  }
+  .tab-badge {
+    min-width: 14px;
+    height: 14px;
+    font-size: 9px;
+    margin-left: 2px;
+  }
 }
 
 /* ── Misc ── */
@@ -2806,6 +2841,27 @@ input:focus, select:focus {
 .guide-block:hover {
   background: rgba(255, 255, 255, 0.02);
 }
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  background: var(--vscode-errorForeground, #ef4444);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tab-badge.badge-success {
+  background: var(--vscode-testing-iconPassed, #34d399);
+}
+.tab-badge.badge-warning {
+  background: var(--vscode-notificationsWarningIcon-foreground, #fbbf24);
+}
 .byok1-stripe {
   border-left: 3px solid #0d9488;
 }
@@ -2874,9 +2930,18 @@ input:focus, select:focus {
 </div>
 
 <div class="tabs">
-    <button type="button" class="tab-btn active" data-tab="tab-config">配置连接</button>
-    <button type="button" class="tab-btn" data-tab="tab-control">控制状态</button>
-    <button type="button" class="tab-btn" data-tab="tab-system">系统补丁</button>
+    <button type="button" class="tab-btn active" data-tab="tab-config">
+        配置连接
+        <span class="tab-badge hidden" id="configBadge">!</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="tab-control">
+        控制状态
+        <span class="tab-badge hidden" id="controlBadge">●</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="tab-system">
+        系统补丁
+        <span class="tab-badge hidden" id="systemBadge">!</span>
+    </button>
 </div>
 
 <div id="mainPanel" class="">
