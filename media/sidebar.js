@@ -131,7 +131,7 @@
     }
     const tmp4 = fn4("patchPathDisplay");
     if (tmp4) {
-      tmp4.innerHTML = arg0.path ? "<b>补丁路径</b> " + fn6(arg0.path) : "<b>补丁路径</b> 自动检测失败；非默认安装请点"选择路径"";
+      tmp4.innerHTML = arg0.path ? "<b>补丁路径</b> " + fn6(arg0.path) : "<b>补丁路径</b> 自动检测失败；非默认安装请点\"选择路径\"";
     }
   }
   function fn13(arg0, arg1) {
