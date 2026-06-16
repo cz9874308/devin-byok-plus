@@ -481,7 +481,78 @@ export async function handleModelsRequest(arg0, arg1, arg2) {
 }
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const ALLOW_UNAUTH_CONFIG_POST = process.env.ALLOW_UNAUTH_CONFIG_POST === "true";
-export async function handleConfigRequest(arg0, arg1) {
+const CONFIG_POST_MAX_BYTES = 16384;
+
+/**
+ * 授权配置修改请求
+ * @param {Object} req - HTTP 请求对象
+ * @param {Object} res - HTTP 响应对象
+ * @returns {boolean} - 是否通过授权
+ */
+function authorizeConfigPost(req, res) {
+  if (ADMIN_TOKEN) {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : req.headers["x-admin-token"] || "";
+
+    if (token !== ADMIN_TOKEN) {
+      jsonResponse(req, res, 403, { error: "Forbidden: invalid ADMIN_TOKEN" });
+      return false;
+    }
+    return true;
+  }
+
+  if (!ALLOW_UNAUTH_CONFIG_POST) {
+    const remoteAddr = req.socket?.remoteAddress || "";
+    const isLocal = remoteAddr === "127.0.0.1" ||
+                    remoteAddr === "::1" ||
+                    remoteAddr === "::ffff:127.0.0.1";
+
+    if (!isLocal) {
+      jsonResponse(req, res, 403, {
+        error: "Forbidden: set ADMIN_TOKEN or use localhost"
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * 应用配置 POST 请求体
+ * @param {Object} req - HTTP 请求对象
+ * @param {Object} res - HTTP 响应对象
+ * @param {string|Buffer} body - 请求体内容
+ */
+function applyConfigPostBody(req, res, body) {
+  const bodyStr = typeof body === "string"
+    ? body
+    : Buffer.isBuffer(body)
+      ? body.toString("utf8")
+      : "";
+
+  if (Buffer.byteLength(bodyStr, "utf8") > CONFIG_POST_MAX_BYTES) {
+    jsonResponse(req, res, 413, {
+      error: `Body too large (max ${CONFIG_POST_MAX_BYTES} bytes)`
+    });
+    return;
+  }
+
+  try {
+    const config = JSON.parse(bodyStr || "{}");
+    const updated = setRuntimeConfig(config);
+    console.log(`  ⚙️  Config updated: model=${updated.defaultModel}, maxTokens=${updated.maxTokens}`);
+    jsonResponse(req, res, 200, updated);
+  } catch (err) {
+    jsonResponse(req, res, 400, {
+      error: `Invalid JSON: ${err.message}`
+    });
+  }
+}
+
+export async function handleConfigRequest(arg0, arg1, bufferedBody = null) {
   if (arg0.method === "OPTIONS") {
     arg1.writeHead(204, corsHeaders(arg0));
     arg1.end();
@@ -509,54 +580,37 @@ export async function handleConfigRequest(arg0, arg1) {
     return;
   }
   if (arg0.method === "POST") {
-    if (ADMIN_TOKEN) {
-      const tmp02 = arg0.headers.authorization || "";
-      const tmp12 = tmp02.startsWith("Bearer ") ? tmp02.slice(7) : arg0.headers["x-admin-token"] || "";
-      if (tmp12 !== ADMIN_TOKEN) {
-        return jsonResponse(arg0, arg1, 403, {
-          error: "Forbidden: invalid ADMIN_TOKEN"
-        });
-      }
-    } else if (!ALLOW_UNAUTH_CONFIG_POST) {
-      const tmp02 = arg0.socket?.remoteAddress || "";
-      const tmp12 = tmp02 === "127.0.0.1" || tmp02 === "::1" || tmp02 === "::ffff:127.0.0.1";
-      if (!tmp12) {
-        return jsonResponse(arg0, arg1, 403, {
-          error: "Forbidden: set ADMIN_TOKEN or use localhost"
-        });
-      }
+    if (!authorizeConfigPost(arg0, arg1)) {
+      return;
     }
-    const tmp0 = 16384;
-    let tmp1 = "";
-    let tmp2 = false;
+
+    // ✅ 关键改进：接受预缓冲的请求体
+    if (bufferedBody !== null && bufferedBody !== undefined) {
+      applyConfigPostBody(arg0, arg1, bufferedBody);
+      return;
+    }
+
+    // Fallback: 流式读取请求体
+    let body = "";
+    let oversized = false;
     arg0.setEncoding("utf8");
-    arg0.on("data", arg02 => {
-      tmp1 += arg02;
-      if (tmp1.length > tmp0 && !tmp2) {
-        tmp2 = true;
-        const tmp02 = {
-          error: "Body too large (max " + tmp0 + " bytes)"
-        };
-        jsonResponse(arg0, arg1, 413, tmp02);
+
+    arg0.on("data", chunk => {
+      body += chunk;
+      if (body.length > CONFIG_POST_MAX_BYTES && !oversized) {
+        oversized = true;
+        jsonResponse(arg0, arg1, 413, {
+          error: `Body too large (max ${CONFIG_POST_MAX_BYTES} bytes)`
+        });
         arg0.destroy();
       }
     });
+
     arg0.on("end", () => {
-      if (tmp2) {
-        return;
-      }
-      try {
-        const tmp02 = JSON.parse(tmp1);
-        const tmp12 = setRuntimeConfig(tmp02);
-        console.log("  ⚙️  Config updated: model=" + tmp12.defaultModel + ", maxTokens=" + tmp12.maxTokens);
-        jsonResponse(arg0, arg1, 200, tmp12);
-      } catch (tmp02) {
-        const tmp12 = {
-          error: "Invalid JSON: " + tmp02.message
-        };
-        jsonResponse(arg0, arg1, 400, tmp12);
-      }
+      if (oversized) return;
+      applyConfigPostBody(arg0, arg1, body);
     });
+
     return;
   }
   jsonResponse(arg0, arg1, 405, {

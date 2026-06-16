@@ -857,4 +857,91 @@
     }
   });
   fn20();
+
+  // ========== 静默自动保存功能 ==========
+  // 配置字段白名单（需要自动保存的字段）
+  const AUTO_SAVE_FIELDS = new Set([
+    'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort',
+    'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort',
+    'cfgHybridPort', 'cfgInferencePort', 'cfgAnthropicPath', 'cfgOpenaiPath',
+    'cfgMaxTokens', 'cfgCompletionTimeoutMs'
+  ]);
+
+  let autoSaveTimer = null;
+
+  /**
+   * 调度自动保存
+   * @param {boolean} immediate - 是否立即保存
+   */
+  function scheduleAutoSave(immediate = false) {
+    clearTimeout(autoSaveTimer);
+
+    if (immediate) {
+      // 立即保存（用于 change 事件）
+      fn5('saveConfig', {
+        config: collectCurrentConfig(),
+        silent: true  // 静默保存标志
+      });
+      return;
+    }
+
+    // 防抖：650ms 后保存（用于 input 事件）
+    autoSaveTimer = setTimeout(() => {
+      fn5('saveConfig', {
+        config: collectCurrentConfig(),
+        silent: true
+      });
+    }, 650);
+  }
+
+  /**
+   * 判断是否为自动保存字段
+   */
+  function isAutoSaveField(element) {
+    return element && element.id && AUTO_SAVE_FIELDS.has(element.id);
+  }
+
+  /**
+   * 收集当前配置
+   */
+  function collectCurrentConfig() {
+    const config = {};
+
+    AUTO_SAVE_FIELDS.forEach(fieldId => {
+      const element = fn4(fieldId);
+      if (element) {
+        config[fieldId] = element.type === 'checkbox'
+          ? element.checked
+          : element.value;
+      }
+    });
+
+    return config;
+  }
+
+  // 注册自动保存事件监听器
+  document.addEventListener('DOMContentLoaded', () => {
+    // 监听所有输入字段
+    const inputs = document.querySelectorAll('input, select, textarea');
+
+    inputs.forEach(input => {
+      // input 事件：输入时防抖保存
+      input.addEventListener('input', (e) => {
+        if (isAutoSaveField(e.target)) {
+          scheduleAutoSave(false);
+        }
+      });
+
+      // change 事件：变更完成后立即保存
+      input.addEventListener('change', (e) => {
+        if (isAutoSaveField(e.target)) {
+          scheduleAutoSave(true);
+        }
+      });
+    });
+
+    console.log('✅ 自动保存已启用');
+  });
+  // ========== 自动保存功能结束 ==========
+
 })();
