@@ -178,6 +178,20 @@ function renderSidebarHtml(ctx) {
                 <div class="st"><b id="statRequests">${tmp02.requestCount}</b><small>请求</small></div>
             </div>
         </div>
+        <div class="card" style="margin-top:12px;margin-bottom:0">
+            <div class="card-head between">
+                <span>代理日志</span>
+                <div class="row" style="gap:4px">
+                    <button type="button" class="btn btn-s sm" data-ws-action="clearLogs" style="font-size:10px;padding:3px 6px">清空</button>
+                    <button type="button" class="btn btn-s sm" data-ws-action="toggleLogPause" style="font-size:10px;padding:3px 6px" id="logPauseBtn">暂停</button>
+                    <button type="button" class="btn btn-s sm" data-ws-action="copyLogs" style="font-size:10px;padding:3px 6px">复制</button>
+                </div>
+            </div>
+            <div id="logBody">
+                <div class="log-box" id="logBox" style="max-height:300px">${tmp36}</div>
+                <div id="copyToast" style="display:none;text-align:center;color:#34d399;font-size:10px;margin-top:4px">已复制</div>
+            </div>
+        </div>
     </div>
 
     <!-- TAB 3: System -->
@@ -193,16 +207,6 @@ function renderSidebarHtml(ctx) {
             <div id="patchActionState" class="action-state hidden">
                 <div id="patchActionText" class="action-text"></div>
                 <div class="action-progress"><div class="action-progress-bar"></div></div>
-            </div>
-        </div>
-        <div class="card" style="margin-bottom:0">
-            <div class="card-head between">
-                <span class="toggle-section" data-ws-toggle="logBody">日志</span>
-                <button type="button" class="btn btn-s sm" data-ws-action="copyLogs" style="font-size:10px;padding:3px 6px">复制</button>
-            </div>
-            <div id="logBody">
-                <div class="log-box" id="logBox">${tmp36}</div>
-                <div id="copyToast" style="display:none;text-align:center;color:#34d399;font-size:10px;margin-top:4px">已复制</div>
             </div>
         </div>
     </div>
