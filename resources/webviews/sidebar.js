@@ -757,6 +757,25 @@
           }, 2000);
         }
       });
+    } else if (tmp32 === "clearLogs") {
+      const tmp02 = fn4("logBox");
+      if (tmp02) {
+        tmp02.innerHTML = "";
+      }
+    } else if (tmp32 === "toggleLogPause") {
+      const tmp02 = fn4("logPauseBtn");
+      const tmp13 = fn4("logBox");
+      if (!tmp02 || !tmp13) {
+        return;
+      }
+      const tmp03 = tmp13.dataset.paused === "true";
+      if (tmp03) {
+        tmp13.dataset.paused = "false";
+        tmp02.textContent = "暂停";
+      } else {
+        tmp13.dataset.paused = "true";
+        tmp02.textContent = "继续";
+      }
     }
   });
   document.addEventListener("change", arg0 => {
@@ -841,6 +860,10 @@
     } else if (tmp12.type === "log") {
       const tmp02 = fn4("logBox");
       if (!tmp02) {
+        return;
+      }
+      // 检查是否暂停
+      if (tmp02.dataset.paused === "true") {
         return;
       }
       if (tmp02.textContent && tmp02.textContent.trim() === "等待日志...") {
