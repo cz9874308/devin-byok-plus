@@ -74,10 +74,6 @@ function renderSidebarHtml(ctx) {
 <div id="mainPanel" class="">
     <!-- hidden config fields, always active in the background -->
     <input type="hidden" id="cfgApiMode" value="unified_custom">
-    <input type="hidden" id="cfgAnthropicPath" value="${esc(tmp2.ANTHROPIC_API_PATH || '/v1/messages')}">
-    <input type="hidden" id="cfgOpenaiPath" value="${esc(tmp2.OPENAI_API_PATH || '/v1/responses')}">
-    <input type="hidden" id="cfgMaxTokens" value="${esc(tmp2.MAX_TOKENS || '16384')}">
-    <input type="hidden" id="cfgCompletionTimeoutMs" value="${esc(tmp2.COMPLETION_TIMEOUT_MS || '12000')}">
     <input type="hidden" id="cfgSysPromptOverride" value="${tmp9 ? 'true' : ''}">
     <input type="hidden" id="cfgSysPromptPath" value="${esc(tmp8)}">
     <input type="hidden" id="cfgDefaultModelCustom" value="">
@@ -140,6 +136,29 @@ function renderSidebarHtml(ctx) {
             <div class="row" style="gap:4px;flex-shrink:0">
                 <button type="button" class="btn btn-s sm" data-ws-action="openPromptTemplates" style="padding:4px 8px">模板</button>
                 <button type="button" class="btn btn-s sm" data-ws-action="openSystemPrompt" style="padding:4px 8px">自定义</button>
+            </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+            <div class="card-head">
+                <span class="toggle-section collapsed" data-ws-toggle="advancedRouteBody">高级路由配置</span>
+            </div>
+            <div id="advancedRouteBody" class="hidden" style="padding:8px 0">
+                <div class="fg">
+                    <label>Anthropic API 路径</label>
+                    <input type="text" id="cfgAnthropicPath" value="${esc(tmp2.ANTHROPIC_API_PATH || '/v1/messages')}" placeholder="/v1/messages">
+                </div>
+                <div class="fg">
+                    <label>OpenAI API 路径</label>
+                    <input type="text" id="cfgOpenaiPath" value="${esc(tmp2.OPENAI_API_PATH || '/v1/responses')}" placeholder="/v1/responses">
+                </div>
+                <div class="fg">
+                    <label>最大 Token</label>
+                    <input type="number" id="cfgMaxTokens" value="${esc(tmp2.MAX_TOKENS || '16384')}" placeholder="16384">
+                </div>
+                <div class="fg" style="margin-bottom:0">
+                    <label>完成超时（毫秒）</label>
+                    <input type="number" id="cfgCompletionTimeoutMs" value="${esc(tmp2.COMPLETION_TIMEOUT_MS || '12000')}" placeholder="12000">
+                </div>
             </div>
         </div>
         <div class="btns" style="margin-top:12px;padding-top:12px;border-top:1px solid ${tmp21}">
