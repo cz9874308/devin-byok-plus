@@ -45,7 +45,6 @@ npx @vscode/vsce package --no-dependencies
 - ✅ `README.md` - 使用说明
 - ✅ `LICENSE.txt` - 许可证文件
 - ✅ `CHANGELOG.md` - 更新日志
-- ✅ `media/icon.svg` - 插件图标（128x128 推荐）
 
 ### 3. .vscodeignore 配置
 
@@ -144,13 +143,6 @@ npx vsce publish major  # 2.0.2 -> 3.0.0
 ### Q: 打包时报错 "Missing publisher name"
 
 **A**: 确保 `package.json` 中有 `publisher` 字段。
-
-### Q: 图标不显示
-
-**A**: 确保：
-- 图标文件存在于 `media/icon.svg`
-- `package.json` 中正确配置了 `icon` 字段
-- 图标尺寸建议为 128x128 像素
 
 ### Q: 打包体积过大
 

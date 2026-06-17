@@ -119,9 +119,6 @@ devin-byok-plus/
 ├── LICENSE.txt
 ├── test/
 │   └── bridge.test.mjs       # 核心逻辑单元测试
-├── media/
-│   ├── icon.svg
-│   └── sidebar.js            # 侧栏前端逻辑
 └── proxy-scripts/              # 本地代理（Node ESM）
     ├── package.json
     ├── prompts/system-prompt.md
