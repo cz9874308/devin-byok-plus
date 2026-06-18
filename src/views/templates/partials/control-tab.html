@@ -1,0 +1,98 @@
+<!-- 控制状态 Tab -->
+
+<!-- 流程可视化指示器 -->
+<div class="flow-indicator">
+    <div class="flow-steps">
+        <!-- 步骤 1：配置 -->
+        <div class="flow-step">
+            <div class="flow-step-circle {{flowStep1Class}}">
+                {{flowStep1Icon}}
+            </div>
+            <div class="flow-step-label {{flowStep1LabelClass}}">
+                配置 API
+            </div>
+        </div>
+
+        <div class="flow-divider {{flowDivider1Class}}"></div>
+
+        <!-- 步骤 2：补丁 -->
+        <div class="flow-step">
+            <div class="flow-step-circle {{flowStep2Class}}">
+                {{flowStep2Icon}}
+            </div>
+            <div class="flow-step-label {{flowStep2LabelClass}}">
+                安装补丁
+            </div>
+        </div>
+
+        <div class="flow-divider {{flowDivider2Class}}"></div>
+
+        <!-- 步骤 3：启动 -->
+        <div class="flow-step">
+            <div class="flow-step-circle {{flowStep3Class}}">
+                {{flowStep3Icon}}
+            </div>
+            <div class="flow-step-label {{flowStep3LabelClass}}">
+                启动代理
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能提示 -->
+    <div class="flow-hint">
+        {{flowHintText}}
+    </div>
+</div>
+
+<!-- 端口配置 -->
+<div class="row" style="gap:6px;margin-bottom:12px">
+    <div class="fg" style="flex:1;margin-bottom:0">
+        <label>Hybrid 端口</label>
+        <input type="number" id="cfgHybridPort" value="{{hybridPort}}" placeholder="3006" min="1" max="65535">
+    </div>
+    <div class="fg" style="flex:1;margin-bottom:0">
+        <label>Inference 端口</label>
+        <input type="number" id="cfgInferencePort" value="{{inferencePort}}" placeholder="3001" min="1" max="65535">
+    </div>
+</div>
+
+<!-- 控制按钮 -->
+<div class="btns" style="margin-bottom:12px" id="proxyControlButtons">
+    {{proxyControlButtons}}
+    <button type="button" class="btn btn-s sm" data-ws-action="maintenanceTools">维护工具</button>
+</div>
+
+<!-- 自动启动 + 新窗口 -->
+<div class="row between" style="margin-bottom:12px;padding:4px 0">
+    <div class="row">
+        <span style="font-size:11px;color:{{inputFgColor}}">自动启动</span>
+        <label class="tog"><input type="checkbox" id="cfgAutoStartProxy" {{autoStartChecked}}><span></span></label>
+    </div>
+    <button type="button" class="btn btn-s sm" data-ws-action="newWindow" style="font-size:10px;padding:3px 8px">新窗口</button>
+</div>
+
+<!-- 运行状态统计卡 -->
+<div class="card" style="margin-bottom:0">
+    <div class="card-head" id="proxyStatusTitle">运行状态</div>
+    <div class="stats">
+        <div class="st"><b id="statPort">{{statPort}}</b><small>端口</small></div>
+        <div class="st"><b id="statUptime">{{statUptime}}</b><small>时长</small></div>
+        <div class="st"><b id="statRequests">{{statRequests}}</b><small>请求</small></div>
+    </div>
+</div>
+
+<!-- 代理日志 -->
+<div class="card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-head between">
+        <span>代理日志</span>
+        <div class="row" style="gap:4px">
+            <button type="button" class="btn btn-s sm" data-ws-action="clearLogs" style="font-size:10px;padding:3px 6px">清空</button>
+            <button type="button" class="btn btn-s sm" data-ws-action="toggleLogPause" style="font-size:10px;padding:3px 6px" id="logPauseBtn">暂停</button>
+            <button type="button" class="btn btn-s sm" data-ws-action="copyLogs" style="font-size:10px;padding:3px 6px">复制</button>
+        </div>
+    </div>
+    <div id="logBody">
+        <div class="log-box" id="logBox" style="max-height:300px">{{logContent}}</div>
+        <div id="copyToast" style="display:none;text-align:center;color:#34d399;font-size:10px;margin-top:4px">已复制</div>
+    </div>
+</div>

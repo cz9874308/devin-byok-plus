@@ -596,6 +596,8 @@
     const tmp22 = fn4("statUptime");
     const tmp32 = fn4("statRequests");
     const tmp4 = fn4("proxyControlButtons");
+
+    // 更新控制状态页的统计信息
     if (tmp12) {
       tmp12.textContent = String(arg0.hybridPort || "--");
     }
@@ -609,6 +611,73 @@
       const tmp02 = (arg0.running ? "<button type=\"button\" class=\"btn btn-d\" data-ws-action=\"stopProxy\">停止代理</button>" : "<button type=\"button\" class=\"btn btn-p\" data-ws-action=\"startProxy\" data-ws-mode=\"both\">一键启动</button>") + "<button type=\"button\" class=\"btn btn-s sm\" data-ws-action=\"saveConfig\">仅保存配置</button><button type=\"button\" class=\"btn btn-s sm\" data-ws-action=\"maintenanceTools\">维护工具</button>";
       if (tmp4.innerHTML !== tmp02) {
         tmp4.innerHTML = tmp02;
+      }
+    }
+
+    // 更新全局状态栏
+    const statusBar = fn4("globalStatusBar");
+    if (statusBar) {
+      const statusDot = statusBar.querySelector(".status-dot");
+      const statusIndicator = statusBar.querySelector(".status-indicator");
+      const statusInfoContainer = statusBar.querySelectorAll(".status-info");
+      const actionButton = statusBar.querySelector("button");
+
+      // 更新状态点
+      if (statusDot) {
+        statusDot.classList.toggle("running", arg0.running);
+        statusDot.classList.toggle("stopped", !arg0.running);
+      }
+
+      // 更新状态文本
+      if (statusIndicator) {
+        const statusText = statusIndicator.querySelector(".font-bold");
+        if (statusText) {
+          statusText.textContent = arg0.running ? "运行中" : "已停止";
+        }
+      }
+
+      // 重新渲染整个状态栏（简化版）
+      const statusHtml = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="status-indicator">
+              <span class="status-dot ${arg0.running ? 'running' : 'stopped'}"></span>
+              <span class="font-bold">${arg0.running ? '运行中' : '已停止'}</span>
+            </div>
+            ${arg0.running ? `
+              <span class="status-info">
+                Hybrid: <span class="status-value">${arg0.hybridPort}</span>
+              </span>
+              <span class="status-info">
+                Inference: <span class="status-value">${arg0.inferencePort}</span>
+              </span>
+              <span class="status-info">
+                请求: <span class="status-value">${arg0.requestCount}</span>
+              </span>
+              <span class="status-info">
+                运行: <span class="status-value">${fn28(arg0.uptime)}</span>
+              </span>
+            ` : ''}
+          </div>
+          <div class="flex items-center gap-2">
+            ${arg0.running ? `
+              <button type="button" class="btn btn-d"
+                      data-ws-action="stopProxy"
+                      style="min-height: 24px; padding: 4px 12px; font-size: 10px;">
+                停止
+              </button>
+            ` : `
+              <button type="button" class="btn btn-p"
+                      data-ws-action="startProxy" data-ws-mode="both"
+                      style="min-height: 24px; padding: 4px 12px; font-size: 10px;">
+                启动
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+      if (statusBar.innerHTML !== statusHtml) {
+        statusBar.innerHTML = statusHtml;
       }
     }
   }
@@ -1026,10 +1095,10 @@
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "1") {
         e.preventDefault();
-        switchTab("tab-system");
+        switchTab("tab-config");
       } else if (e.key === "2") {
         e.preventDefault();
-        switchTab("tab-config");
+        switchTab("tab-system");
       } else if (e.key === "3") {
         e.preventDefault();
         switchTab("tab-control");
@@ -1038,7 +1107,7 @@
   });
 
   // 恢复上次选择的标签页
-  const initialTab = tmp3.activeTab || "tab-system";
+  const initialTab = tmp3.activeTab || "tab-config";
   switchTab(initialTab);
   // ========== 标签页功能结束 ==========
 

@@ -1,0 +1,78 @@
+<!-- 配置连接 Tab -->
+<div class="byok-grid">
+    <!-- BYOK #1 配置卡片 -->
+    <div class="guide-block byok-card byok1-stripe" style="margin-bottom:10px">
+        <b>BYOK #1 · Claude Opus 4 BYOK</b>
+        <div class="fg"><label>Base URL（可选）</label><input type="text" id="cfgByok1Host" value="{{byok1Host}}" placeholder="例如 api-a.example.com"></div>
+        <div class="fg"><label>API Key</label><input type="password" id="cfgByok1Key" value="{{byok1Key}}" placeholder="BYOK #1 API Key" autocomplete="off"></div>
+        <div class="btns" style="margin-bottom:6px">
+            <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="claude" data-ws-slot="1">导入 Claude 配置</button>
+            <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="codex" data-ws-slot="1">导入 GPT 配置</button>
+        </div>
+        <div class="row" style="gap:6px;margin-bottom:6px">
+            <select id="cfgByok1Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok1ModelOption}}</select>
+            <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="1" style="padding:4px 8px">加载模型</button>
+        </div>
+        <div class="fg" id="cfgByok1ThinkingEffortRow"><label id="cfgByok1ThinkingLabel">{{byok1ThinkingLabel}}</label><select id="cfgByok1ThinkingEffort">{{byok1ThinkingOptions}}</select></div>
+        <div id="modelFetchStatus1" style="font-size:10px;color:{{textColor}}"></div>
+    </div>
+
+    <!-- BYOK #2 配置卡片 -->
+    <div class="guide-block byok-card byok2-stripe" style="margin-bottom:10px">
+        <b>BYOK #2 · Claude Opus 4 Thinking BYOK</b>
+        <div class="fg"><label>Base URL（可选）</label><input type="text" id="cfgByok2Host" value="{{byok2Host}}" placeholder="例如 api-b.example.com"></div>
+        <div class="fg"><label>API Key</label><input type="password" id="cfgByok2Key" value="{{byok2Key}}" placeholder="BYOK #2 API Key" autocomplete="off"></div>
+        <div class="btns" style="margin-bottom:6px">
+            <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="claude" data-ws-slot="2">导入 Claude 配置</button>
+            <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="codex" data-ws-slot="2">导入 GPT 配置</button>
+        </div>
+        <div class="row" style="gap:6px;margin-bottom:6px">
+            <select id="cfgByok2Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok2ModelOption}}</select>
+            <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="2" style="padding:4px 8px">加载模型</button>
+        </div>
+        <div class="fg" id="cfgByok2ThinkingEffortRow"><label id="cfgByok2ThinkingLabel">{{byok2ThinkingLabel}}</label><select id="cfgByok2ThinkingEffort">{{byok2ThinkingOptions}}</select></div>
+        <div id="modelFetchStatus2" style="font-size:10px;color:{{textColor}}"></div>
+    </div>
+</div>
+
+<!-- 提示词配置 -->
+<div class="row between" style="margin-bottom:8px;padding:6px 8px;border:1px solid {{borderColor}};border-radius:8px;background:rgba(255,255,255,.02)">
+    <div style="min-width:0">
+        <div style="font-size:10px;color:#a1a1aa;font-weight:600">提示词</div>
+        <div style="font-size:9px;color:{{textColor}};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{promptStatus}}</div>
+    </div>
+    <div class="row" style="gap:4px;flex-shrink:0">
+        <button type="button" class="btn btn-s sm" data-ws-action="openPromptTemplates" style="padding:4px 8px">模板</button>
+        <button type="button" class="btn btn-s sm" data-ws-action="openSystemPrompt" style="padding:4px 8px">自定义</button>
+    </div>
+</div>
+
+<!-- 高级路由配置 -->
+<div class="card" style="margin-top:12px">
+    <div class="card-head">
+        <span class="toggle-section collapsed" data-ws-toggle="advancedRouteBody">高级路由配置</span>
+    </div>
+    <div id="advancedRouteBody" class="hidden" style="padding:8px 0">
+        <div class="fg">
+            <label>Anthropic API 路径</label>
+            <input type="text" id="cfgAnthropicPath" value="{{anthropicPath}}" placeholder="/v1/messages">
+        </div>
+        <div class="fg">
+            <label>OpenAI API 路径</label>
+            <input type="text" id="cfgOpenaiPath" value="{{openaiPath}}" placeholder="/v1/responses">
+        </div>
+        <div class="fg">
+            <label>最大 Token</label>
+            <input type="number" id="cfgMaxTokens" value="{{maxTokens}}" placeholder="16384">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+            <label>完成超时（毫秒）</label>
+            <input type="number" id="cfgCompletionTimeoutMs" value="{{completionTimeout}}" placeholder="12000">
+        </div>
+    </div>
+</div>
+
+<!-- 保存按钮 -->
+<div class="btns" style="margin-top:12px;padding-top:12px;border-top:1px solid {{borderColor}}">
+    <button type="button" class="btn btn-p" data-ws-action="saveConfig">💾 保存配置</button>
+</div>

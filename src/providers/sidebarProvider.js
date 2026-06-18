@@ -2575,14 +2575,15 @@ class SidebarProvider {
     const tmp22 = 'var(--vscode-foreground,#d4d4d8)';
     const tmp23 = 'var(--vscode-input-foreground,var(--vscode-foreground,#e4e4e7))';
     const tmp24 = "'Cascadia Code','Fira Code',monospace";
-    const tmp25 = esc(tmp2.BYOK1_ANTHROPIC_API_HOST || tmp2.ANTHROPIC_API_HOST || '');
-    const tmp26 = esc(tmp2.BYOK1_ANTHROPIC_API_KEY || tmp2.ANTHROPIC_API_KEY || '');
-    const tmp27 = esc(tmp2.BYOK1_MODEL || tmp2.DEFAULT_MODEL || '');
-    const tmp28 = esc(tmp2.BYOK2_ANTHROPIC_API_HOST || '');
-    const tmp29 = esc(tmp2.BYOK2_ANTHROPIC_API_KEY || '');
-    const tmp30 = esc(tmp2.BYOK2_MODEL || '');
-    const tmp31 = esc(tmp2.BYOK1_THINKING_EFFORT || tmp2.OPENAI_REASONING_EFFORT || '');
-    const tmp32 = esc(tmp2.BYOK2_THINKING_EFFORT || '');
+    // 注意：以下 BYOK 字段传入原始值，转义统一由 sidebarTemplate 数据准备层处理，避免双重转义
+    const tmp25 = tmp2.BYOK1_ANTHROPIC_API_HOST || tmp2.ANTHROPIC_API_HOST || '';
+    const tmp26 = tmp2.BYOK1_ANTHROPIC_API_KEY || tmp2.ANTHROPIC_API_KEY || '';
+    const tmp27 = tmp2.BYOK1_MODEL || tmp2.DEFAULT_MODEL || '';
+    const tmp28 = tmp2.BYOK2_ANTHROPIC_API_HOST || '';
+    const tmp29 = tmp2.BYOK2_ANTHROPIC_API_KEY || '';
+    const tmp30 = tmp2.BYOK2_MODEL || '';
+    const tmp31 = tmp2.BYOK1_THINKING_EFFORT || tmp2.OPENAI_REASONING_EFFORT || '';
+    const tmp32 = tmp2.BYOK2_THINKING_EFFORT || '';
     const tmp33 = Object.prototype.hasOwnProperty.call(tmp2, 'OPENAI_REASONING_EFFORT')
       ? tmp2.OPENAI_REASONING_EFFORT
       : '';

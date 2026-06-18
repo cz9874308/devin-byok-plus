@@ -1,0 +1,23 @@
+<!-- 系统补丁 Tab -->
+<div class="card" style="margin-bottom:12px">
+    <div class="card-head between">
+        <span>补丁管理</span>
+        <span id="patchBadge" class="badge {{patchBadgeClass}}">{{patchBadgeText}}</span>
+    </div>
+    <input type="hidden" id="patchApiUrl" value="{{patchApiUrl}}">
+    <input type="hidden" id="patchInferenceUrl" value="{{patchInferenceUrl}}">
+    <div id="patchPathDisplay" class="patch-path">{{patchPathDisplay}}</div>
+    <div class="btns" style="margin-bottom:8px">
+        <button type="button" class="btn btn-s sm" data-ws-action="locateExtJs">选择路径</button>
+        <button type="button" class="btn btn-s sm" data-ws-action="clearExtJsPath">自动检测</button>
+        <button type="button" class="btn btn-s sm" data-ws-action="refreshPatchStatus">刷新状态</button>
+    </div>
+    <div class="btns" id="patchActionButtons">
+        <button type="button" class="btn btn-p sm" data-ws-action="applyPatch">安装补丁</button>
+        <button type="button" class="btn btn-s sm" data-ws-action="revertPatch">还原</button>
+    </div>
+    <div id="patchActionState" class="action-state hidden">
+        <div id="patchActionText" class="action-text"></div>
+        <div class="action-progress"><div class="action-progress-bar"></div></div>
+    </div>
+</div>

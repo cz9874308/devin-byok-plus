@@ -584,4 +584,121 @@
     @apply border-l-2 pl-2 text-vsdesc;
     border-color: var(--vscode-button-background, #0d9488);
   }
+
+  /* ========== 全局状态栏 ========== */
+  .global-status-bar {
+    @apply sticky top-0 z-50 mb-3;
+    @apply bg-vsinput backdrop-blur-sm;
+    @apply border border-vsborder rounded-lg;
+    @apply px-3 py-2 text-[10px];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: color-mix(in srgb, var(--vscode-input-background) 95%, transparent);
+  }
+
+  .status-indicator {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full transition-colors;
+  }
+
+  .status-dot.running {
+    @apply bg-green-500;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .status-dot.stopped {
+    @apply bg-gray-500;
+  }
+
+  .status-info {
+    @apply text-vsdesc;
+  }
+
+  .status-value {
+    @apply text-vslink font-mono font-bold;
+  }
+
+  /* ========== 流程指示器 ========== */
+  .flow-indicator {
+    @apply mb-4 p-4 rounded-lg;
+    @apply bg-gradient-to-r from-teal-900/20 to-blue-900/20;
+    @apply border border-teal-500/30;
+  }
+
+  .flow-steps {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .flow-step {
+    @apply flex items-center gap-2 flex-1;
+  }
+
+  .flow-step-circle {
+    @apply w-8 h-8 rounded-full flex items-center justify-center;
+    @apply text-xs font-bold transition-all duration-300;
+  }
+
+  .flow-step-circle.pending {
+    @apply bg-gray-700 text-gray-400;
+  }
+
+  .flow-step-circle.active {
+    @apply bg-teal-500 text-white;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .flow-step-circle.completed {
+    @apply bg-green-500 text-white;
+  }
+
+  .flow-step-label {
+    @apply text-[10px] transition-colors;
+  }
+
+  .flow-step-label.pending {
+    @apply text-gray-500;
+  }
+
+  .flow-step-label.active {
+    @apply text-white font-semibold;
+  }
+
+  .flow-step-label.completed {
+    @apply text-white font-semibold;
+  }
+
+  .flow-divider {
+    @apply h-0.5 flex-1 mx-2 transition-colors;
+  }
+
+  .flow-divider.pending {
+    @apply bg-gray-600;
+  }
+
+  .flow-divider.completed {
+    @apply bg-green-500;
+  }
+
+  .flow-hint {
+    @apply text-[10px] text-teal-300/80 leading-relaxed;
+  }
+
+  /* ========== BYOK 配置响应式布局 ========== */
+  @media (min-width: 800px) {
+    .byok-grid {
+      @apply grid grid-cols-2 gap-4;
+    }
+
+    .byok-card {
+      @apply mb-0; /* 移除卡片底部 margin，改用 gap */
+    }
+  }
+
+  @media (max-width: 799px) {
+    .byok-grid {
+      @apply flex flex-col gap-3;
+    }
+  }
 }
