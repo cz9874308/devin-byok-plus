@@ -260,92 +260,6 @@ class SidebarProvider {
     this.proxyManager.writeEnvConfig(merged);
     return merged;
   }
-  checkModelRoutingDiagnostic(tmp02) {
-    const tmp1 = String(tmp02.DEFAULT_MODEL || '').trim();
-    const tmp2 = Array.from(
-      new Set(
-        [
-          tmp1,
-          'MODEL_CLAUDE_3_OPUS',
-          'MODEL_CLAUDE_4_OPUS_BYOK',
-          'MODEL_CLAUDE_4_OPUS_THINKING_BYOK',
-          'claude-opus-4-8',
-          'MODEL_SWE_1_5',
-          'MODEL_CHAT',
-          'MODEL_CLAUDE_SONNET_4',
-          'MODEL_GPT_4O',
-          'gpt-5-4-xhigh-priority',
-        ].filter(Boolean)
-      )
-    );
-    const tmp3 = tmp2.map((arg0) => diagnostics_1.resolveDiagnosticModelRoute(arg0, tmp02));
-    const tmp4 = tmp3
-      .map((arg0) => {
-        const tmp12 = [
-          arg0.provider,
-          arg0.serviceTier,
-          arg0.thinking ? 'thinking' : '',
-          arg0.usesDefault ? 'default' : '',
-        ]
-          .filter(Boolean)
-          .join(', ');
-        return (
-          arg0.requested + ' → ' + (arg0.upstream || '未解析') + (tmp12 ? ' (' + tmp12 + ')' : '')
-        );
-      })
-      .join('；');
-    return sidebarUtils_1.envCheckItem(
-      'model-routing',
-      '模型最终路由',
-      tmp1 ? 'ok' : 'warning',
-      tmp1 ? 'DEFAULT_MODEL=' + tmp1 + '；' + tmp4 : '未设置 DEFAULT_MODEL；' + tmp4,
-      false
-    );
-  }
-  checkInlineFastTimeoutRisk(tmp02) {
-    const tmp1 = String(tmp02.DEFAULT_MODEL || '').trim();
-    const tmp2 = tmp1.replace(/-thinking$/i, '');
-    const tmp3 = /^(gpt-)/i.test(tmp2) || /^MODEL_GPT/i.test(tmp1);
-    const tmp4 = String(tmp02.OPENAI_REASONING_EFFORT || '').trim();
-    const tmp5 = Number.parseInt(String(tmp02.MAX_TOKENS || '0'), 10);
-    const tmp6 = [];
-    if (/opus/i.test(tmp1)) {
-      tmp6.push('Opus 首包通常更慢');
-    }
-    if (/-thinking$/i.test(tmp1) || (tmp3 && tmp02.OPENAI_THINKING_ENABLED === 'true')) {
-      tmp6.push('thinking 会增加首包等待');
-    }
-    if (tmp3 && (tmp4 === 'high' || tmp4 === 'xhigh' || tmp4 === 'max')) {
-      tmp6.push('推理强度 ' + tmp4);
-    }
-    if (Number.isFinite(tmp5) && tmp5 > 8192) {
-      tmp6.push('MAX_TOKENS=' + tmp5);
-    }
-    const tmp7 = Number.parseInt(String(tmp02.COMPLETION_TIMEOUT_MS || '12000'), 10);
-    if (Number.isFinite(tmp7) && tmp7 < 10000) {
-      tmp6.push('补全超时 ' + tmp7 + 'ms 偏短');
-    }
-    if (!tmp1) {
-      tmp6.push('未设置默认模型');
-    }
-    const tmp8 =
-      tmp6.length > 0
-        ? 'Inline/Fast 首包窗口较紧（当前补全超时约 ' +
-          (Number.isFinite(tmp7) ? tmp7 : 12000) +
-          'ms）；风险：' +
-          tmp6.join('、') +
-          '。如频繁空返回，优先降低模型/Token' +
-          (tmp3 ? '/推理强度' : '') +
-          ' 或改用普通 Chat。'
-        : '当前默认模型未命中明显慢首包风险；Inline/Fast 仍受上游首包延迟影响。';
-    return sidebarUtils_1.envCheckItem(
-      'inline-fast-timeout',
-      'Inline/Fast 超时风险',
-      tmp6.length > 0 ? 'warning' : 'ok',
-      tmp8,
-      false
-    );
-  }
   execFileText(tmp02, tmp1, tmp2) {
     return new Promise((fn, fn2) => {
       (0, child_process_1.execFile)(
@@ -793,8 +707,8 @@ class SidebarProvider {
         false
       )
     );
-    tmp02.push(this.checkModelRoutingDiagnostic(tmp3));
-    tmp02.push(this.checkInlineFastTimeoutRisk(tmp3));
+    tmp02.push(diagnostics_1.checkModelRoutingDiagnostic(tmp3));
+    tmp02.push(diagnostics_1.checkInlineFastTimeoutRisk(tmp3));
     tmp02.push(await this.checkWindsurfProcessRouting(tmp3));
     tmp02.push(await this.checkGatewayModelCatalog(tmp3));
     const tmp21 = this.proxyManager.getDefaultSystemPromptFilePath();
@@ -835,39 +749,8 @@ class SidebarProvider {
       items: tmp02,
     };
   }
-  sanitizeDiagnosticText(tmp02) {
-    return String(tmp02 || '')
-      .replace(
-        /((?:api[_-]?key|authorization|bearer|token|password|secret)[^\r\n:=]*[:=\s]+)([^\s"'&]+)/gi,
-        '$1***'
-      )
-      .replace(/(sk-[A-Za-z0-9_-]{8})[A-Za-z0-9_-]+/g, '$1***');
-  }
-  sanitizeEnvConfig(tmp02) {
-    const tmp1 = {};
-    for (const [tmp03, tmp12] of Object.entries(tmp02)) {
-      tmp1[tmp03] = /KEY|TOKEN|SECRET|PASSWORD/i.test(tmp03) ? sidebarUtils_1.redactSecret(tmp12) : tmp12;
-    }
-    return tmp1;
-  }
-  readJsonObject(tmp02) {
-    if (!fs.existsSync(tmp02)) {
-      return undefined;
-    }
-    try {
-      const tmp03 = fs.readFileSync(tmp02, 'utf-8').replace(/^\uFEFF/, '');
-      const tmp1 = JSON.parse(tmp03);
-      if (tmp1 && typeof tmp1 === 'object') {
-        return tmp1;
-      } else {
-        return undefined;
-      }
-    } catch {
-      return undefined;
-    }
-  }
   readExtensionPackageInfo() {
-    const tmp02 = this.readJsonObject(path.join(this.context.extensionPath, 'package.json')) || {};
+    const tmp02 = diagnostics_1.readJsonObject(path.join(this.context.extensionPath, 'package.json')) || {};
     return {
       name: String(tmp02.name || ''),
       displayName: String(tmp02.displayName || ''),
@@ -899,7 +782,7 @@ class SidebarProvider {
         continue;
       }
       tmp2.add(tmp04);
-      const tmp12 = this.readJsonObject(tmp04);
+      const tmp12 = diagnostics_1.readJsonObject(tmp04);
       if (tmp12) {
         return {
           path: tmp04,
@@ -936,7 +819,7 @@ class SidebarProvider {
         );
         return tmp1
           .split(/\r?\n/)
-          .map((arg0) => this.sanitizeDiagnosticText(arg0.trim()))
+          .map((arg0) => diagnostics_1.sanitizeDiagnosticText(arg0.trim()))
           .filter(Boolean);
       }
       const tmp03 = await this.execFileText(
@@ -946,11 +829,11 @@ class SidebarProvider {
       );
       return tmp03
         .split(/\r?\n/)
-        .map((arg0) => this.sanitizeDiagnosticText(arg0.trim()))
+        .map((arg0) => diagnostics_1.sanitizeDiagnosticText(arg0.trim()))
         .filter(Boolean);
     } catch (tmp03) {
       const tmp1 = tmp03 instanceof Error ? tmp03.message : String(tmp03);
-      return ['读取监听进程失败：' + this.sanitizeDiagnosticText(tmp1)];
+      return ['读取监听进程失败：' + diagnostics_1.sanitizeDiagnosticText(tmp1)];
     }
   }
   async createDiagnosticReport() {
@@ -970,7 +853,9 @@ class SidebarProvider {
       tmp8 = {
         ok: false,
         checkedAt: new Date().toLocaleString(),
-        items: [sidebarUtils_1.envCheckItem('environment-check', '环境检测', 'error', tmp19, false)],
+        items: [
+          sidebarUtils_1.envCheckItem('environment-check', '环境检测', 'error', tmp19, false),
+        ],
       };
     }
     let processLines = [];
@@ -979,7 +864,7 @@ class SidebarProvider {
       processLines = (await this.readWindsurfProcessCommandLines())
         .slice(0, 25)
         .map((arg0) =>
-          this.sanitizeDiagnosticText(arg0.length > 800 ? arg0.slice(0, 800) + '...' : arg0)
+          diagnostics_1.sanitizeDiagnosticText(arg0.length > 800 ? arg0.slice(0, 800) + '...' : arg0)
         );
     } catch (tmp03) {
       processError = tmp03 instanceof Error ? tmp03.message : String(tmp03);
@@ -993,7 +878,7 @@ class SidebarProvider {
     const tmp11 = await this.getPortListeners(tmp2.inferencePort);
     const tmp12 = this.logLines
       .slice(-100)
-      .map((arg0) => this.sanitizeDiagnosticText(arg0))
+      .map((arg0) => diagnostics_1.sanitizeDiagnosticText(arg0))
       .join('\n');
     const tmp13 = tmp8.items
       .map((arg0) => '- [' + arg0.status + '] ' + arg0.name + ': ' + arg0.detail)
@@ -1005,7 +890,9 @@ class SidebarProvider {
       balance: typeof tmp6?.balance === 'number' ? tmp6.balance : null,
       status: tmp6?.status || '',
       apiKeyCount: tmp7.length,
-      selectedKey: sidebarUtils_1.redactSecret(tmp02.ANTHROPIC_API_KEY || tmp02.OPENAI_API_KEY || ''),
+      selectedKey: sidebarUtils_1.redactSecret(
+        tmp02.ANTHROPIC_API_KEY || tmp02.OPENAI_API_KEY || ''
+      ),
     };
     const tmp15 = {
       appName: vscode.env.appName,
@@ -1050,7 +937,7 @@ class SidebarProvider {
       }),
       '',
       '## 配置快照（已脱敏）',
-      sidebarUtils_1.jsonBlock(this.sanitizeEnvConfig(tmp02)),
+      sidebarUtils_1.jsonBlock(diagnostics_1.sanitizeEnvConfig(tmp02)),
       '',
       '## API Key 配置',
       sidebarUtils_1.jsonBlock(tmp14),
@@ -1071,7 +958,9 @@ class SidebarProvider {
       tmp13 || '无检测项',
       '',
       '## Devin Desktop / Codeium 进程',
-      processError ? sidebarUtils_1.textBlock(processError) : sidebarUtils_1.textBlock(processLines.join('\n')),
+      processError
+        ? sidebarUtils_1.textBlock(processError)
+        : sidebarUtils_1.textBlock(processLines.join('\n')),
       '## 最近 100 行日志',
       sidebarUtils_1.textBlock(tmp12),
       '',
@@ -1904,7 +1793,11 @@ class SidebarProvider {
             loading: true,
           });
           try {
-            const tmp11 = await modelFetcher_1.fetchModelsFromGateway(tmp1.apiKey, tmp1.host, this.proxyManager);
+            const tmp11 = await modelFetcher_1.fetchModelsFromGateway(
+              tmp1.apiKey,
+              tmp1.host,
+              this.proxyManager
+            );
             this.view?.webview.postMessage({
               type: 'modelList',
               slot: tmp03,
@@ -1930,7 +1823,11 @@ class SidebarProvider {
         });
         try {
           const tmp04 = modelFetcher_1.resolveModelFetchCredentials(tmp02.apiKey, tmp02.baseUrl);
-          const tmp1 = await modelFetcher_1.fetchModelsFromGateway(tmp04.apiKey, tmp04.baseUrl, this.proxyManager);
+          const tmp1 = await modelFetcher_1.fetchModelsFromGateway(
+            tmp04.apiKey,
+            tmp04.baseUrl,
+            this.proxyManager
+          );
           const tmp2 = {
             type: 'modelList',
             slot: tmp03,
@@ -2102,9 +1999,43 @@ class SidebarProvider {
       scriptUri: tmp12,
       cssUri: tmp12a,
       // 原始 tmp 变量（保持向后兼容）
-      tmp02, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10, tmp11, tmp12,
-      tmp13, tmp14, tmp15, tmp16, tmp17, tmp18, tmp19, tmp20, tmp21, tmp22, tmp23, tmp24,
-      tmp25, tmp26, tmp27, tmp28, tmp29, tmp30, tmp31, tmp32, tmp33, tmp34, tmp35, tmp36,
+      tmp02,
+      tmp1,
+      tmp2,
+      tmp3,
+      tmp4,
+      tmp5,
+      tmp6,
+      tmp7,
+      tmp8,
+      tmp9,
+      tmp10,
+      tmp11,
+      tmp12,
+      tmp13,
+      tmp14,
+      tmp15,
+      tmp16,
+      tmp17,
+      tmp18,
+      tmp19,
+      tmp20,
+      tmp21,
+      tmp22,
+      tmp23,
+      tmp24,
+      tmp25,
+      tmp26,
+      tmp27,
+      tmp28,
+      tmp29,
+      tmp30,
+      tmp31,
+      tmp32,
+      tmp33,
+      tmp34,
+      tmp35,
+      tmp36,
     });
   }
 }

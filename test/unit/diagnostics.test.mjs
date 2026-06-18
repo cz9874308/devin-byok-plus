@@ -84,3 +84,47 @@ test('诊断模型路由', async (t) => {
     assert.strictEqual(r.serviceTier, 'fast');
   });
 });
+
+test('checkModelRoutingDiagnostic', async (t) => {
+  await t.test('有默认模型时 status=ok', () => {
+    const item = d.checkModelRoutingDiagnostic({ DEFAULT_MODEL: 'claude-opus-4-8' });
+    assert.strictEqual(item.id, 'model-routing');
+    assert.strictEqual(item.status, 'ok');
+    assert.match(item.detail, /DEFAULT_MODEL=claude-opus-4-8/);
+  });
+  await t.test('无默认模型时 status=warning', () => {
+    assert.strictEqual(d.checkModelRoutingDiagnostic({ DEFAULT_MODEL: '' }).status, 'warning');
+  });
+});
+
+test('checkInlineFastTimeoutRisk', async (t) => {
+  await t.test('thinking 模型命中风险', () => {
+    const item = d.checkInlineFastTimeoutRisk({ DEFAULT_MODEL: 'claude-opus-4-8-thinking' });
+    assert.strictEqual(item.status, 'warning');
+    assert.match(item.detail, /thinking 会增加首包等待/);
+  });
+  await t.test('普通快速模型无明显风险', () => {
+    const item = d.checkInlineFastTimeoutRisk({ DEFAULT_MODEL: 'claude-haiku', COMPLETION_TIMEOUT_MS: '12000' });
+    assert.strictEqual(item.status, 'ok');
+  });
+});
+
+test('sanitizeDiagnosticText / sanitizeEnvConfig', async (t) => {
+  await t.test('脱敏 api_key 赋值', () => {
+    assert.strictEqual(d.sanitizeDiagnosticText('api_key: sk-abcd1234efgh'), 'api_key: ***');
+  });
+  await t.test('脱敏 sk- 前缀令牌（无敏感键名前缀时）', () => {
+    assert.strictEqual(d.sanitizeDiagnosticText('用了 sk-abcd1234efgh5678'), '用了 sk-abcd1234***');
+  });
+  await t.test('按键名脱敏配置对象', () => {
+    const out = d.sanitizeEnvConfig({ ANTHROPIC_API_KEY: 'sk-1234567890ab', FOO: 'bar' });
+    assert.match(out.ANTHROPIC_API_KEY, /\.\.\./);
+    assert.strictEqual(out.FOO, 'bar');
+  });
+});
+
+test('readJsonObject', async (t) => {
+  await t.test('文件不存在返回 undefined', () => {
+    assert.strictEqual(d.readJsonObject('/nonexistent/x.json'), undefined);
+  });
+});
