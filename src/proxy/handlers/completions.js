@@ -38,6 +38,7 @@ function extractAllStrings(arg0, tmp1 = 0, tmp2 = 0) {
       continue;
     }
     const tmp12 = tmp02.toString("utf8");
+    // eslint-disable-next-line no-control-regex -- 故意匹配 \t\n\r 以统计文本字符占比
     const tmp22 = (tmp12.match(/[\x09\x0a\x0d\x20-\x7e]/g) || []).length;
     const tmp32 = tmp22 / (tmp12.length || 1);
     if (tmp12.length > 5 && tmp32 >= 0.8) {
@@ -283,6 +284,7 @@ export async function handleGetCompletions(arg0, arg1, arg2) {
     } else if (tmp0.wireType === 2) {
       const tmp02 = tmp0.value;
       const tmp1 = tmp02.toString("utf8");
+      // eslint-disable-next-line no-control-regex -- 故意匹配 \t\n\r 以统计文本字符占比
       const tmp2 = (tmp1.match(/[\x09\x0a\x0d\x20-\x7e]/g) || []).length;
       const tmp32 = tmp2 / (tmp02.length || 1);
       if (tmp32 >= 0.85) {
