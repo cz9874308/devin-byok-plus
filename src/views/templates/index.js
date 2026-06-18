@@ -35,7 +35,7 @@ function loadTemplate(templatePath) {
 
     return content;
   } catch (error) {
-    throw new Error(`Failed to load template: ${templatePath}\n${error.message}`);
+    throw new Error(`Failed to load template: ${templatePath}\n${error.message}`, { cause: error });
   }
 }
 

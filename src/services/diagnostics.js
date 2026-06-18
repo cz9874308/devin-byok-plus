@@ -309,7 +309,7 @@ function readJsonObject(filePath) {
     return undefined;
   }
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8').replace(/^﻿/, '');
+    const raw = fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, '');
     const obj = JSON.parse(raw);
     return obj && typeof obj === 'object' ? obj : undefined;
   } catch {
