@@ -7,6 +7,16 @@
  * 保持与原内联 CSS 完全一致的视觉效果
  */
 
+@layer base {
+  /* preflight 已关闭，这里补一个 border-box 复位：
+     否则 w-full 输入框 = 100% + padding + border 会撑出容器右侧 */
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+}
+
 @layer components {
   /* ========== 全局基础 ========== */
   body {
@@ -333,14 +343,19 @@
   .toggle-section {
     @apply cursor-pointer select-none inline-flex items-center gap-1;
   }
-  .toggle-section::after {
+
+  /* 整行可点击的折叠头：用于教程、高级路由、提示词卡片 */
+  .collapsible-head {
+    @apply flex items-center justify-between gap-2 cursor-pointer select-none w-full;
+  }
+  .collapsible-head::after {
     content: '';
-    @apply inline-block w-0 h-0 border-solid ml-1;
+    @apply w-0 h-0 border-solid flex-shrink-0;
     border-width: 4px 0 4px 6px;
     border-color: transparent transparent transparent currentColor;
     @apply rotate-90 transition-transform duration-200 opacity-60;
   }
-  .toggle-section.collapsed::after {
+  .collapsible-head.collapsed::after {
     @apply rotate-0;
   }
 

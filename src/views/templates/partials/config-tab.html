@@ -45,24 +45,12 @@
     </div>
 </div>
 
-<!-- 提示词配置 -->
-<div class="row between" style="margin-bottom:8px;padding:6px 8px;border:1px solid {{borderColor}};border-radius:8px;background:rgba(255,255,255,.02)">
-    <div style="min-width:0">
-        <div style="font-size:10px;color:var(--vscode-foreground);font-weight:600">提示词</div>
-        <div style="font-size:9px;color:{{textColor}};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{promptStatus}}</div>
-    </div>
-    <div class="row" style="gap:4px;flex-shrink:0">
-        <button type="button" class="btn btn-s sm" data-ws-action="openPromptTemplates" style="padding:4px 8px">模板</button>
-        <button type="button" class="btn btn-s sm" data-ws-action="openSystemPrompt" style="padding:4px 8px">自定义</button>
-    </div>
-</div>
-
 <!-- 高级路由配置 -->
 <div class="card" style="margin-top:12px">
-    <div class="card-head">
-        <span class="toggle-section collapsed" data-ws-toggle="advancedRouteBody">高级路由配置</span>
+    <div class="card-head collapsible-head collapsed" data-ws-toggle="advancedRouteBody">
+        <span>高级路由配置</span>
     </div>
-    <div id="advancedRouteBody" class="hidden" style="padding:8px 0">
+    <div id="advancedRouteBody" class="hidden" style="padding-top:8px">
         <div class="fg">
             <label>Anthropic API 路径</label>
             <input type="text" id="cfgAnthropicPath" value="{{anthropicPath}}" placeholder="/v1/messages">
@@ -78,6 +66,21 @@
         <div class="fg" style="margin-bottom:0">
             <label>完成超时（毫秒）</label>
             <input type="number" id="cfgCompletionTimeoutMs" value="{{completionTimeout}}" placeholder="12000">
+        </div>
+    </div>
+</div>
+
+<!-- 提示词配置（折叠卡片） -->
+<div class="card" style="margin-top:12px">
+    <div class="card-head collapsible-head collapsed" data-ws-toggle="promptBody">
+        <span>提示词</span>
+        <span class="badge {{promptBadgeClass}} ml-auto mr-1">{{promptBadgeText}}</span>
+    </div>
+    <div id="promptBody" class="hidden" style="padding-top:8px">
+        <div class="empty-text" style="margin-bottom:8px">{{promptStatus}}</div>
+        <div class="btns">
+            <button type="button" class="btn btn-s sm" data-ws-action="openPromptTemplates">模板</button>
+            <button type="button" class="btn btn-s sm" data-ws-action="openSystemPrompt">自定义</button>
         </div>
     </div>
 </div>

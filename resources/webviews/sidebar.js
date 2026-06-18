@@ -317,7 +317,7 @@
     const tmp32 = document.createElement("div");
     tmp32.className = "guide-block";
     tmp32.style.marginBottom = "10px";
-    tmp32.innerHTML = "<div class=\"card-head between\" style=\"margin-bottom:6px;padding:0\"><span class=\"toggle-section collapsed\" data-ws-toggle=\"advancedRouteBody\">高级路由</span><span class=\"badge badge-warn\">可选</span></div><div id=\"advancedRouteBody\" class=\"hidden\"><div class=\"fg\"><label>Anthropic API Path</label></div><div class=\"fg\"><label>OpenAI API Path</label></div><div class=\"guide-note\">GPT 默认先走 <code>/v1/responses</code>；网关不支持时会回退 <code>/v1/chat/completions</code>。如网关明确只支持旧接口，可在这里直接填写。</div></div>";
+    tmp32.innerHTML = "<div class=\"card-head collapsible-head collapsed\" style=\"margin-bottom:6px;padding:0\" data-ws-toggle=\"advancedRouteBody\"><span>高级路由</span><span class=\"badge badge-warn ml-auto mr-1\">可选</span></div><div id=\"advancedRouteBody\" class=\"hidden\"><div class=\"fg\"><label>Anthropic API Path</label></div><div class=\"fg\"><label>OpenAI API Path</label></div><div class=\"guide-note\">GPT 默认先走 <code>/v1/responses</code>；网关不支持时会回退 <code>/v1/chat/completions</code>。如网关明确只支持旧接口，可在这里直接填写。</div></div>";
     const tmp4 = fn4("cfgMaxTokens");
     const tmp5 = tmp4 && tmp4.parentElement && tmp4.parentElement.parentElement;
     const tmp6 = tmp5 && tmp5.parentElement || tmp22.parentElement;

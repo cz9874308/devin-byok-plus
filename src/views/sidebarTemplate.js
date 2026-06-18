@@ -96,6 +96,8 @@ function renderSidebarHtml(ctx) {
 
     // 提示词状态
     promptStatus: tmp9 ? '已启用 · ' + esc(tmp8) : '未启用 · 使用 Devin Desktop 原始提示词',
+    promptBadgeClass: tmp9 ? 'badge-ok' : 'badge-warn',
+    promptBadgeText: tmp9 ? '已启用' : '未启用',
 
     // 高级路由配置
     anthropicPath: esc(tmp2.ANTHROPIC_API_PATH || '/v1/messages'),
