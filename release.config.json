@@ -1,17 +1,12 @@
 {
-  "version": "2.1.1",
-  "releaseDate": "2026-06-18",
-  "changeType": "Added",
+  "version": "2.1.2",
+  "releaseDate": "2026-06-28",
+  "changeType": "Fixed",
   "changes": [
-    "标签页式 UI 重构：全新的 3 标签页布局（配置连接、控制状态、系统补丁）",
-    "快捷键支持：Cmd/Ctrl + 1/2/3 快速切换标签页",
-    "智能配置徽章：自动检测配置完整性并实时提示",
-    "淡入淡出动画：流畅的标签页切换体验（0.2s ease-in-out）",
-    "响应式优化：完整的小屏幕适配（≤400px）",
-    "视觉增强：底部激活指示条、彩色条纹边框、改进阴影效果",
-    "Provider 模块化拆分：抽离 services/ 服务模块（diagnostics、environmentProbe、modelFetcher、promptTemplates、thinkingEffort），Provider 代码量 -32%",
-    "视图模块化：侧栏 HTML 拆分为 templates/partials，HTML 模板纳入 VSIX 打包",
-    "基于上游 v2.1.0 + v2.0.4，包含配置热重载修复、模型验证增强、静默自动保存"
+    "修复强制 tool_choice 指向的命名工具缺失时被静默丢弃：自动补齐占位定义并放行 tool_choice，使收尾工具 finish 等能被真正调用",
+    "工具调用中途断流时增加自动重试：检测被截断的 tool_use 参数，未输出任何内容时自动重试上游，否则以明确错误结束而非崩溃",
+    "修复流式 tool_use 参数被截断导致代理进程崩溃退出（TypeError: Cannot create property 'old_string' on string）",
+    "修复 AmazonQ/Bedrock 报错 TOOL_CONFIG_MISSING：历史含 tool_use/tool_result 但本轮未带 tools 时，按历史工具名合成占位定义满足 toolConfig 要求"
   ],
   "breaking": false,
   "autoPackage": true,
