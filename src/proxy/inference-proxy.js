@@ -81,7 +81,7 @@ function handleRuntimeConfigStream(arg0, arg1) {
   const tmp3 = [];
   let tmp4 = 0;
   let tmp5 = false;
-  const tmp6 = 16384;
+  const tmp6 = 64000;
   arg0.on("data", arg02 => {
     if (tmp5) {
       return;

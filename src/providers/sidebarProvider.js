@@ -723,7 +723,7 @@ class SidebarProvider {
     if (!sidebarUtils_1.isValidPortValue(tmp2.INFERENCE_PORT)) {
       tmp2.INFERENCE_PORT = '3001';
     }
-    tmp2.MAX_TOKENS = tmp2.MAX_TOKENS || '16384';
+    tmp2.MAX_TOKENS = tmp2.MAX_TOKENS || '64000';
     if (
       !['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp2.OPENAI_REASONING_EFFORT || '')
     ) {

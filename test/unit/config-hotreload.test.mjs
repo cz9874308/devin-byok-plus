@@ -111,7 +111,7 @@ test("handleConfigRequest rejects oversized POST body", async () => {
     end(payload) { responseBody = payload; }
   };
 
-  // 超过 16384 字节的请求体
+  // 超过 64000 字节的请求体
   const oversizedBody = "x".repeat(20000);
 
   await handleConfigRequest(req, res, oversizedBody);

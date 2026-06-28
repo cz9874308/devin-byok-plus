@@ -70,7 +70,7 @@ function sanitizePositiveInteger(arg0, arg1, tmp2 = 1, tmp3 = Number.MAX_SAFE_IN
 }
 let _runtimeConfig = {
   defaultModel: process.env.DEFAULT_MODEL || "",
-  maxTokens: parseInt(process.env.MAX_TOKENS || "32768", 10),
+  maxTokens: parseInt(process.env.MAX_TOKENS || "64000", 10),
   anthropicHost: _initialAnthropicHost,
   anthropicApiPath: process.env.ANTHROPIC_API_PATH || "/v1/messages",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -481,7 +481,7 @@ export async function handleModelsRequest(arg0, arg1, arg2) {
 }
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const ALLOW_UNAUTH_CONFIG_POST = process.env.ALLOW_UNAUTH_CONFIG_POST === "true";
-const CONFIG_POST_MAX_BYTES = 16384;
+const CONFIG_POST_MAX_BYTES = 64000;
 
 /**
  * 授权配置修改请求

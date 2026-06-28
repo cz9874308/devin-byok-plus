@@ -102,7 +102,7 @@ function renderSidebarHtml(ctx) {
     // 高级路由配置
     anthropicPath: esc(tmp2.ANTHROPIC_API_PATH || '/v1/messages'),
     openaiPath: esc(tmp2.OPENAI_API_PATH || '/v1/responses'),
-    maxTokens: esc(tmp2.MAX_TOKENS || '16384'),
+    maxTokens: esc(tmp2.MAX_TOKENS || '64000'),
     completionTimeout: esc(tmp2.COMPLETION_TIMEOUT_MS || '12000'),
 
     // 颜色变量

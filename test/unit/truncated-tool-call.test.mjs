@@ -70,3 +70,40 @@ test("processor marks hasEmittedOutput when text is emitted before truncation", 
   // 已经发过文本 ⇒ 不能安全重试
   assert.equal(p.hasEmittedOutput, true);
 });
+
+test("max_tokens 截断：stopReason 被记录，供 chat.js 区分根因（预算用尽 vs 网关断流）", () => {
+  const p = new AnthropicStreamProcessor("msg4", "claude-opus-4-7");
+  feed(p, [
+    { event: "content_block_start", data: { index: 0, content_block: { type: "text" } } },
+    { event: "content_block_delta", data: { index: 0, delta: { type: "text_delta", text: "Now writing PART 09 — TaskPage:" } } },
+    { event: "content_block_stop", data: { index: 0 } },
+    { event: "content_block_start", data: { index: 1, content_block: { type: "tool_use", id: "t1", name: "edit" } } },
+    { event: "content_block_delta", data: { index: 1, delta: { type: "input_json_delta", partial_json: '{"file_path":"a.ts","old_string":"x' } } },
+    { event: "content_block_stop", data: { index: 1 } },
+    // 预算用尽时上游补发 message_delta(max_tokens) + message_stop
+    { event: "message_delta", data: { delta: { stop_reason: "max_tokens" } } },
+    { event: "message_stop", data: {} }
+  ]);
+  assert.equal(p.hasTruncatedToolCall, true);
+  assert.equal(p.hasEmittedOutput, true);
+  assert.equal(p.stopReason, "max_tokens");
+  // 上游补发了 message_stop ⇒ 处理器自行干净收尾，chat.js 优雅路径无需再合成
+  assert.equal(p.isDone, true);
+});
+
+test("网关断流截断：无 message_stop ⇒ isDone=false，由 chat.js 合成收尾", () => {
+  const p = new AnthropicStreamProcessor("msg5", "claude-opus-4-7");
+  feed(p, [
+    { event: "content_block_start", data: { index: 0, content_block: { type: "text" } } },
+    { event: "content_block_delta", data: { index: 0, delta: { type: "text_delta", text: "writing file" } } },
+    { event: "content_block_stop", data: { index: 0 } },
+    { event: "content_block_start", data: { index: 1, content_block: { type: "tool_use", id: "t1", name: "edit" } } },
+    { event: "content_block_delta", data: { index: 1, delta: { type: "input_json_delta", partial_json: '{"file_path":"a' } } },
+    { event: "content_block_stop", data: { index: 1 } }
+    // 网关断流：没有 message_delta / message_stop
+  ]);
+  assert.equal(p.hasTruncatedToolCall, true);
+  assert.equal(p.hasEmittedOutput, true);
+  assert.notEqual(p.stopReason, "max_tokens");
+  assert.equal(p.isDone, false);
+});

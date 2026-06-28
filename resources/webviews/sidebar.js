@@ -296,7 +296,7 @@
       fn23(arg0, 2);
       fn13("cfgAnthropicPath", arg0.BYOK1_ANTHROPIC_API_PATH || arg0.ANTHROPIC_API_PATH || "");
       fn13("cfgOpenaiPath", arg0.BYOK1_OPENAI_API_PATH || arg0.OPENAI_API_PATH || "");
-      fn13("cfgMaxTokens", arg0.MAX_TOKENS || "16384");
+      fn13("cfgMaxTokens", arg0.MAX_TOKENS || "64000");
       fn13("cfgSysPromptOverride", arg0.SYSTEM_PROMPT_OVERRIDE === "true" ? "true" : "");
       fn13("cfgSysPromptPath", arg0.SYSTEM_PROMPT_PATH || "");
       fn3();
@@ -419,7 +419,7 @@
       OPENAI_API_KEY: tmp02.BYOK1_OPENAI_API_KEY,
       OPENAI_API_PATH: tmp02.BYOK1_OPENAI_API_PATH,
       DEFAULT_MODEL: tmp02.BYOK1_MODEL,
-      MAX_TOKENS: (fn4("cfgMaxTokens") || {}).value || "16384",
+      MAX_TOKENS: (fn4("cfgMaxTokens") || {}).value || "64000",
       COMPLETION_TIMEOUT_MS: (fn4("cfgCompletionTimeoutMs") || {}).value || "12000",
       HYBRID_PORT: (fn4("cfgHybridPort") || {}).value || "3006",
       INFERENCE_PORT: (fn4("cfgInferencePort") || {}).value || "3001",
