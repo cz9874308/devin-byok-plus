@@ -15,7 +15,7 @@ import { buildGatewayCapabilityKey, getGatewayCapability, markGatewayCapability 
 import { isResponsesApiPath, shouldFallbackToChatCompletions, toChatCompletionsMessages, toChatCompletionsPath } from "./openai-request.js";
 import { isRetriableError, calculateRetryDelay, isTimeoutError, serviceCircuitBreakers } from "../retry-utils.js";
 export { isResponsesApiPath, shouldFallbackToChatCompletions, toChatCompletionsMessages, toChatCompletionsPath } from "./openai-request.js";
-export { requiresConfiguredDefaultModel, synthesizeToolsFromMessages, collectToolUseNames };
+export { requiresConfiguredDefaultModel, synthesizeToolsFromMessages, collectToolUseNames, ensureNamedToolChoiceTool };
 const keepAliveAgent = new https.Agent({
   keepAlive: true,
   keepAliveMsecs: 60000,
@@ -850,6 +850,30 @@ function synthesizeToolsFromMessages(messages, existingTools) {
   return synthesized;
 }
 
+// 当 tool_choice 强制调用一个命名工具、但该工具不在 tools 列表中时，
+// 补一个占位工具定义，使模型能真正调用它（常见于 Devin 收尾用的 "finish" 工具未随本轮重发）。
+// 返回 { tools, allowToolChoice }：tools 为补齐后的列表，allowToolChoice 表示该命名 tool_choice 是否可安全转发。
+function ensureNamedToolChoiceTool(tools, toolChoice) {
+  if (!toolChoice || toolChoice.type !== "tool" || !toolChoice.name) {
+    return { tools, allowToolChoice: false };
+  }
+  const list = Array.isArray(tools) ? tools : [];
+  if (list.some(t => t?.name === toolChoice.name)) {
+    return { tools: list, allowToolChoice: true };
+  }
+  const synthesized = {
+    name: toolChoice.name,
+    description: "",
+    input_schema: {
+      type: "object",
+      properties: {},
+      additionalProperties: true
+    }
+  };
+  console.warn("  ⚠️  Synthesized tool definition for forced tool_choice \"" + toolChoice.name + "\" (not in request/history) so the model can call it");
+  return { tools: [...list, synthesized], allowToolChoice: true };
+}
+
 function streamAnthropic(arg0, arg1, {
   systemPrompt: tmp2,
   messages: tmp3,
@@ -864,7 +888,10 @@ function streamAnthropic(arg0, arg1, {
 }, retryCount = 0) {
   const tmp12 = getProviderConfig(tmp11).anthropic;
   // 补齐工具定义：历史含 tool_use/tool_result 但本次未带 tools 时，合成占位定义以满足 Bedrock toolConfig 要求
-  const effectiveTools = synthesizeToolsFromMessages(tmp3, tmp4);
+  let effectiveTools = synthesizeToolsFromMessages(tmp3, tmp4);
+  // 若 tool_choice 强制调用某命名工具但其定义缺失，补齐该工具定义并允许转发 tool_choice
+  const { tools: ensuredTools, allowToolChoice } = ensureNamedToolChoiceTool(effectiveTools, tmp5);
+  effectiveTools = ensuredTools;
   const tmp13 = getForwardedToolChoice(effectiveTools, tmp5, "Anthropic");
   const tmp14 = {
     model: tmp6,
@@ -875,8 +902,9 @@ function streamAnthropic(arg0, arg1, {
   };
   if (effectiveTools && effectiveTools.length > 0) {
     tmp14.tools = effectiveTools;
-    // 仅在本次请求真正携带工具时转发 tool_choice，合成占位工具不应强制模型调用
-    if (tmp13 && tmp4 && tmp4.length > 0) {
+    // 转发 tool_choice 的条件：本次请求真正携带工具，或我们为命名 tool_choice 补齐了其工具定义。
+    // 仅对“纯历史合成占位工具”不强制 tool_choice（那只是为满足 Bedrock toolConfig）。
+    if (tmp13 && ((tmp4 && tmp4.length > 0) || allowToolChoice)) {
       tmp14.tool_choice = tmp13;
     }
   }
