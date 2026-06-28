@@ -85,7 +85,7 @@ function proxyHeaders(arg0, arg1) {
   };
 }
 const _ENV_DEFAULT_MODEL = process.env.DEFAULT_MODEL || '';
-const _ENV_MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '64000', 10);
+const _ENV_MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '32768', 10);
 function getDefaultModel() {
   return getRuntimeConfig().defaultModel || _ENV_DEFAULT_MODEL;
 }
@@ -1309,84 +1309,6 @@ function streamAnthropic(
           processPart(sseBuffer);
           sseBuffer = '';
         }
-        // 上游在工具调用中途断流 ⇒ tool_use 参数 JSON 被截断，不能发出残缺工具调用。
-        // 关键事实：截断时那个工具调用一个字节都还没写给客户端（tool_use 在 content_block_stop
-        // 时才原子发出），所以即便前面已流出文本，我们仍可优雅收尾——丢弃残破工具调用、干净结束本轮，
-        // 让客户端（agent）按正常 turn 自然重做，而不是抛红错中断整个会话。
-        // 三层降级：① 已发可见输出 ⇒ 优雅收尾；② 无任何输出且可重试 ⇒ 重试上游；③ 无输出且不可重试 ⇒ 报错。
-        if (processor.hasTruncatedToolCall && !tmp18.wasClosedByClient()) {
-          const toolLabel = processor.truncatedToolName || 'unknown';
-          // stop_reason=max_tokens ⇒ 输出预算用尽（非网关故障）；其余/缺失 ⇒ 网关中途断流。
-          const truncatedByBudget = processor.stopReason === 'max_tokens';
-          if (processor.hasEmittedOutput) {
-            // 已向客户端流出文本/思考，残破工具调用尚未发出 ⇒ 优雅收尾本轮，让 agent 自然重做。
-            if (truncatedByBudget) {
-              console.warn(
-                '  ⚠️  Tool_use "' +
-                  toolLabel +
-                  '" truncated by max_tokens after partial output — ending turn cleanly (建议拆分写入或调大 MAX_TOKENS)'
-              );
-            } else {
-              console.warn(
-                '  ⚠️  Tool_use "' +
-                  toolLabel +
-                  '" truncated by upstream after partial output — ending turn cleanly, client will retry the call'
-              );
-            }
-            circuitBreaker.recordFailure();
-            if (!processor.isDone && !arg1.writableEnded) {
-              // 网关断流未补 message_stop ⇒ 合成一个干净的结束事件。
-              const tmp02 = processor.processEvent({ event: 'message_stop', data: {} });
-              for (const tmp03 of tmp02) {
-                tmp18.safeWrite(wrapEnvelope(tmp03));
-              }
-            }
-            tmp18.finalize('  ✅ Stream ended after truncated tool_use (graceful)');
-            return;
-          }
-          // 尚未发出任何可见输出：重复输出无风险，优先重试上游。
-          if (shouldRetryTruncatedToolCall(retryCount)) {
-            console.warn(
-              '  ↩️  Truncated tool_use "' +
-                toolLabel +
-                '" with no prior output — retrying upstream'
-            );
-            circuitBreaker.recordFailure();
-            retryAnthropicRequest(
-              arg0,
-              arg1,
-              {
-                systemPrompt: tmp2,
-                messages: tmp3,
-                tools: tmp4,
-                toolChoice: tmp5,
-                resolvedModel: tmp6,
-                messageId: tmp7,
-                timing: tmp8,
-                monitorTargetId: tmp9,
-                thinkingOptions: tmp10,
-                byokSlot: tmp11,
-              },
-              retryCount,
-              0,
-              { code: 'ETRUNCATED', truncatedTool: toolLabel }
-            );
-            return;
-          }
-          circuitBreaker.recordFailure();
-          const hint = truncatedByBudget
-            ? '输出预算（max_tokens）用尽导致参数被截断，建议拆分写入或调大 MAX_TOKENS。'
-            : '上游网关中途断流导致参数不完整，请重试或检查上游网关稳定性。';
-          tmp18.fail(
-            '[Anthropic Truncated Tool Call] 调用工具 "' +
-              toolLabel +
-              '" 时参数被截断。已重试 ' +
-              retryCount +
-              ' 次仍失败：' +
-              hint
-          );
-          return;
-        }
         if (!processor.isDone && !arg1.writableEnded) {
           console.log('  ⚠️  Anthropic stream ended without message_stop — forcing stop');
           const tmp02 = processor.processEvent({
@@ -1497,15 +1419,6 @@ function streamAnthropic(
   if (tmp8) {
     tmp8.mark('upstream_request_sent');
   }
-}
-
-// 判断截断的工具调用是否应该重试上游（独立于网络层重试判断，因为这不是网络错误）
-function shouldRetryTruncatedToolCall(retryCount) {
-  if (process.env.ENABLE_RETRY === 'false') {
-    return false;
-  }
-  const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || '3', 10);
-  return retryCount < MAX_RETRIES;
 }
 
 // 判断是否应该重试 Anthropic 请求

@@ -9,7 +9,7 @@
 
 ### Fixed
 - 修复强制 `tool_choice` 指向的命名工具缺失时被静默丢弃：当请求用 `tool_choice={type:"tool",name:"finish"}` 等强制调用某工具、但该工具不在本轮 `tools` 也不在历史中时，旧逻辑会丢弃 tool_choice 并退回 auto（可能导致收尾工具 `finish` 不被调用）。现自动为该命名工具补齐占位定义并放行 tool_choice，使模型能真正调用它完成收尾。
-- 工具调用中途断流时增加自动重试：上游（如 Bedrock/Sub2API 网关）在 `tool_use` 参数流式传输中途断开时，`AnthropicStreamProcessor` 现会检测被截断的非法 JSON 参数，**不再发出残缺的工具调用**；并区分两种情况——若尚未向客户端写入任何可见内容则自动重试上游（复用现有退避/熔断逻辑，受 `MAX_RETRIES`/`ENABLE_RETRY` 控制），否则以明确错误结束而非崩溃或发出错误的编辑。
+- 回退"工具调用中途断流时检测/重试/优雅收尾"的处理：经排查，上游中转（如 `10.0.1.36:8090`）在转发 `edit` 等大参数 `tool_use` 流时会在约 230 字节处**确定性截断**（重试逐字节相同的请求仍卡在同一位置，故重试无效）。该截断在加入检测前一直存在，只是旧逻辑会把残破 JSON 原样发给客户端、由 Devin 自动重做本轮（表现为"卡一下后继续"）。新增的检测/重试/优雅收尾反而打断了这一自愈路径（要么红错中断、要么静默丢失编辑）。现已完全回退到 `f628d9d` 的行为：截断的 `tool_use` 原样发出，交由客户端自愈重做。**根因在上游中转，需在中转侧排查为何对大参数 tool_use 流式输出在约 230 字节处断流。**
 - 修复流式 tool_use 参数被截断时整个代理进程崩溃退出（`TypeError: Cannot create property 'old_string' on string`）：当上游 SSE 在工具调用中途断流、`arguments` 为非法/截断 JSON 时，`normalizeToolArguments` 会原样返回字符串，随后 `remapKey` 在字符串上写属性而抛错并使 hybrid-server 退出重启。现 `normalizeToolInvocation` 在参数非普通对象时跳过键重映射并原样返回，`remapKey`/`remapArrayKey` 增加类型守卫作为兜底。
 - 修复 AmazonQ/Bedrock 报错 `TOOL_CONFIG_MISSING`（"The toolConfig field must be defined when using toolUse and toolResult content blocks"）：当历史消息含 `tool_use`/`tool_result` 内容块、但本次请求未携带工具定义时（工具被 KNOWN_TOOL 过滤丢弃或后续轮次未重发），代理会依据历史出现的工具名合成最小占位工具定义，确保 Bedrock 必需的 `toolConfig` 字段被填充；合成的占位工具不会强制 `tool_choice`。
 
