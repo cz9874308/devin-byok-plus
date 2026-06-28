@@ -100,9 +100,9 @@ function writeModelConfigError(arg0, arg1, arg2) {
   arg0.end();
 }
 const OPENAI_REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_REQUEST_TIMEOUT_MS || "300000", 10);
-const OPENAI_SSE_IDLE_TIMEOUT_MS = parseInt(process.env.OPENAI_SSE_IDLE_TIMEOUT_MS || "120000", 10);
+const OPENAI_SSE_IDLE_TIMEOUT_MS = parseInt(process.env.OPENAI_SSE_IDLE_TIMEOUT_MS || "180000", 10);
 const ANTHROPIC_REQUEST_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_REQUEST_TIMEOUT_MS || "300000", 10);
-const ANTHROPIC_SSE_IDLE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_SSE_IDLE_TIMEOUT_MS || "120000", 10);
+const ANTHROPIC_SSE_IDLE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_SSE_IDLE_TIMEOUT_MS || "180000", 10);
 const OPENAI_REASONING_SUMMARY = process.env.OPENAI_REASONING_SUMMARY || "auto";
 const OPENAI_ENABLE_REASONING = process.env.OPENAI_ENABLE_REASONING !== "false";
 const EXPOSE_BACKEND_INFO = process.env.EXPOSE_BACKEND_INFO !== "false";

@@ -92,7 +92,7 @@ function getCompletionTimeoutMs(config) {
   if (Number.isInteger(num) && num >= 1000 && num <= 600000) {
     return num;
   }
-  return 120000; // 默认 2 分钟
+  return 180000; // 默认 3 分钟
 }
 
 /**
