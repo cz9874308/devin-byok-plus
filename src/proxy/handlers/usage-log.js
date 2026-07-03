@@ -78,17 +78,19 @@ export function formatUsageLog(usage = {}, provider = '', meta = {}) {
   return '📊 ' + parts.join(' ');
 }
 
+// 注意：返回原始字段值（缺失保持 undefined），由 mergeUsage 的 null 跳过逻辑处理增量合并；
+// 若在此零填充会导致 message_delta 把 message_start 已累积的 input_tokens 覆盖为 0
 export function extractAnthropicUsage(event = {}) {
   const usage = event?.data?.message?.usage || event?.data?.usage;
   if (!usage) {
     return null;
   }
-  return mergeUsage({
+  return {
     input_tokens: usage.input_tokens,
     output_tokens: usage.output_tokens,
     cache_creation_input_tokens: usage.cache_creation_input_tokens,
     cache_read_input_tokens: usage.cache_read_input_tokens,
-  });
+  };
 }
 
 export function extractOpenAIResponsesUsage(event = {}) {
@@ -100,11 +102,11 @@ export function extractOpenAIResponsesUsage(event = {}) {
     usage.input_tokens_details?.cached_tokens ??
     usage.prompt_tokens_details?.cached_tokens ??
     usage.cached_tokens;
-  return mergeUsage({
+  return {
     input_tokens: usage.input_tokens ?? usage.prompt_tokens,
     output_tokens: usage.output_tokens ?? usage.completion_tokens,
     cached_tokens: cached,
-  });
+  };
 }
 
 export function extractChatCompletionsUsage(chunk = {}) {
@@ -113,9 +115,9 @@ export function extractChatCompletionsUsage(chunk = {}) {
     return null;
   }
   const cached = usage.prompt_tokens_details?.cached_tokens ?? usage.cached_tokens;
-  return mergeUsage({
+  return {
     input_tokens: usage.prompt_tokens ?? usage.input_tokens,
     output_tokens: usage.completion_tokens ?? usage.output_tokens,
     cached_tokens: cached,
-  });
+  };
 }

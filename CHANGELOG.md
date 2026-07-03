@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+- **Prompt Cache / Token 优化**（移植上游 v2.3.0）：Anthropic 请求自动对 system / tools / 消息稳定前缀打 `cache_control` 断点并携带 `anthropic-beta: prompt-caching-2024-07-31` 头；网关不支持时自动标记能力并立即无缓存重试（不计入重试次数/熔断）。OpenAI/Gemini 路径按 name 稳定排序 tools、稳定请求前缀以提升隐式前缀缓存命中。新增环境变量 `PROMPT_CACHE_ENABLED` / `ANTHROPIC_PROMPT_CACHE` / `OPENAI_PROMPT_CACHE` / `PROMPT_CACHE_SORT_TOOLS` / `PROMPT_CACHE_TAIL_MESSAGES`。
+- **Token 用量日志**（移植上游 v2.3.0）：各 provider 流结束时输出统一 `📊` 日志（input/output/cached/creation/命中率/模式/路由/cache 状态），用于观测缓存效果与 token 消耗。
+- **上游地址覆盖**：`PROXY_API_HOST`（hybrid-server）与 `PROXY_INFERENCE_HOST`（inference-proxy）支持自定义上游 API 地址。
+
+### Changed
+- `EXPOSE_BACKEND_INFO` 默认值由 `true` 改为 `false`：system prompt 末尾追加的动态 backend 信息会破坏前缀缓存；如需恢复请显式设置 `EXPOSE_BACKEND_INFO=true`。
+- ws-bridge 运行时注入的消息现作为「易变尾部」处理，prompt cache 断点自动前移，内部标记发送上游前剥除。
+
 ## [2.1.2] - 2026-06-28
 
 ### Fixed
