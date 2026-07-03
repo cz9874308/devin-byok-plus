@@ -79,30 +79,6 @@ function updatePackageJson(newVersion) {
   return oldVersion;
 }
 
-function updateChangelog(version, changeType, changes) {
-  const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
-  const today = new Date().toISOString().split('T')[0];
-
-  let changelog = fs.readFileSync(changelogPath, 'utf-8');
-
-  const changeItems = changes.map(change => `- ${change}`).join('\n');
-  const newEntry = `## [${version}] - ${today}
-
-### ${changeType}
-${changeItems}
-
-`;
-
-  const insertPos = changelog.indexOf('## [');
-  if (insertPos !== -1) {
-    changelog = changelog.slice(0, insertPos) + newEntry + changelog.slice(insertPos);
-  } else {
-    changelog += '\n' + newEntry;
-  }
-
-  fs.writeFileSync(changelogPath, changelog);
-}
-
 function runPackage() {
   log('\n开始打包...', colors.cyan);
   try {
@@ -128,9 +104,6 @@ function main() {
   const oldVersion = updatePackageJson(version);
   log(`✓ 已更新 package.json 版本号: ${oldVersion} → ${version}`, colors.green);
 
-  updateChangelog(version, changeType, changes);
-  log(`✓ 已更新 CHANGELOG.md`, colors.green);
-
   log('\n📋 发布摘要:', colors.bright);
   log(`  版本: ${oldVersion} → ${version}`, colors.cyan);
   log(`  类型: ${changeType}`, colors.cyan);
@@ -146,6 +119,7 @@ function main() {
 
   log('\n✅ 版本发布完成！', colors.green);
   log('\n下一步:', colors.cyan);
+  log('  0. 手动更新 CHANGELOG.md（将 release.config.json 中的变更内容添加到对应版本）');
   if (!autoPackage) {
     log('  1. 运行打包: npm run package');
   }
