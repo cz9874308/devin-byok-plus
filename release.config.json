@@ -1,12 +1,16 @@
 {
-  "version": "2.1.2",
-  "releaseDate": "2026-06-28",
-  "changeType": "Fixed",
+  "version": "2.2.0",
+  "releaseDate": "2026-07-03",
+  "changeType": "Added",
   "changes": [
-    "修复强制 tool_choice 指向的命名工具缺失时被静默丢弃：自动补齐占位定义并放行 tool_choice，使收尾工具 finish 等能被真正调用",
-    "工具调用中途断流时增加自动重试：检测被截断的 tool_use 参数，未输出任何内容时自动重试上游，否则以明确错误结束而非崩溃",
-    "修复流式 tool_use 参数被截断导致代理进程崩溃退出（TypeError: Cannot create property 'old_string' on string）",
-    "修复 AmazonQ/Bedrock 报错 TOOL_CONFIG_MISSING：历史含 tool_use/tool_result 但本轮未带 tools 时，按历史工具名合成占位定义满足 toolConfig 要求"
+    "扩展 BYOK 配置从 2 槽位到 4 槽位：新增 Claude Sonnet 4 BYOK（#3）与 Claude Sonnet 4 Thinking BYOK（#4），支持更灵活的多模型配置",
+    "多渠道 Profile 系统：支持创建/切换/重命名/复制/删除配置方案，每个方案独立管理 4 槽位 + 高级配置，存储于 profiles.json（0o600 权限）",
+    "移植上游 v2.3.0 Prompt Cache：Anthropic 请求自动对 system/tools/消息稳定前缀打 cache_control 断点；网关不支持时自动降级重试；OpenAI/Gemini 路径稳定排序 tools 提升隐式前缀缓存命中",
+    "Token 用量日志：各 provider 流结束时输出统一 📊 日志（input/output/cached/creation/命中率/模式/路由），便于观测缓存效果与 token 消耗",
+    "上游地址覆盖：支持 PROXY_API_HOST（hybrid-server）与 PROXY_INFERENCE_HOST（inference-proxy）环境变量自定义上游 API 地址",
+    "新增 5 个 Prompt Cache 环境变量：PROMPT_CACHE_ENABLED / ANTHROPIC_PROMPT_CACHE / OPENAI_PROMPT_CACHE / PROMPT_CACHE_SORT_TOOLS / PROMPT_CACHE_TAIL_MESSAGES",
+    "UI 层新增 BYOK #3/#4 配置卡片（紫色/琥珀色条纹），表单自动保存与槽位状态徽章完整支持 4 槽位",
+    "向后兼容：现有 2 槽位用户无感迁移，旧 profiles.json 自动补齐 byok3/byok4 字段；BYOK #3/#4 为可选扩展槽位，不强制配置"
   ],
   "breaking": false,
   "autoPackage": true,

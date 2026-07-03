@@ -5,9 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [2.2.0] - 2026-07-03
 
 ### Added
+- **4 槽位 BYOK 扩展**：从 2 槽位扩展到 4 槽位，新增 Claude Sonnet 4 BYOK（#3）与 Claude Sonnet 4 Thinking BYOK（#4），支持更灵活的多模型配置。UI 层新增 BYOK #3/#4 配置卡片（紫色/琥珀色条纹），表单自动保存与槽位状态徽章完整支持 4 槽位。
+- **多渠道 Profile 系统**：引入配置方案（Profile）管理能力，支持创建/切换/重命名/复制/删除多套独立配置，每个方案管理 4 个 BYOK 槽位 + 高级配置，存储于 `~/.devin-byok-plus/profiles.json`（0o600 权限保护）。向后兼容：现有 2 槽位用户无感迁移，旧 profiles.json 自动补齐 byok3/byok4 字段；BYOK #3/#4 为可选扩展槽位，不强制配置。
 - **Prompt Cache / Token 优化**（移植上游 v2.3.0）：Anthropic 请求自动对 system / tools / 消息稳定前缀打 `cache_control` 断点并携带 `anthropic-beta: prompt-caching-2024-07-31` 头；网关不支持时自动标记能力并立即无缓存重试（不计入重试次数/熔断）。OpenAI/Gemini 路径按 name 稳定排序 tools、稳定请求前缀以提升隐式前缀缓存命中。新增环境变量 `PROMPT_CACHE_ENABLED` / `ANTHROPIC_PROMPT_CACHE` / `OPENAI_PROMPT_CACHE` / `PROMPT_CACHE_SORT_TOOLS` / `PROMPT_CACHE_TAIL_MESSAGES`。
 - **Token 用量日志**（移植上游 v2.3.0）：各 provider 流结束时输出统一 `📊` 日志（input/output/cached/creation/命中率/模式/路由/cache 状态），用于观测缓存效果与 token 消耗。
 - **上游地址覆盖**：`PROXY_API_HOST`（hybrid-server）与 `PROXY_INFERENCE_HOST`（inference-proxy）支持自定义上游 API 地址。
@@ -15,6 +17,14 @@
 ### Changed
 - `EXPOSE_BACKEND_INFO` 默认值由 `true` 改为 `false`：system prompt 末尾追加的动态 backend 信息会破坏前缀缓存；如需恢复请显式设置 `EXPOSE_BACKEND_INFO=true`。
 - ws-bridge 运行时注入的消息现作为「易变尾部」处理，prompt cache 断点自动前移，内部标记发送上游前剥除。
+- `release.js` 脚本移除自动写入 CHANGELOG 功能，改为用户手动维护，避免重复追加条目。
+
+### Fixed
+- 修复 `config-hotreload.test.mjs` 中 oversized POST body 测试的请求体大小（20000→64001 字节，真正超过 64000 上限以正确触发 413 检查）。
+- 修复代理层 `models.js` 的 `/api/models` 端点 slot 参数解析（原仅接受 1/2，导致 BYOK #3/#4 "加载模型"按钮失效）。
+- 修复 `chat.js` 和 `diagnostics.js` 的 `MODEL_MAP` 缺失 Sonnet 4 BYOK 两个模型键，导致 Sonnet 4 请求无法路由。
+- 修复 `sidebarProvider.js` 的 `importExternalConfig` / `fetchModels` 处理器 slot 范围校验（原仅支持 1/2，扩展到 1-4）。
+- 修复 `profileStore.js` 的 `projectToEnvConfig` / `listProfiles` 对缺失槽位字段的防御性处理，避免旧数据访问 undefined 崩溃。
 
 ## [2.1.2] - 2026-06-28
 
