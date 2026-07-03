@@ -43,7 +43,7 @@ function parsePortEnv(arg0, arg1) {
 }
 const PORT = parsePortEnv("HYBRID_PORT", 3006);
 const BIND_HOST = process.env.BIND_HOST || "127.0.0.1";
-const REAL_API_HOST = "server.self-serve.windsurf.com";
+const REAL_API_HOST = process.env.PROXY_API_HOST || "server.self-serve.windsurf.com";
 const REAL_WEBSITE = "windsurf.com";
 const REAL_REGISTER_HOST = "register.windsurf.com";
 const REAL_UNLEASH_HOST = "unleash.codeium.com";

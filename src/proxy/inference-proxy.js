@@ -15,7 +15,7 @@ function parsePortEnv(arg0, arg1) {
 }
 const PORT = parsePortEnv("INFERENCE_PORT", 3001);
 const BIND_HOST = process.env.BIND_HOST || "127.0.0.1";
-const UPSTREAM = "inference.codeium.com";
+const UPSTREAM = process.env.PROXY_INFERENCE_HOST || "inference.codeium.com";
 const INTERCEPT_PATHS = new Set(["/exa.api_server_pb.ApiServerService/GetChatMessage", "/exa.api_server_pb.ApiServerService/GetCompletions"]);
 let reqCount = 0;
 const HOP_BY_HOP_RESPONSE_HEADERS = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade"]);
