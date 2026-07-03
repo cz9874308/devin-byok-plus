@@ -328,6 +328,8 @@ const tmp0 = {
   MODEL_CLAUDE_4_OPUS: '__DEFAULT__',
   MODEL_CLAUDE_4_OPUS_BYOK: '__DEFAULT__',
   MODEL_CLAUDE_4_OPUS_THINKING_BYOK: '__DEFAULT__',
+  MODEL_CLAUDE_4_SONNET_BYOK: '__DEFAULT__',
+  MODEL_CLAUDE_4_SONNET_THINKING_BYOK: '__DEFAULT__',
   MODEL_CLAUDE_OPUS_4: '__DEFAULT__',
   MODEL_CLAUDE_OPUS_4_1: '__DEFAULT__',
   MODEL_CLAUDE_SONNET_4: ANTHROPIC_FALLBACK_MODEL,
@@ -395,7 +397,7 @@ function isClaudeModel(arg0) {
   return tmp1.startsWith('claude-') || tmp1.startsWith('model_claude');
 }
 function resolveSlotThinkingEffort(arg0, arg1) {
-  if (arg0 === 1 || arg0 === 2) {
+  if (arg0 === 1 || arg0 === 2 || arg0 === 3 || arg0 === 4) {
     return getSlotThinkingEffort(arg0) || (arg0 === 1 ? arg1.openaiReasoningEffort || '' : '');
   }
   return arg1.openaiReasoningEffort || '';
@@ -460,6 +462,12 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     if (tmp10 === 2) {
       tmp02 =
         'BYOK #2 model not configured. Please set BYOK2_MODEL in .env or configure via sidebar.';
+    } else if (tmp10 === 3) {
+      tmp02 =
+        'BYOK #3 model not configured. Please set BYOK3_MODEL in .env or configure via sidebar.';
+    } else if (tmp10 === 4) {
+      tmp02 =
+        'BYOK #4 model not configured. Please set BYOK4_MODEL in .env or configure via sidebar.';
     } else if (tmp10 === 1) {
       tmp02 = 'BYOK #1 model not configured. Please set BYOK1_MODEL or DEFAULT_MODEL in .env.';
     }

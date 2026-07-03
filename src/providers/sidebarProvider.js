@@ -56,6 +56,7 @@ const gatewayUrl_1 = require('../utils/gatewayUrl');
 const sidebarTemplate_1 = require('../views/sidebarTemplate');
 const sidebarUtils_1 = require('./sidebar-utils');
 const modelFetcher_1 = require('../services/modelFetcher');
+const profileStore_1 = require('../services/profileStore');
 const diagnostics_1 = require('../services/diagnostics');
 const promptTemplates_1 = require('../services/promptTemplates');
 const environmentProbe_1 = require('../services/environmentProbe');
@@ -76,6 +77,7 @@ class SidebarProvider {
     this.context = tmp02;
     this.logLines = [];
     this.lastStatusPostMs = 0;
+    this.editingProfileId = null;
     this.proxyManager = tmp1;
     this.proxyManager.onLog((arg0) => {
       this.logLines.push(arg0);
@@ -191,8 +193,45 @@ class SidebarProvider {
       type: 'status',
       proxy: this.proxyManager.getStatus(),
       patch: this.getPatchStatus(),
-      config: this.getModeScopedConfig(),
+      config: this.getEditingScopedConfig(),
       logs: this.logLines.slice(-50),
+    });
+  }
+  getEditingScopedConfig() {
+    const envConfig = this.proxyManager.readEnvConfig();
+    if (this.editingProfileId) {
+      const profile = profileStore_1.getProfileById(this.editingProfileId, envConfig);
+      if (profile) {
+        return this.getModeScopedConfig(profileStore_1.projectToEnvConfig(profile));
+      }
+    }
+    return this.getModeScopedConfig(envConfig);
+  }
+  postProfileList() {
+    if (!this.view) return;
+    const envConfig = this.proxyManager.readEnvConfig();
+    const list = profileStore_1.listProfiles(envConfig);
+    if (!this.editingProfileId || !list.profiles.some((p) => p.id === this.editingProfileId)) {
+      this.editingProfileId = list.activeId;
+    }
+    this.view.webview.postMessage({
+      type: 'profileList',
+      profiles: list.profiles,
+      activeId: list.activeId,
+      editingId: this.editingProfileId,
+    });
+  }
+  postEditingConfig() {
+    if (!this.view || !this.editingProfileId) return;
+    const envConfig = this.proxyManager.readEnvConfig();
+    const profile = profileStore_1.getProfileById(this.editingProfileId, envConfig);
+    if (!profile) return;
+    const scoped = this.getModeScopedConfig(profileStore_1.projectToEnvConfig(profile));
+    this.view.webview.postMessage({
+      type: 'status',
+      proxy: this.proxyManager.getStatus(),
+      patch: this.getPatchStatus(),
+      config: scoped,
     });
   }
   getStoredPatchExtensionPath() {
@@ -260,6 +299,94 @@ class SidebarProvider {
     });
     this.proxyManager.writeEnvConfig(merged);
     return merged;
+  }
+  envConfigToProfileFields(cfg) {
+    const norm = modelFetcher_1.normalizeProviderBaseUrl({ ...cfg });
+    return {
+      byok1: {
+        host: norm.BYOK1_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK1_ANTHROPIC_API_HOST) : '',
+        key: norm.BYOK1_ANTHROPIC_API_KEY || '',
+        model: norm.BYOK1_MODEL || '',
+        thinkingEffort: norm.BYOK1_THINKING_EFFORT || '',
+        anthropicPath: norm.BYOK1_ANTHROPIC_API_PATH || '',
+        openaiPath: norm.BYOK1_OPENAI_API_PATH || '',
+      },
+      byok2: {
+        host: norm.BYOK2_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK2_ANTHROPIC_API_HOST) : '',
+        key: norm.BYOK2_ANTHROPIC_API_KEY || '',
+        model: norm.BYOK2_MODEL || '',
+        thinkingEffort: norm.BYOK2_THINKING_EFFORT || '',
+        anthropicPath: norm.BYOK2_ANTHROPIC_API_PATH || '',
+        openaiPath: norm.BYOK2_OPENAI_API_PATH || '',
+      },
+      byok3: {
+        host: norm.BYOK3_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK3_ANTHROPIC_API_HOST) : '',
+        key: norm.BYOK3_ANTHROPIC_API_KEY || '',
+        model: norm.BYOK3_MODEL || '',
+        thinkingEffort: norm.BYOK3_THINKING_EFFORT || '',
+        anthropicPath: norm.BYOK3_ANTHROPIC_API_PATH || '',
+        openaiPath: norm.BYOK3_OPENAI_API_PATH || '',
+      },
+      byok4: {
+        host: norm.BYOK4_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK4_ANTHROPIC_API_HOST) : '',
+        key: norm.BYOK4_ANTHROPIC_API_KEY || '',
+        model: norm.BYOK4_MODEL || '',
+        thinkingEffort: norm.BYOK4_THINKING_EFFORT || '',
+        anthropicPath: norm.BYOK4_ANTHROPIC_API_PATH || '',
+        openaiPath: norm.BYOK4_OPENAI_API_PATH || '',
+      },
+      advanced: {
+        hybridPort: norm.HYBRID_PORT || '',
+        inferencePort: norm.INFERENCE_PORT || '',
+        anthropicPath: norm.ANTHROPIC_API_PATH || '/v1/messages',
+        openaiPath: norm.OPENAI_API_PATH || '/v1/responses',
+        maxTokens: norm.MAX_TOKENS || '64000',
+        completionTimeout: norm.COMPLETION_TIMEOUT_MS || '12000',
+      },
+    };
+  }
+  stripProtocol(v) {
+    return gatewayUrl_1.stripProtoServer(v);
+  }
+  async applyProfileToRuntime(profile, silent) {
+    const patch = profileStore_1.projectToEnvConfig(profile);
+    const merged = this.writeModeScopedConfig(patch);
+    const runtime = this.getRuntimeConfigForCurrentMode(merged);
+    const status = this.proxyManager.getStatus();
+    let message = '已切换方案；代理未运行，下次启动生效';
+    if (status.running) {
+      const { hybridPort, inferencePort } = this.proxyManager.portsFromConfig(merged);
+      const portsChanged = status.hybridPort !== hybridPort || status.inferencePort !== inferencePort;
+      if (portsChanged) {
+        this.proxyManager.stop();
+        const started = await this.proxyManager.start('both', runtime);
+        message = started
+          ? '已切换方案；端口变更，代理已重启'
+          : '已切换方案；端口变更但代理重启失败：' +
+            (this.proxyManager.getLastStartError() || '未知错误');
+      } else {
+        const result = await this.proxyManager.reloadRuntimeConfig(runtime, {
+          hybridPort,
+          inferencePort,
+        });
+        if (result.ok) {
+          message = '已切换方案，并已热更新到运行中的代理';
+        } else {
+          const errMsg = result.errors.join('；') || '未知错误';
+          this.proxyManager.stop();
+          await new Promise((r) => setTimeout(r, 500));
+          const started = await this.proxyManager.start('both', runtime);
+          message = started
+            ? '已切换方案；热更新失败但已自动重启代理生效（' + errMsg + '）'
+            : '已切换方案；热更新失败且代理重启失败：' +
+              (this.proxyManager.getLastStartError() || errMsg);
+        }
+      }
+    }
+    if (!silent) {
+      this.postActionState('config', message.includes('失败') ? 'error' : 'success', message);
+    }
+    return { merged, message };
   }
   async checkWindsurfProcessRouting(tmp02) {
     const { hybridPort: tmp1, inferencePort: tmp2 } = this.proxyManager.portsFromConfig(tmp02);
@@ -486,11 +613,15 @@ class SidebarProvider {
     const tmp16 = /^(gpt-)/i.test(tmp15) || /^MODEL_GPT/i.test(tmp14);
     const tmp17 = String(tmp3.BYOK1_THINKING_EFFORT || tmp3.OPENAI_REASONING_EFFORT || '').trim();
     const tmp18 = String(tmp3.BYOK2_THINKING_EFFORT || '').trim();
+    const tmp18a = String(tmp3.BYOK3_THINKING_EFFORT || '').trim();
+    const tmp18b = String(tmp3.BYOK4_THINKING_EFFORT || '').trim();
     const tmp19 =
       ['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp17) &&
-      ['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp18);
+      ['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp18) &&
+      ['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp18a) &&
+      ['', 'low', 'medium', 'high', 'xhigh', 'max'].includes(tmp18b);
     const tmp20 =
-      tmp17 || tmp18 || tmp3.OPENAI_THINKING_ENABLED === 'true' || /-thinking$/i.test(tmp14);
+      tmp17 || tmp18 || tmp18a || tmp18b || tmp3.OPENAI_THINKING_ENABLED === 'true' || /-thinking$/i.test(tmp14);
     tmp02.push(
       sidebarUtils_1.envCheckItem(
         'reasoning',
@@ -501,6 +632,10 @@ class SidebarProvider {
               (tmp17 || '关闭') +
               '；BYOK #2=' +
               (tmp18 || '关闭') +
+              '；BYOK #3=' +
+              (tmp18a || '关闭') +
+              '；BYOK #4=' +
+              (tmp18b || '关闭') +
               '（Claude→adaptive/budget，GPT→reasoning.effort，Gemini→thinking_level）'
           : '未配置思考强度；将按模型名决定是否思考',
         !tmp19
@@ -742,6 +877,20 @@ class SidebarProvider {
       )
     ) {
       tmp2.BYOK2_THINKING_EFFORT = '';
+    }
+    if (
+      !['', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(
+        tmp2.BYOK3_THINKING_EFFORT || ''
+      )
+    ) {
+      tmp2.BYOK3_THINKING_EFFORT = '';
+    }
+    if (
+      !['', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(
+        tmp2.BYOK4_THINKING_EFFORT || ''
+      )
+    ) {
+      tmp2.BYOK4_THINKING_EFFORT = '';
     }
     if (!['true', 'false'].includes(tmp2.OPENAI_THINKING_ENABLED || 'false')) {
       tmp2.OPENAI_THINKING_ENABLED = 'false';
@@ -1253,58 +1402,154 @@ class SidebarProvider {
       case 'saveConfig': {
         const tmp03 = tmp02.config;
         const silent = tmp02.silent === true;
-        const tmp1 = this.validateByokSlots(tmp03).join('；');
-        if (tmp1) {
-          this.postActionState('config', 'error', tmp1);
+        const envConfig = this.proxyManager.readEnvConfig();
+        const list = profileStore_1.listProfiles(envConfig);
+        if (!this.editingProfileId || !list.profiles.some((p) => p.id === this.editingProfileId)) {
+          this.editingProfileId = list.activeId;
+        }
+        const fields = this.envConfigToProfileFields(tmp03);
+        profileStore_1.updateProfile(this.editingProfileId, fields, envConfig);
+        const isEditingActive = this.editingProfileId === list.activeId;
+        if (!isEditingActive) {
           if (!silent) {
-            await vscode.window.showErrorMessage(tmp1);
+            this.postActionState('config', 'success', '已保存到方案（未启用，不影响当前运行）');
           }
+          this.postProfileList();
+          this.refresh();
           break;
         }
-        const tmp2 = this.writeModeScopedConfig(tmp03);
-        const tmp3 = this.getRuntimeConfigForCurrentMode(tmp2);
-        const tmp4 = this.proxyManager.getStatus();
-        let tmp5 = '配置已保存；代理未运行，下次启动生效';
-        if (tmp4.running) {
-          const { hybridPort: tmp04, inferencePort: tmp12 } =
-            this.proxyManager.portsFromConfig(tmp2);
-          const tmp22 = tmp4.hybridPort !== tmp04 || tmp4.inferencePort !== tmp12;
-          if (tmp22) {
-            this.proxyManager.stop();
-            const tmp32 = await this.proxyManager.start('both', tmp3);
-            tmp5 = tmp32
-              ? '配置已保存；端口变更，代理已重启并使用新配置'
-              : '配置已保存；端口变更但代理重启失败：' +
-                (this.proxyManager.getLastStartError() || '未知错误');
-            this.postActionState(
-              'patch',
-              'success',
-              '端口已变更；如需让 Devin Desktop 使用新端口，请手动点击"安装补丁"并重载窗口'
-            );
-          } else {
-            const tmp05 = {
-              hybridPort: tmp04,
-              inferencePort: tmp12,
-            };
-            const tmp32 = await this.proxyManager.reloadRuntimeConfig(tmp3, tmp05);
-            if (tmp32.ok) {
-              tmp5 = '配置已保存，并已热更新到运行中的代理';
-            } else {
-              const tmp42 = tmp32.errors.join('；') || '未知错误';
-              this.logLines.push('配置热更新失败，准备自动重启代理：' + tmp42);
-              this.proxyManager.stop();
-              await new Promise((arg0) => setTimeout(arg0, 500));
-              const tmp52 = await this.proxyManager.start('both', tmp3);
-              tmp5 = tmp52
-                ? '配置已保存；热更新失败但已自动重启代理生效（' + tmp42 + '）'
-                : '配置已保存；热更新失败且代理重启失败：' +
-                  (this.proxyManager.getLastStartError() || tmp42);
-            }
+        const validationError = this.validateByokSlots(tmp03).join('；');
+        if (validationError) {
+          if (!silent) {
+            this.postActionState('config', 'error', validationError);
+            await vscode.window.showErrorMessage(validationError);
           }
+          this.postProfileList();
+          break;
         }
-        if (!silent) {
-          this.postActionState('config', tmp5.includes('失败') ? 'error' : 'success', tmp5);
+        const activeProfile = profileStore_1.getProfileById(this.editingProfileId, envConfig);
+        await this.applyProfileToRuntime(activeProfile, silent);
+        this.postProfileList();
+        this.refresh();
+        break;
+      }
+      case 'getProfiles': {
+        this.postProfileList();
+        break;
+      }
+      case 'createProfile': {
+        const envConfig = this.proxyManager.readEnvConfig();
+        const created = profileStore_1.createProfile(null, envConfig);
+        this.editingProfileId = created.id;
+        this.postActionState('config', 'success', '已创建新方案：' + created.name);
+        this.postProfileList();
+        this.refresh();
+        break;
+      }
+      case 'editProfile': {
+        const pid = tmp02.profileId;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const profile = profileStore_1.getProfileById(pid, envConfig);
+        if (!profile) {
+          this.postActionState('config', 'error', '方案不存在');
+          break;
         }
+        this.editingProfileId = pid;
+        const scoped = this.getModeScopedConfig(profileStore_1.projectToEnvConfig(profile));
+        if (this.view) {
+          this.view.webview.postMessage({
+            type: 'status',
+            proxy: this.proxyManager.getStatus(),
+            patch: this.getPatchStatus(),
+            config: scoped,
+          });
+        }
+        this.postProfileList();
+        break;
+      }
+      case 'activateProfile': {
+        const pid = tmp02.profileId;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const profile = profileStore_1.getProfileById(pid, envConfig);
+        if (!profile) {
+          this.postActionState('config', 'error', '方案不存在');
+          break;
+        }
+        const validationError = this.validateByokSlots(
+          profileStore_1.projectToEnvConfig(profile)
+        ).join('；');
+        if (validationError) {
+          this.postActionState('config', 'error', '该方案未配齐：' + validationError);
+          await vscode.window.showErrorMessage('该方案未配齐：' + validationError);
+          break;
+        }
+        profileStore_1.activateProfile(pid, envConfig);
+        this.editingProfileId = pid;
+        await this.applyProfileToRuntime(profile, false);
+        this.postProfileList();
+        this.refresh();
+        break;
+      }
+      case 'renameProfile': {
+        const pid = tmp02.profileId;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const profile = profileStore_1.getProfileById(pid, envConfig);
+        if (!profile) {
+          this.postActionState('config', 'error', '方案不存在');
+          break;
+        }
+        const newName = await vscode.window.showInputBox({
+          prompt: '重命名方案',
+          value: profile.name,
+          validateInput: (v) => (v && v.trim() ? null : '名称不能为空'),
+        });
+        if (newName && newName.trim()) {
+          profileStore_1.renameProfile(pid, newName, envConfig);
+          this.postActionState('config', 'success', '已重命名为：' + newName.trim());
+          this.postProfileList();
+        }
+        break;
+      }
+      case 'duplicateProfile': {
+        const pid = tmp02.profileId;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const dup = profileStore_1.duplicateProfile(pid, envConfig);
+        this.editingProfileId = dup.id;
+        this.postActionState('config', 'success', '已复制为：' + dup.name);
+        this.postProfileList();
+        break;
+      }
+      case 'deleteProfile': {
+        const pid = tmp02.profileId;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const list = profileStore_1.listProfiles(envConfig);
+        if (list.profiles.length <= 1) {
+          this.postActionState('config', 'error', '至少需要保留一个方案');
+          await vscode.window.showWarningMessage('至少需要保留一个方案，无法删除');
+          break;
+        }
+        const profile = profileStore_1.getProfileById(pid, envConfig);
+        const confirm = await vscode.window.showWarningMessage(
+          '确认删除方案「' + (profile ? profile.name : pid) + '」？此操作不可撤销',
+          { modal: true },
+          '删除'
+        );
+        if (confirm !== '删除') {
+          break;
+        }
+        const wasActive = pid === list.activeId;
+        const result = profileStore_1.deleteProfile(pid, envConfig);
+        if (this.editingProfileId === pid) {
+          this.editingProfileId = result.newActiveId;
+        }
+        if (wasActive) {
+          const newActive = profileStore_1.getProfileById(result.newActiveId, envConfig);
+          await this.applyProfileToRuntime(newActive, false);
+          this.postActionState('config', 'success', '已删除并切换到：' + newActive.name);
+        } else {
+          this.postActionState('config', 'success', '已删除方案');
+        }
+        this.postProfileList();
         this.refresh();
         break;
       }
@@ -1464,7 +1709,7 @@ class SidebarProvider {
         break;
       }
       case 'importExternalConfig': {
-        const tmp03 = tmp02.slot === 2 ? 2 : 1;
+        const tmp03 = [1, 2, 3, 4].includes(Number(tmp02.slot)) ? Number(tmp02.slot) : 1;
         const tmp04 = String(tmp02.source || 'claude')
           .trim()
           .toLowerCase();
@@ -1545,7 +1790,7 @@ class SidebarProvider {
         break;
       }
       case 'fetchModels': {
-        const tmp03 = tmp02.slot === 2 ? 2 : 1;
+        const tmp03 = [1, 2, 3, 4].includes(Number(tmp02.slot)) ? Number(tmp02.slot) : 1;
         this.view?.webview.postMessage({
           type: 'modelList',
           slot: tmp03,
@@ -1706,6 +1951,14 @@ class SidebarProvider {
     const tmp33 = Object.prototype.hasOwnProperty.call(tmp2, 'OPENAI_REASONING_EFFORT')
       ? tmp2.OPENAI_REASONING_EFFORT
       : '';
+    const tmp33a = tmp2.BYOK3_ANTHROPIC_API_HOST || '';
+    const tmp33b = tmp2.BYOK3_ANTHROPIC_API_KEY || '';
+    const tmp33c = tmp2.BYOK3_MODEL || '';
+    const tmp33d = tmp2.BYOK3_THINKING_EFFORT || '';
+    const tmp33e = tmp2.BYOK4_ANTHROPIC_API_HOST || '';
+    const tmp33f = tmp2.BYOK4_ANTHROPIC_API_KEY || '';
+    const tmp33g = tmp2.BYOK4_MODEL || '';
+    const tmp33h = tmp2.BYOK4_THINKING_EFFORT || '';
     const tmp34 = tmp7 === tmp1.patches.length ? 'badge-ok' : 'badge-warn';
     const tmp35 = tmp7 === tmp1.patches.length ? '已就绪' : '需安装';
     const tmp36 =
@@ -1742,6 +1995,7 @@ class SidebarProvider {
       tmp10,
       tmp11,
       tmp12,
+      tmp12a,
       tmp13,
       tmp14,
       tmp15,
@@ -1763,6 +2017,14 @@ class SidebarProvider {
       tmp31,
       tmp32,
       tmp33,
+      tmp33a,
+      tmp33b,
+      tmp33c,
+      tmp33d,
+      tmp33e,
+      tmp33f,
+      tmp33g,
+      tmp33h,
       tmp34,
       tmp35,
       tmp36,

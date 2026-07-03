@@ -1,4 +1,23 @@
 <!-- 配置连接 Tab -->
+
+<!-- 配置方案列表 -->
+<div class="profile-section">
+    <div class="profile-header">
+        <span class="profile-header-title">配置方案</span>
+        <button type="button" class="btn btn-s sm" data-ws-action="createProfile">＋ 新建</button>
+    </div>
+    <div id="profileList" class="profile-list">
+        <!-- 动态渲染 -->
+    </div>
+</div>
+
+<!-- 编辑器头部状态 -->
+<div class="profile-editor-status" id="profileEditorStatus">
+    <span class="profile-editor-label">正在编辑：</span>
+    <span class="profile-editor-name" id="profileEditorName">方案 1</span>
+    <span class="badge badge-info" id="profileEditorBadge">使用中</span>
+</div>
+
 <div class="byok-grid">
     <!-- BYOK #1 配置卡片 -->
     <div class="byok-card byok1-stripe">
@@ -41,6 +60,50 @@
             </div>
             <div class="fg" id="cfgByok2ThinkingEffortRow"><label id="cfgByok2ThinkingLabel">{{byok2ThinkingLabel}}</label><select id="cfgByok2ThinkingEffort">{{byok2ThinkingOptions}}</select></div>
             <div id="modelFetchStatus2" style="font-size:10px;color:{{textColor}}"></div>
+        </div>
+    </div>
+
+    <!-- BYOK #3 配置卡片 -->
+    <div class="byok-card byok3-stripe">
+        <div class="byok-card-head {{byok3HeadCollapsed}}" data-ws-toggle="byok3Body">
+            <span class="byok-card-title">BYOK #3 · Claude Sonnet 4 BYOK</span>
+            <span class="badge {{byok3BadgeClass}}">{{byok3BadgeText}}</span>
+        </div>
+        <div id="byok3Body" class="byok-card-body {{byok3BodyHidden}}">
+            <div class="fg"><label>Base URL（可选）</label><input type="text" id="cfgByok3Host" value="{{byok3Host}}" placeholder="例如 api-c.example.com"></div>
+            <div class="fg"><label>API Key</label><input type="password" id="cfgByok3Key" value="{{byok3Key}}" placeholder="BYOK #3 API Key" autocomplete="off"></div>
+            <div class="btns" style="margin-bottom:6px">
+                <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="claude" data-ws-slot="3">导入 Claude 配置</button>
+                <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="codex" data-ws-slot="3">导入 GPT 配置</button>
+            </div>
+            <div class="row" style="gap:6px;margin-bottom:6px">
+                <select id="cfgByok3Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok3ModelOption}}</select>
+                <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="3" style="padding:4px 8px">加载模型</button>
+            </div>
+            <div class="fg" id="cfgByok3ThinkingEffortRow"><label id="cfgByok3ThinkingLabel">{{byok3ThinkingLabel}}</label><select id="cfgByok3ThinkingEffort">{{byok3ThinkingOptions}}</select></div>
+            <div id="modelFetchStatus3" style="font-size:10px;color:{{textColor}}"></div>
+        </div>
+    </div>
+
+    <!-- BYOK #4 配置卡片 -->
+    <div class="byok-card byok4-stripe">
+        <div class="byok-card-head {{byok4HeadCollapsed}}" data-ws-toggle="byok4Body">
+            <span class="byok-card-title">BYOK #4 · Claude Sonnet 4 Thinking BYOK</span>
+            <span class="badge {{byok4BadgeClass}}">{{byok4BadgeText}}</span>
+        </div>
+        <div id="byok4Body" class="byok-card-body {{byok4BodyHidden}}">
+            <div class="fg"><label>Base URL（可选）</label><input type="text" id="cfgByok4Host" value="{{byok4Host}}" placeholder="例如 api-d.example.com"></div>
+            <div class="fg"><label>API Key</label><input type="password" id="cfgByok4Key" value="{{byok4Key}}" placeholder="BYOK #4 API Key" autocomplete="off"></div>
+            <div class="btns" style="margin-bottom:6px">
+                <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="claude" data-ws-slot="4">导入 Claude 配置</button>
+                <button type="button" class="btn btn-s sm" data-ws-action="importExternalConfig" data-ws-source="codex" data-ws-slot="4">导入 GPT 配置</button>
+            </div>
+            <div class="row" style="gap:6px;margin-bottom:6px">
+                <select id="cfgByok4Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok4ModelOption}}</select>
+                <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="4" style="padding:4px 8px">加载模型</button>
+            </div>
+            <div class="fg" id="cfgByok4ThinkingEffortRow"><label id="cfgByok4ThinkingLabel">{{byok4ThinkingLabel}}</label><select id="cfgByok4ThinkingEffort">{{byok4ThinkingOptions}}</select></div>
+            <div id="modelFetchStatus4" style="font-size:10px;color:{{textColor}}"></div>
         </div>
     </div>
 </div>

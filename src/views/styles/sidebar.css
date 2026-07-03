@@ -587,6 +587,12 @@
   .byok2-stripe {
     @apply border-l-[3px] border-l-blue-500;
   }
+  .byok3-stripe {
+    @apply border-l-[3px] border-l-purple-500;
+  }
+  .byok4-stripe {
+    @apply border-l-[3px] border-l-amber-500;
+  }
 
   /* ========== BYOK 折叠卡片 ========== */
   .byok-card {
@@ -750,6 +756,123 @@
   .flow-hint {
     @apply text-[10px] leading-relaxed text-vsdesc;
     @apply px-2.5 py-2 rounded-md bg-vsinput border border-vsborder;
+  }
+
+  /* ========== 配置方案列表 ========== */
+  .profile-section {
+    @apply mb-3 bg-vswidget border border-vsborder rounded-lg overflow-hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+
+  .profile-header {
+    @apply flex items-center justify-between gap-2 px-3 py-2 border-b border-vsborder;
+    background: color-mix(in srgb, var(--vscode-input-background) 50%, var(--vscode-editorWidget-background));
+  }
+
+  .profile-header-title {
+    @apply text-[11px] font-bold text-vsinputfg uppercase tracking-wide;
+  }
+
+  .profile-list {
+    @apply flex flex-col;
+    max-height: 180px;
+    @apply overflow-y-auto;
+  }
+
+  .profile-item {
+    @apply relative flex items-center gap-2 px-3 py-2 border-b border-vsborder;
+    @apply cursor-pointer select-none transition-all duration-150;
+    background: var(--vscode-editorWidget-background);
+  }
+
+  .profile-item:last-child {
+    @apply border-b-0;
+  }
+
+  .profile-item:hover {
+    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 8%, var(--vscode-editorWidget-background));
+  }
+
+  .profile-item.active {
+    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 12%, var(--vscode-editorWidget-background));
+    @apply border-l-2;
+    border-left-color: var(--vscode-button-background, #0d9488);
+  }
+
+  .profile-item.editing {
+    @apply border-l-2 border-l-yellow-500;
+  }
+
+  .profile-radio {
+    @apply w-4 h-4 flex-shrink-0 rounded-full border-2 transition-all duration-200;
+    border-color: var(--vscode-panel-border);
+  }
+
+  .profile-item.active .profile-radio {
+    border-color: var(--vscode-button-background, #0d9488);
+    background: var(--vscode-button-background, #0d9488);
+    @apply relative;
+  }
+
+  .profile-item.active .profile-radio::before {
+    content: '';
+    @apply absolute inset-0 rounded-full;
+    background: var(--vscode-button-background, #0d9488);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    opacity: 0.4;
+  }
+
+  .profile-item.active .profile-radio::after {
+    content: '';
+    @apply absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white rounded-full;
+    transform: translate(-50%, -50%);
+  }
+
+  .profile-meta {
+    @apply flex-1 min-w-0;
+  }
+
+  .profile-name {
+    @apply text-[11px] font-bold text-vsinputfg overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .profile-desc {
+    @apply text-[9px] text-vsdesc mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .profile-actions {
+    @apply flex items-center gap-1 opacity-0 transition-opacity duration-150;
+  }
+
+  .profile-item:hover .profile-actions {
+    @apply opacity-100;
+  }
+
+  .profile-action-btn {
+    @apply w-5 h-5 flex items-center justify-center rounded border-none;
+    @apply bg-white/5 text-vsdesc cursor-pointer transition-all duration-150;
+  }
+
+  .profile-action-btn:hover {
+    @apply bg-white/10 text-vsinputfg;
+  }
+
+  .profile-status {
+    @apply flex-shrink-0;
+  }
+
+  /* 编辑器头部状态 */
+  .profile-editor-status {
+    @apply flex items-center gap-2 px-3 py-2 mb-3 rounded-lg border border-vsborder;
+    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 5%, var(--vscode-editorWidget-background));
+  }
+
+  .profile-editor-label {
+    @apply text-[10px] text-vsdesc;
+  }
+
+  .profile-editor-name {
+    @apply flex-1 text-[11px] font-bold text-vsinputfg overflow-hidden text-ellipsis whitespace-nowrap;
   }
 
   /* ========== BYOK 配置布局（侧栏始终单列） ========== */

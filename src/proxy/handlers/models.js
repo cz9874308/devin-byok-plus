@@ -81,7 +81,9 @@ let _runtimeConfig = {
   openaiThinkingEnabled: sanitizeBooleanString(process.env.OPENAI_THINKING_ENABLED),
   completionTimeoutMs: sanitizePositiveInteger(process.env.COMPLETION_TIMEOUT_MS, 12000, 2000, 60000),
   byok1: readSlotConfigFromEnv(1, _legacySlotFallback),
-  byok2: readSlotConfigFromEnv(2, _emptySlot)
+  byok2: readSlotConfigFromEnv(2, _emptySlot),
+  byok3: readSlotConfigFromEnv(3, _emptySlot),
+  byok4: readSlotConfigFromEnv(4, _emptySlot)
 };
 function buildProviderFromSlot(arg0) {
   const tmp1 = stripProtocol(arg0.anthropicHost || "");
@@ -117,11 +119,14 @@ function syncLegacyFromByok1() {
 }
 syncLegacyFromByok1();
 export function getSlotRuntime(arg0) {
-  return arg0 === 2 ? {
-    ..._runtimeConfig.byok2
-  } : {
-    ..._runtimeConfig.byok1
-  };
+  if (arg0 === 2) {
+    return { ..._runtimeConfig.byok2 };
+  } else if (arg0 === 3) {
+    return { ..._runtimeConfig.byok3 };
+  } else if (arg0 === 4) {
+    return { ..._runtimeConfig.byok4 };
+  }
+  return { ..._runtimeConfig.byok1 };
 }
 export function getSlotModel(arg0) {
   return getSlotRuntime(arg0).model || "";
@@ -136,7 +141,7 @@ export function getRuntimeConfig() {
   return tmp0;
 }
 export function getProviderConfig(tmp0 = null) {
-  if (tmp0 === 1 || tmp0 === 2) {
+  if (tmp0 === 1 || tmp0 === 2 || tmp0 === 3 || tmp0 === 4) {
     return buildProviderFromSlot(getSlotRuntime(tmp0));
   }
   return buildProviderFromSlot(_runtimeConfig.byok1);
@@ -157,7 +162,7 @@ function setSlotStringField(arg0, arg1, arg2, arg3, fn = arg02 => arg02) {
     return false;
   }
   const tmp5 = fn(String(arg0[arg1] ?? "").trim());
-  const tmp6 = arg2 === 2 ? "byok2" : "byok1";
+  const tmp6 = arg2 === 2 ? "byok2" : arg2 === 3 ? "byok3" : arg2 === 4 ? "byok4" : "byok1";
   if (_runtimeConfig[tmp6][arg3] === tmp5) {
     return false;
   }
@@ -175,7 +180,7 @@ function applySlotPatch(arg0, arg1) {
   tmp2 = setSlotStringField(arg0, tmp3 + "OPENAI_API_KEY", arg1, "openaiApiKey") || tmp2;
   if (Object.prototype.hasOwnProperty.call(arg0, tmp3 + "MODEL")) {
     const tmp0 = typeof arg0[tmp3 + "MODEL"] === "string" ? arg0[tmp3 + "MODEL"].trim() : "";
-    const tmp1 = arg1 === 2 ? "byok2" : "byok1";
+    const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
     if (_runtimeConfig[tmp1].model !== tmp0) {
       _runtimeConfig[tmp1].model = tmp0;
       tmp2 = true;
@@ -183,7 +188,7 @@ function applySlotPatch(arg0, arg1) {
   }
   if (Object.prototype.hasOwnProperty.call(arg0, tmp3 + "THINKING_EFFORT")) {
     const tmp0 = sanitizeThinkingEffort(arg0[tmp3 + "THINKING_EFFORT"]);
-    const tmp1 = arg1 === 2 ? "byok2" : "byok1";
+    const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
     if (_runtimeConfig[tmp1].thinkingEffort !== tmp0) {
       _runtimeConfig[tmp1].thinkingEffort = tmp0;
       tmp2 = true;
@@ -201,6 +206,8 @@ export function setRuntimeConfig(arg0) {
   let tmp1 = false;
   tmp1 = applySlotPatch(arg0, 1) || tmp1;
   tmp1 = applySlotPatch(arg0, 2) || tmp1;
+  tmp1 = applySlotPatch(arg0, 3) || tmp1;
+  tmp1 = applySlotPatch(arg0, 4) || tmp1;
   tmp1 = setStringField(arg0, "ANTHROPIC_API_HOST", "anthropicHost", stripProtocol) || tmp1;
   tmp1 = setStringField(arg0, "ANTHROPIC_API_PATH", "anthropicApiPath") || tmp1;
   tmp1 = setStringField(arg0, "ANTHROPIC_API_KEY", "anthropicApiKey") || tmp1;
@@ -239,6 +246,16 @@ export function setRuntimeConfig(arg0) {
         anthropic: null,
         openai: null,
         ts: 0
+      },
+      3: {
+        anthropic: null,
+        openai: null,
+        ts: 0
+      },
+      4: {
+        anthropic: null,
+        openai: null,
+        ts: 0
       }
     };
   }
@@ -263,10 +280,20 @@ let _slotCache = {
     anthropic: null,
     openai: null,
     ts: 0
+  },
+  3: {
+    anthropic: null,
+    openai: null,
+    ts: 0
+  },
+  4: {
+    anthropic: null,
+    openai: null,
+    ts: 0
   }
 };
 function isCacheValid(tmp0 = null) {
-  const tmp1 = tmp0 === 1 || tmp0 === 2 ? _slotCache[tmp0] : _cache;
+  const tmp1 = tmp0 === 1 || tmp0 === 2 || tmp0 === 3 || tmp0 === 4 ? _slotCache[tmp0] : _cache;
   return tmp1.ts > 0 && Date.now() - tmp1.ts < CACHE_TTL_MS;
 }
 function httpsGetJson(arg0, arg1, arg2, tmp3 = 15000, tmp4 = false) {
@@ -357,7 +384,7 @@ async function fetchOpenAIModels(tmp0 = null) {
   }
 }
 async function getAllModels(tmp0 = false, tmp1 = null) {
-  const tmp2 = tmp1 === 1 || tmp1 === 2 ? _slotCache[tmp1] : _cache;
+  const tmp2 = tmp1 === 1 || tmp1 === 2 || tmp1 === 3 || tmp1 === 4 ? _slotCache[tmp1] : _cache;
   if (!tmp0 && isCacheValid(tmp1)) {
     const tmp02 = {
       anthropic: tmp2.anthropic,
@@ -371,7 +398,7 @@ async function getAllModels(tmp0 = false, tmp1 = null) {
     openai: tmp4,
     ts: Date.now()
   };
-  if (tmp1 === 1 || tmp1 === 2) {
+  if (tmp1 === 1 || tmp1 === 2 || tmp1 === 3 || tmp1 === 4) {
     _slotCache[tmp1] = tmp5;
   } else {
     _cache = tmp5;
@@ -420,7 +447,7 @@ export async function handleModelsRequest(arg0, arg1, arg2) {
   const tmp3 = new URL(arg0.url, "http://localhost");
   const tmp4 = tmp3.searchParams.get("refresh") === "1";
   const tmp5 = Number.parseInt(String(tmp3.searchParams.get("slot") || ""), 10);
-  const tmp6 = tmp5 === 1 || tmp5 === 2 ? tmp5 : null;
+  const tmp6 = tmp5 === 1 || tmp5 === 2 || tmp5 === 3 || tmp5 === 4 ? tmp5 : null;
   try {
     if (arg2 === "/api/models" || arg2 === "/api/models/") {
       const {

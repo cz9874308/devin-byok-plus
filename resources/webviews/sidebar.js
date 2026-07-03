@@ -13,14 +13,24 @@
       options: Array.isArray(tmp3.cachedModelOptions2) ? tmp3.cachedModelOptions2 : [],
       selected: typeof tmp3.lastSelectedModel2 === "string" ? tmp3.lastSelectedModel2 : "",
       apiKey: typeof tmp3.cachedModelApiKey2 === "string" ? tmp3.cachedModelApiKey2 : ""
+    },
+    3: {
+      options: Array.isArray(tmp3.cachedModelOptions3) ? tmp3.cachedModelOptions3 : [],
+      selected: typeof tmp3.lastSelectedModel3 === "string" ? tmp3.lastSelectedModel3 : "",
+      apiKey: typeof tmp3.cachedModelApiKey3 === "string" ? tmp3.cachedModelApiKey3 : ""
+    },
+    4: {
+      options: Array.isArray(tmp3.cachedModelOptions4) ? tmp3.cachedModelOptions4 : [],
+      selected: typeof tmp3.lastSelectedModel4 === "string" ? tmp3.lastSelectedModel4 : "",
+      apiKey: typeof tmp3.cachedModelApiKey4 === "string" ? tmp3.cachedModelApiKey4 : ""
     }
   });
   function fn2(arg0) {
-    return arg0 === 2 ? 2 : 1;
+    return arg0 === 2 ? 2 : arg0 === 3 ? 3 : arg0 === 4 ? 4 : 1;
   }
   function fn3(arg0) {
     const tmp12 = fn();
-    if (arg0 === 1 || arg0 === 2) {
+    if (arg0 === 1 || arg0 === 2 || arg0 === 3 || arg0 === 4) {
       tmp3 = {
         ...tmp3,
         ["cachedModelOptions" + arg0]: tmp12[arg0].options,
@@ -35,7 +45,13 @@
         cachedModelApiKey1: tmp12[1].apiKey,
         cachedModelOptions2: tmp12[2].options,
         lastSelectedModel2: tmp12[2].selected,
-        cachedModelApiKey2: tmp12[2].apiKey
+        cachedModelApiKey2: tmp12[2].apiKey,
+        cachedModelOptions3: tmp12[3].options,
+        lastSelectedModel3: tmp12[3].selected,
+        cachedModelApiKey3: tmp12[3].apiKey,
+        cachedModelOptions4: tmp12[4].options,
+        lastSelectedModel4: tmp12[4].selected,
+        cachedModelApiKey4: tmp12[4].apiKey
       };
     }
     tmp0.setState(tmp3);
@@ -237,7 +253,7 @@
     tmp5.value = tmp8;
   }
   function fn20() {
-    [1, 2].forEach(arg0 => {
+    [1, 2, 3, 4].forEach(arg0 => {
       const tmp12 = fn2(arg0);
       const tmp22 = fn4("cfgByok" + tmp12 + "Model");
       const tmp32 = tmp22 && tmp22.value || "";
@@ -294,6 +310,8 @@
     if (arg0) {
       fn23(arg0, 1);
       fn23(arg0, 2);
+      fn23(arg0, 3);
+      fn23(arg0, 4);
       fn13("cfgAnthropicPath", arg0.BYOK1_ANTHROPIC_API_PATH || arg0.ANTHROPIC_API_PATH || "");
       fn13("cfgOpenaiPath", arg0.BYOK1_OPENAI_API_PATH || arg0.OPENAI_API_PATH || "");
       fn13("cfgMaxTokens", arg0.MAX_TOKENS || "64000");
@@ -339,6 +357,70 @@
       tmp8[1].appendChild(tmp22);
     }
   }
+  // ========== 配置方案列表 ==========
+  let profilesState = { profiles: [], activeId: "", editingId: "" };
+
+  function renderProfileList(state) {
+    if (state) {
+      profilesState = {
+        profiles: Array.isArray(state.profiles) ? state.profiles : [],
+        activeId: state.activeId || "",
+        editingId: state.editingId || state.activeId || "",
+      };
+    }
+    const container = fn4("profileList");
+    if (!container) {
+      return;
+    }
+    const items = profilesState.profiles.map((p) => {
+      const isActive = p.id === profilesState.activeId;
+      const isEditing = p.id === profilesState.editingId;
+      const cls = ["profile-item"];
+      if (isActive) cls.push("active");
+      if (isEditing && !isActive) cls.push("editing");
+      const model = p.byok1Model || "未选择模型";
+      const host = p.byok1Display || "";
+      const desc = fn6(host) + " · " + fn6(model);
+      const configured = p.byok1Configured && p.byok2Configured;
+      const statusBadge = isActive
+        ? '<span class="badge badge-info">使用中</span>'
+        : configured
+          ? '<button type="button" class="btn btn-s sm" data-ws-action="activateProfile" data-profile-id="' + fn6(p.id) + '">启 用</button>'
+          : '<span class="badge badge-warn">未配齐</span>';
+      return (
+        '<div class="profile-item ' + cls.slice(1).join(" ") + '" data-profile-id="' + fn6(p.id) + '" data-ws-action="editProfile">' +
+        '<span class="profile-radio"></span>' +
+        '<div class="profile-meta">' +
+        '<div class="profile-name">' + fn6(p.name) + '</div>' +
+        '<div class="profile-desc">' + desc + '</div>' +
+        '</div>' +
+        '<div class="profile-actions">' +
+        '<button type="button" class="profile-action-btn" data-ws-action="renameProfile" data-profile-id="' + fn6(p.id) + '" title="重命名">✎</button>' +
+        '<button type="button" class="profile-action-btn" data-ws-action="duplicateProfile" data-profile-id="' + fn6(p.id) + '" title="复制">⧉</button>' +
+        '<button type="button" class="profile-action-btn" data-ws-action="deleteProfile" data-profile-id="' + fn6(p.id) + '" title="删除">🗑</button>' +
+        '</div>' +
+        '<div class="profile-status">' + statusBadge + '</div>' +
+        '</div>'
+      );
+    });
+    container.innerHTML = items.join("");
+    updateEditorStatus();
+  }
+
+  function updateEditorStatus() {
+    const nameEl = fn4("profileEditorName");
+    const badgeEl = fn4("profileEditorBadge");
+    const editing = profilesState.profiles.find((p) => p.id === profilesState.editingId);
+    if (nameEl) {
+      nameEl.textContent = editing ? editing.name : "方案";
+    }
+    if (badgeEl) {
+      const isActive = editing && editing.id === profilesState.activeId;
+      badgeEl.textContent = isActive ? "使用中" : "未启用";
+      badgeEl.className = isActive ? "badge badge-info" : "badge badge-warn";
+    }
+  }
+
   function fn25(arg0, arg1, arg2) {
     if (!arg0) {
       return;
@@ -409,9 +491,13 @@
   function fn27() {
     const tmp02 = fn26(1);
     const tmp12 = fn26(2);
+    const tmp22b = fn26(3);
+    const tmp32b = fn26(4);
     return {
       ...tmp02,
       ...tmp12,
+      ...tmp22b,
+      ...tmp32b,
       ANTHROPIC_API_HOST: tmp02.BYOK1_ANTHROPIC_API_HOST,
       ANTHROPIC_API_KEY: tmp02.BYOK1_ANTHROPIC_API_KEY,
       ANTHROPIC_API_PATH: tmp02.BYOK1_ANTHROPIC_API_PATH,
@@ -726,6 +812,34 @@
       fn5("saveConfig", {
         config: fn27()
       });
+    } else if (tmp32 === "createProfile") {
+      fn5("createProfile", { config: fn27() });
+    } else if (tmp32 === "activateProfile") {
+      const pid = tmp22.getAttribute("data-profile-id");
+      if (pid) {
+        fn7("config", "busy", "正在切换方案...");
+        fn5("activateProfile", { profileId: pid });
+      }
+    } else if (tmp32 === "editProfile") {
+      const pid = tmp22.getAttribute("data-profile-id");
+      if (pid) {
+        fn5("editProfile", { profileId: pid });
+      }
+    } else if (tmp32 === "renameProfile") {
+      const pid = tmp22.getAttribute("data-profile-id");
+      if (pid) {
+        fn5("renameProfile", { profileId: pid });
+      }
+    } else if (tmp32 === "duplicateProfile") {
+      const pid = tmp22.getAttribute("data-profile-id");
+      if (pid) {
+        fn5("duplicateProfile", { profileId: pid });
+      }
+    } else if (tmp32 === "deleteProfile") {
+      const pid = tmp22.getAttribute("data-profile-id");
+      if (pid) {
+        fn5("deleteProfile", { profileId: pid });
+      }
     } else if (tmp32 === "maintenanceTools") {
       fn7("config", "busy", "请选择维护操作...");
       fn5("maintenanceTools");
@@ -856,22 +970,22 @@
       fn5("setAutoStartProxy", {
         value: tmp12.checked === true
       });
-    } else if (tmp12.id === "cfgByok1Model" || tmp12.id === "cfgByok2Model" || tmp12.id === "cfgByok1ThinkingEffort" || tmp12.id === "cfgByok2ThinkingEffort") {
-      const tmp02 = /cfgByok2/.test(tmp12.id) ? 2 : 1;
+    } else if (tmp12.id === "cfgByok1Model" || tmp12.id === "cfgByok2Model" || tmp12.id === "cfgByok3Model" || tmp12.id === "cfgByok4Model" || tmp12.id === "cfgByok1ThinkingEffort" || tmp12.id === "cfgByok2ThinkingEffort" || tmp12.id === "cfgByok3ThinkingEffort" || tmp12.id === "cfgByok4ThinkingEffort") {
+      const tmp02 = /cfgByok2/.test(tmp12.id) ? 2 : /cfgByok3/.test(tmp12.id) ? 3 : /cfgByok4/.test(tmp12.id) ? 4 : 1;
       if (tmp12.id.endsWith("Model")) {
         tmp3["lastSelectedModel" + tmp02] = tmp12.value || "";
         fn3(tmp02);
       }
       fn20();
-    } else if (tmp12.id === "cfgByok1Host" || tmp12.id === "cfgByok2Host") {
-      fn9("Base URL 已修改，请重新加载模型", tmp12.id === "cfgByok2Host" ? 2 : 1);
-    } else if (tmp12.id === "cfgByok1Key" || tmp12.id === "cfgByok2Key") {
-      fn9("API Key 已修改，请重新加载模型", tmp12.id === "cfgByok2Key" ? 2 : 1);
+    } else if (tmp12.id === "cfgByok1Host" || tmp12.id === "cfgByok2Host" || tmp12.id === "cfgByok3Host" || tmp12.id === "cfgByok4Host") {
+      fn9("Base URL 已修改，请重新加载模型", tmp12.id === "cfgByok2Host" ? 2 : tmp12.id === "cfgByok3Host" ? 3 : tmp12.id === "cfgByok4Host" ? 4 : 1);
+    } else if (tmp12.id === "cfgByok1Key" || tmp12.id === "cfgByok2Key" || tmp12.id === "cfgByok3Key" || tmp12.id === "cfgByok4Key") {
+      fn9("API Key 已修改，请重新加载模型", tmp12.id === "cfgByok2Key" ? 2 : tmp12.id === "cfgByok3Key" ? 3 : tmp12.id === "cfgByok4Key" ? 4 : 1);
     }
   });
   document.addEventListener("input", arg0 => {
     const tmp12 = arg0.target;
-    if (tmp12 && (tmp12.id === "cfgDefaultModelCustom" || /cfgByok[12]Model/.test(tmp12.id))) {
+    if (tmp12 && (tmp12.id === "cfgDefaultModelCustom" || /cfgByok[1234]Model/.test(tmp12.id))) {
       fn20();
     }
   });
@@ -881,6 +995,8 @@
       fn35(tmp12.proxy);
       fn24(tmp12.config, tmp12.proxy);
       fn12(tmp12.patch);
+    } else if (tmp12.type === "profileList") {
+      renderProfileList(tmp12);
     } else if (tmp12.type === "actionState" && tmp12.section) {
       fn7(tmp12.section, tmp12.state === "error" ? "error" : "success", tmp12.message || "完成");
     } else if (tmp12.type === "modelList") {
@@ -945,7 +1061,8 @@
   });
   fn24a();
   fn5("getStatus");
-  [1, 2].forEach(arg0 => {
+  fn5("getProfiles");
+  [1, 2, 3, 4].forEach(arg0 => {
     const tmp12 = fn();
     const tmp22 = fn11(arg0);
     const tmp32 = fn4("cfgByok" + arg0 + "Model");
@@ -964,6 +1081,8 @@
   const AUTO_SAVE_FIELDS = new Set([
     'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort',
     'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort',
+    'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort',
+    'cfgByok4Host', 'cfgByok4Key', 'cfgByok4Model', 'cfgByok4ThinkingEffort',
     'cfgHybridPort', 'cfgInferencePort', 'cfgAnthropicPath', 'cfgOpenaiPath',
     'cfgMaxTokens', 'cfgCompletionTimeoutMs'
   ]);
@@ -1003,21 +1122,10 @@
   }
 
   /**
-   * 收集当前配置
+   * 收集当前配置（复用 fn27 确保键名一致）
    */
   function collectCurrentConfig() {
-    const config = {};
-
-    AUTO_SAVE_FIELDS.forEach(fieldId => {
-      const element = fn4(fieldId);
-      if (element) {
-        config[fieldId] = element.type === 'checkbox'
-          ? element.checked
-          : element.value;
-      }
-    });
-
-    return config;
+    return fn27();
   }
 
   // 注册自动保存事件监听器
@@ -1064,10 +1172,14 @@
     const byok1Model = fn4("cfgByok1Model")?.value || "";
     const byok2Key = fn4("cfgByok2Key")?.value || "";
     const byok2Model = fn4("cfgByok2Model")?.value || "";
+    const byok3Key = fn4("cfgByok3Key")?.value || "";
+    const byok3Model = fn4("cfgByok3Model")?.value || "";
+    const byok4Key = fn4("cfgByok4Key")?.value || "";
+    const byok4Model = fn4("cfgByok4Model")?.value || "";
 
     const configBadge = fn4("configBadge");
     if (configBadge) {
-      // 如果任一 BYOK 未配置，显示警告徽章
+      // 如果必需的 BYOK #1 或 #2 未配置，显示警告徽章（#3/#4 为可选扩展槽位）
       if (!byok1Key || !byok1Model || !byok2Key || !byok2Model) {
         configBadge.classList.remove("hidden", "badge-success");
         configBadge.classList.add("badge-warning");
@@ -1079,7 +1191,7 @@
   }
 
   // 监听配置变更，更新徽章
-  const configFields = ["cfgByok1Key", "cfgByok1Model", "cfgByok2Key", "cfgByok2Model"];
+  const configFields = ["cfgByok1Key", "cfgByok1Model", "cfgByok2Key", "cfgByok2Model", "cfgByok3Key", "cfgByok3Model", "cfgByok4Key", "cfgByok4Model"];
   configFields.forEach(fieldId => {
     const field = fn4(fieldId);
     if (field) {

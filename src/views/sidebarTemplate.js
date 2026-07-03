@@ -19,12 +19,17 @@ function renderSidebarHtml(ctx) {
     tmp02, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10, tmp11, tmp12, tmp12a,
     tmp13, tmp14, tmp15, tmp16, tmp17, tmp18, tmp19, tmp20, tmp21, tmp22, tmp23, tmp24,
     tmp25, tmp26, tmp27, tmp28, tmp29, tmp30, tmp31, tmp32, tmp33, tmp34, tmp35, tmp36,
+    tmp33a, tmp33b, tmp33c, tmp33d, tmp33e, tmp33f, tmp33g, tmp33h,
   } = ctx;
 
-  // BYOK 卡片折叠/状态：#1 主槽位始终展开；#2 可选槽位未配置时折叠
+  // BYOK 卡片折叠/状态：#1 主槽位始终展开；#2/#3/#4 可选槽位未配置时折叠
   const byok1Configured = !!(tmp25 || tmp26);
   const byok2Configured = !!(tmp28 || tmp29);
   const byok2Collapsed = !byok2Configured;
+  const byok3Configured = !!(tmp33a || tmp33b);
+  const byok3Collapsed = !byok3Configured;
+  const byok4Configured = !!(tmp33e || tmp33f);
+  const byok4Collapsed = !byok4Configured;
 
   // 准备模板数据
   const templateData = {
@@ -93,6 +98,30 @@ function renderSidebarHtml(ctx) {
     byok2BodyHidden: byok2Collapsed ? 'hidden' : '',
     byok2BadgeClass: byok2Configured ? 'badge-ok' : 'badge-warn',
     byok2BadgeText: byok2Configured ? '已配置' : '未配置',
+
+    // BYOK #3 配置数据
+    byok3Host: esc(tmp33a),
+    byok3Key: esc(tmp33b),
+    byok3ModelOption: tmp33c ? `<option value="${esc(tmp33c)}" selected>${esc(tmp33c)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok3ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp33c))),
+    byok3ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp33c, tmp33d),
+    // BYOK #3 卡片状态（可选槽位未配置时折叠）
+    byok3HeadCollapsed: byok3Collapsed ? 'collapsed' : '',
+    byok3BodyHidden: byok3Collapsed ? 'hidden' : '',
+    byok3BadgeClass: byok3Configured ? 'badge-ok' : 'badge-warn',
+    byok3BadgeText: byok3Configured ? '已配置' : '未配置',
+
+    // BYOK #4 配置数据
+    byok4Host: esc(tmp33e),
+    byok4Key: esc(tmp33f),
+    byok4ModelOption: tmp33g ? `<option value="${esc(tmp33g)}" selected>${esc(tmp33g)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok4ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp33g))),
+    byok4ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp33g, tmp33h),
+    // BYOK #4 卡片状态（可选槽位未配置时折叠）
+    byok4HeadCollapsed: byok4Collapsed ? 'collapsed' : '',
+    byok4BodyHidden: byok4Collapsed ? 'hidden' : '',
+    byok4BadgeClass: byok4Configured ? 'badge-ok' : 'badge-warn',
+    byok4BadgeText: byok4Configured ? '已配置' : '未配置',
 
     // 提示词状态
     promptStatus: tmp9 ? '已启用 ' + esc(tmp8) : '未启用 · 使用 Devin Desktop 原始提示词',
