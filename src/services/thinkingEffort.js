@@ -95,12 +95,25 @@ function sanitizeEffortForProvider(provider, value) {
 
 function buildThinkingEffortOptionsHtml(model, current) {
   const provider = detectModelProvider(model);
+  return buildThinkingEffortOptionsHtmlForProvider(provider, current);
+}
+
+function buildThinkingEffortOptionsHtmlForProvider(provider, current) {
   const effort = sanitizeEffortForProvider(provider, current);
   const options = provider ? getThinkingEffortOptions(provider) : [['', '请先选择模型']];
   return options.map(([value, label]) => {
     const selected = effort === value ? ' selected' : '';
     return `<option value="${value}"${selected}>${label}</option>`;
   }).join('');
+}
+
+// 将协议字符串（anthropic/openai/gemini）映射到 thinking-effort provider 键（claude/gpt/gemini）
+function protocolToThinkingProvider(protocol) {
+  const p = String(protocol || '').toLowerCase();
+  if (p === 'anthropic') return 'claude';
+  if (p === 'openai') return 'gpt';
+  if (p === 'gemini') return 'gemini';
+  return null;
 }
 
 function getThinkingIntensityHint(provider) {
@@ -126,5 +139,7 @@ module.exports = {
   sanitizeGeminiThinkingEffort,
   sanitizeEffortForProvider,
   buildThinkingEffortOptionsHtml,
+  buildThinkingEffortOptionsHtmlForProvider,
+  protocolToThinkingProvider,
   getThinkingIntensityHint
 };

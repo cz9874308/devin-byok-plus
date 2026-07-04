@@ -308,6 +308,7 @@ class SidebarProvider {
         key: norm.BYOK1_ANTHROPIC_API_KEY || '',
         model: norm.BYOK1_MODEL || '',
         thinkingEffort: norm.BYOK1_THINKING_EFFORT || '',
+        protocol: profileStore_1.sanitizeProtocol(norm.BYOK1_PROTOCOL || ''),
         anthropicPath: norm.BYOK1_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK1_OPENAI_API_PATH || '',
       },
@@ -316,6 +317,7 @@ class SidebarProvider {
         key: norm.BYOK2_ANTHROPIC_API_KEY || '',
         model: norm.BYOK2_MODEL || '',
         thinkingEffort: norm.BYOK2_THINKING_EFFORT || '',
+        protocol: profileStore_1.sanitizeProtocol(norm.BYOK2_PROTOCOL || ''),
         anthropicPath: norm.BYOK2_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK2_OPENAI_API_PATH || '',
       },
@@ -324,6 +326,7 @@ class SidebarProvider {
         key: norm.BYOK3_ANTHROPIC_API_KEY || '',
         model: norm.BYOK3_MODEL || '',
         thinkingEffort: norm.BYOK3_THINKING_EFFORT || '',
+        protocol: profileStore_1.sanitizeProtocol(norm.BYOK3_PROTOCOL || ''),
         anthropicPath: norm.BYOK3_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK3_OPENAI_API_PATH || '',
       },
@@ -332,6 +335,7 @@ class SidebarProvider {
         key: norm.BYOK4_ANTHROPIC_API_KEY || '',
         model: norm.BYOK4_MODEL || '',
         thinkingEffort: norm.BYOK4_THINKING_EFFORT || '',
+        protocol: profileStore_1.sanitizeProtocol(norm.BYOK4_PROTOCOL || ''),
         anthropicPath: norm.BYOK4_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK4_OPENAI_API_PATH || '',
       },
@@ -1721,6 +1725,9 @@ class SidebarProvider {
           break;
         }
         const tmp5 = 'BYOK' + tmp03 + '_';
+        // 根据导入来源自动同步协议：Claude→anthropic / Codex(GPT)→openai
+        const importedProtocol =
+          tmp1.source === 'codex' ? 'openai' : tmp1.source === 'claude' ? 'anthropic' : '';
         const tmp6 = {
           [tmp5 + 'ANTHROPIC_API_HOST']: tmp1.host || '',
           [tmp5 + 'ANTHROPIC_API_KEY']: tmp1.apiKey || '',
@@ -1728,6 +1735,7 @@ class SidebarProvider {
           [tmp5 + 'OPENAI_API_KEY']: tmp1.apiKey || '',
           [tmp5 + 'MODEL']: tmp1.model || '',
           [tmp5 + 'THINKING_EFFORT']: tmp1.thinkingEffort || '',
+          [tmp5 + 'PROTOCOL']: importedProtocol,
         };
         const tmp7 = this.writeModeScopedConfig(tmp6);
         const tmp8 = this.getRuntimeConfigForCurrentMode(tmp7);
@@ -1759,6 +1767,7 @@ class SidebarProvider {
           apiKey: tmp1.apiKey || '',
           model: tmp1.model || '',
           thinkingEffort: tmp1.thinkingEffort || '',
+          protocol: importedProtocol,
           message: tmp3,
         });
         if (tmp1.apiKey && tmp1.host) {

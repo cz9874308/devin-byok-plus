@@ -163,31 +163,30 @@ test('HTML 模板标签顺序', async (t) => {
   });
 });
 
-test('使用教程默认展开', async (t) => {
+test('使用教程默认折叠', async (t) => {
   const html = renderHtml();
 
   await t.test('使用教程应该有图标', () => {
     assert.ok(html.includes('📖 使用教程'), '应该有书本图标');
   });
 
-  await t.test('使用教程应该没有 collapsed 类', () => {
+  await t.test('使用教程应该有 collapsed 类（默认折叠）', () => {
     const tutorialToggle = html.match(/data-ws-toggle="tutorialBody"[^>]*>/);
     assert.ok(tutorialToggle, '应该找到使用教程切换按钮');
-    const toggleSpan = html.substring(
-      html.lastIndexOf('<span', tutorialToggle.index),
-      tutorialToggle.index + tutorialToggle[0].length
-    );
-    assert.ok(!toggleSpan.includes('collapsed'), '使用教程不应该有 collapsed 类');
+    // 从匹配位置向前找最近的 <div 标签起点
+    const divStart = html.lastIndexOf('<div', tutorialToggle.index);
+    const headDiv = html.substring(divStart, tutorialToggle.index + tutorialToggle[0].length);
+    assert.ok(headDiv.includes('collapsed'), '使用教程 head 应该有 collapsed 类');
   });
 
-  await t.test('tutorialBody 应该没有 hidden 类', () => {
+  await t.test('tutorialBody 应该有 hidden 类（默认折叠）', () => {
     const tutorialBodyMatch = html.match(/id="tutorialBody"[^>]*>/);
     assert.ok(tutorialBodyMatch, '应该找到 tutorialBody');
     const bodyDiv = html.substring(
       html.lastIndexOf('<div', tutorialBodyMatch.index),
       tutorialBodyMatch.index + tutorialBodyMatch[0].length
     );
-    assert.ok(!bodyDiv.includes('hidden'), 'tutorialBody 不应该有 hidden 类');
+    assert.ok(bodyDiv.includes('hidden'), 'tutorialBody 应该有 hidden 类');
   });
 });
 

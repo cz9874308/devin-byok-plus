@@ -23,6 +23,13 @@ function getProfilesPath() {
   return path.join(ensureUserConfigDir(), PROFILES_FILE);
 }
 
+const PROTOCOL_VALUES = ['', 'anthropic', 'openai', 'gemini'];
+
+function sanitizeProtocol(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return PROTOCOL_VALUES.includes(normalized) ? normalized : '';
+}
+
 function createDefaultProfile(envConfig = {}) {
   return {
     id: generateProfileId(),
@@ -32,6 +39,7 @@ function createDefaultProfile(envConfig = {}) {
       key: envConfig.BYOK1_ANTHROPIC_API_KEY || '',
       model: envConfig.BYOK1_MODEL || '',
       thinkingEffort: envConfig.BYOK1_THINKING_EFFORT || '',
+      protocol: sanitizeProtocol(envConfig.BYOK1_PROTOCOL),
       anthropicPath: envConfig.BYOK1_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK1_OPENAI_API_PATH || '',
     },
@@ -40,6 +48,7 @@ function createDefaultProfile(envConfig = {}) {
       key: envConfig.BYOK2_ANTHROPIC_API_KEY || '',
       model: envConfig.BYOK2_MODEL || '',
       thinkingEffort: envConfig.BYOK2_THINKING_EFFORT || '',
+      protocol: sanitizeProtocol(envConfig.BYOK2_PROTOCOL),
       anthropicPath: envConfig.BYOK2_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK2_OPENAI_API_PATH || '',
     },
@@ -48,6 +57,7 @@ function createDefaultProfile(envConfig = {}) {
       key: envConfig.BYOK3_ANTHROPIC_API_KEY || '',
       model: envConfig.BYOK3_MODEL || '',
       thinkingEffort: envConfig.BYOK3_THINKING_EFFORT || '',
+      protocol: sanitizeProtocol(envConfig.BYOK3_PROTOCOL),
       anthropicPath: envConfig.BYOK3_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK3_OPENAI_API_PATH || '',
     },
@@ -56,6 +66,7 @@ function createDefaultProfile(envConfig = {}) {
       key: envConfig.BYOK4_ANTHROPIC_API_KEY || '',
       model: envConfig.BYOK4_MODEL || '',
       thinkingEffort: envConfig.BYOK4_THINKING_EFFORT || '',
+      protocol: sanitizeProtocol(envConfig.BYOK4_PROTOCOL),
       anthropicPath: envConfig.BYOK4_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK4_OPENAI_API_PATH || '',
     },
@@ -104,19 +115,26 @@ function emptySlot() {
     key: '',
     model: '',
     thinkingEffort: '',
+    protocol: '',
     anthropicPath: '',
     openaiPath: '',
   };
+}
+
+function normalizeSlot(slot) {
+  const merged = { ...emptySlot(), ...(slot || {}) };
+  merged.protocol = sanitizeProtocol(merged.protocol);
+  return merged;
 }
 
 function normalizeProfile(profile) {
   if (!profile || typeof profile !== 'object') {
     return profile;
   }
-  profile.byok1 = { ...emptySlot(), ...(profile.byok1 || {}) };
-  profile.byok2 = { ...emptySlot(), ...(profile.byok2 || {}) };
-  profile.byok3 = { ...emptySlot(), ...(profile.byok3 || {}) };
-  profile.byok4 = { ...emptySlot(), ...(profile.byok4 || {}) };
+  profile.byok1 = normalizeSlot(profile.byok1);
+  profile.byok2 = normalizeSlot(profile.byok2);
+  profile.byok3 = normalizeSlot(profile.byok3);
+  profile.byok4 = normalizeSlot(profile.byok4);
   profile.advanced = profile.advanced || {};
   return profile;
 }
@@ -156,14 +174,29 @@ function ensureProfilesExist(envConfig) {
   return migrateFromEnv(envConfig);
 }
 
+function detectModelProtocol(model) {
+  const normalized = String(model || '').trim().toLowerCase().replace(/-thinking$/i, '');
+  if (!normalized) return '';
+  if (/^gemini-|^model_google_gemini|^models\/gemini-/.test(normalized)) return 'gemini';
+  if (/^gpt-|^o[0-9][a-z0-9.-]*|^chatgpt-|^model_gpt/.test(normalized)) return 'openai';
+  if (/^claude-|^model_claude/.test(normalized)) return 'anthropic';
+  return '';
+}
+
+function resolveEffectiveProtocol(slot) {
+  const manual = sanitizeProtocol(slot && slot.protocol);
+  if (manual) return manual;
+  return detectModelProtocol(slot && slot.model);
+}
+
 function listProfiles(envConfig) {
   const data = ensureProfilesExist(envConfig);
   return {
     profiles: data.profiles.map((p) => {
-      const b1 = p.byok1 || emptySlot();
-      const b2 = p.byok2 || emptySlot();
-      const b3 = p.byok3 || emptySlot();
-      const b4 = p.byok4 || emptySlot();
+      const b1 = normalizeSlot(p.byok1);
+      const b2 = normalizeSlot(p.byok2);
+      const b3 = normalizeSlot(p.byok3);
+      const b4 = normalizeSlot(p.byok4);
       return {
         id: p.id,
         name: p.name,
@@ -174,12 +207,24 @@ function listProfiles(envConfig) {
         byok4Configured: !!(b4.key && b4.model),
         byok1Display: b1.host || 'api.anthropic.com',
         byok1Model: b1.model,
+        byok1Protocol: resolveEffectiveProtocol(b1),
+        byok1ProtocolManual: sanitizeProtocol(b1.protocol),
+        byok1ThinkingEffort: b1.thinkingEffort || '',
         byok2Display: b2.host || 'api.anthropic.com',
         byok2Model: b2.model,
+        byok2Protocol: resolveEffectiveProtocol(b2),
+        byok2ProtocolManual: sanitizeProtocol(b2.protocol),
+        byok2ThinkingEffort: b2.thinkingEffort || '',
         byok3Display: b3.host || 'api.anthropic.com',
         byok3Model: b3.model,
+        byok3Protocol: resolveEffectiveProtocol(b3),
+        byok3ProtocolManual: sanitizeProtocol(b3.protocol),
+        byok3ThinkingEffort: b3.thinkingEffort || '',
         byok4Display: b4.host || 'api.anthropic.com',
         byok4Model: b4.model,
+        byok4Protocol: resolveEffectiveProtocol(b4),
+        byok4ProtocolManual: sanitizeProtocol(b4.protocol),
+        byok4ThinkingEffort: b4.thinkingEffort || '',
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       };
@@ -303,10 +348,10 @@ function duplicateProfile(id, envConfig) {
 }
 
 function projectToEnvConfig(profile) {
-  const b1 = profile.byok1 || emptySlot();
-  const b2 = profile.byok2 || emptySlot();
-  const b3 = profile.byok3 || emptySlot();
-  const b4 = profile.byok4 || emptySlot();
+  const b1 = normalizeSlot(profile.byok1);
+  const b2 = normalizeSlot(profile.byok2);
+  const b3 = normalizeSlot(profile.byok3);
+  const b4 = normalizeSlot(profile.byok4);
   const adv = profile.advanced || {};
   return {
     BYOK1_ANTHROPIC_API_HOST: b1.host || '',
@@ -317,6 +362,7 @@ function projectToEnvConfig(profile) {
     BYOK1_OPENAI_API_PATH: b1.openaiPath || '',
     BYOK1_MODEL: b1.model || '',
     BYOK1_THINKING_EFFORT: b1.thinkingEffort || '',
+    BYOK1_PROTOCOL: b1.protocol || '',
 
     BYOK2_ANTHROPIC_API_HOST: b2.host || '',
     BYOK2_ANTHROPIC_API_KEY: b2.key || '',
@@ -326,6 +372,7 @@ function projectToEnvConfig(profile) {
     BYOK2_OPENAI_API_PATH: b2.openaiPath || '',
     BYOK2_MODEL: b2.model || '',
     BYOK2_THINKING_EFFORT: b2.thinkingEffort || '',
+    BYOK2_PROTOCOL: b2.protocol || '',
 
     BYOK3_ANTHROPIC_API_HOST: b3.host || '',
     BYOK3_ANTHROPIC_API_KEY: b3.key || '',
@@ -335,6 +382,7 @@ function projectToEnvConfig(profile) {
     BYOK3_OPENAI_API_PATH: b3.openaiPath || '',
     BYOK3_MODEL: b3.model || '',
     BYOK3_THINKING_EFFORT: b3.thinkingEffort || '',
+    BYOK3_PROTOCOL: b3.protocol || '',
 
     BYOK4_ANTHROPIC_API_HOST: b4.host || '',
     BYOK4_ANTHROPIC_API_KEY: b4.key || '',
@@ -344,6 +392,7 @@ function projectToEnvConfig(profile) {
     BYOK4_OPENAI_API_PATH: b4.openaiPath || '',
     BYOK4_MODEL: b4.model || '',
     BYOK4_THINKING_EFFORT: b4.thinkingEffort || '',
+    BYOK4_PROTOCOL: b4.protocol || '',
 
     ANTHROPIC_API_PATH: adv.anthropicPath || '/v1/messages',
     OPENAI_API_PATH: adv.openaiPath || '/v1/responses',
@@ -368,4 +417,7 @@ module.exports = {
   projectToEnvConfig,
   ensureProfilesExist,
   createDefaultProfile,
+  sanitizeProtocol,
+  detectModelProtocol,
+  resolveEffectiveProtocol,
 };

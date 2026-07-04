@@ -22,14 +22,30 @@ function renderSidebarHtml(ctx) {
     tmp33a, tmp33b, tmp33c, tmp33d, tmp33e, tmp33f, tmp33g, tmp33h,
   } = ctx;
 
-  // BYOK 卡片折叠/状态：#1 主槽位始终展开；#2/#3/#4 可选槽位未配置时折叠
+  // BYOK 卡片折叠/状态：4 张卡片全部默认折叠（不区分是否已配置）
   const byok1Configured = !!(tmp25 || tmp26);
   const byok2Configured = !!(tmp28 || tmp29);
-  const byok2Collapsed = !byok2Configured;
   const byok3Configured = !!(tmp33a || tmp33b);
-  const byok3Collapsed = !byok3Configured;
   const byok4Configured = !!(tmp33e || tmp33f);
-  const byok4Collapsed = !byok4Configured;
+
+  // 协议 select 选项渲染（回填手动选择的值）
+  const buildProtocolOptions = (selected) => {
+    const opts = [
+      ['', '自动 · 按模型名识别'],
+      ['anthropic', 'Anthropic Messages'],
+      ['openai', 'OpenAI Compatible'],
+      ['gemini', 'Gemini'],
+    ];
+    return opts.map(([v, label]) => {
+      const sel = String(selected || '').toLowerCase() === v ? ' selected' : '';
+      return `<option value="${v}"${sel}>${label}</option>`;
+    }).join('');
+  };
+
+  const byok1Protocol = String(ctx.tmp2?.BYOK1_PROTOCOL || '').toLowerCase();
+  const byok2Protocol = String(ctx.tmp2?.BYOK2_PROTOCOL || '').toLowerCase();
+  const byok3Protocol = String(ctx.tmp2?.BYOK3_PROTOCOL || '').toLowerCase();
+  const byok4Protocol = String(ctx.tmp2?.BYOK4_PROTOCOL || '').toLowerCase();
 
   // 准备模板数据
   const templateData = {
@@ -75,15 +91,22 @@ function renderSidebarHtml(ctx) {
     sysPromptOverride: tmp9 ? 'true' : '',
     sysPromptPath: esc(tmp8),
 
-    // BYOK #1 配置数据（转义在此统一处理，getHtml 传入原始值）
+    // 有效 provider：手动协议优先，否则按模型名自动识别
+    // 值：'claude' / 'gpt' / 'gemini' / null
+    // BYOK #1 配置数据
     byok1Host: esc(tmp25),
     byok1Key: esc(tmp26),
     byok1ModelOption: tmp27 ? `<option value="${esc(tmp27)}" selected>${esc(tmp27)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
-    byok1ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp27))),
-    byok1ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp27, tmp31),
-    // BYOK #1 卡片状态（主槽位始终展开）
-    byok1HeadCollapsed: '',
-    byok1BodyHidden: '',
+    byok1ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
+      thinkingEffort.protocolToThinkingProvider(byok1Protocol) || thinkingEffort.detectModelProvider(tmp27)
+    )),
+    byok1ThinkingOptions: byok1Protocol
+      ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok1Protocol), tmp31)
+      : thinkingEffort.buildThinkingEffortOptionsHtml(tmp27, tmp31),
+    byok1ProtocolOptions: buildProtocolOptions(byok1Protocol),
+    // BYOK #1 卡片状态（默认折叠）
+    byok1HeadCollapsed: 'collapsed',
+    byok1BodyHidden: 'hidden',
     byok1BadgeClass: byok1Configured ? 'badge-ok' : 'badge-warn',
     byok1BadgeText: byok1Configured ? '已配置' : '未配置',
 
@@ -91,11 +114,16 @@ function renderSidebarHtml(ctx) {
     byok2Host: esc(tmp28),
     byok2Key: esc(tmp29),
     byok2ModelOption: tmp30 ? `<option value="${esc(tmp30)}" selected>${esc(tmp30)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
-    byok2ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp30))),
-    byok2ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp30, tmp32),
-    // BYOK #2 卡片状态（可选槽位未配置时折叠）
-    byok2HeadCollapsed: byok2Collapsed ? 'collapsed' : '',
-    byok2BodyHidden: byok2Collapsed ? 'hidden' : '',
+    byok2ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
+      thinkingEffort.protocolToThinkingProvider(byok2Protocol) || thinkingEffort.detectModelProvider(tmp30)
+    )),
+    byok2ThinkingOptions: byok2Protocol
+      ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok2Protocol), tmp32)
+      : thinkingEffort.buildThinkingEffortOptionsHtml(tmp30, tmp32),
+    byok2ProtocolOptions: buildProtocolOptions(byok2Protocol),
+    // BYOK #2 卡片状态（默认折叠）
+    byok2HeadCollapsed: 'collapsed',
+    byok2BodyHidden: 'hidden',
     byok2BadgeClass: byok2Configured ? 'badge-ok' : 'badge-warn',
     byok2BadgeText: byok2Configured ? '已配置' : '未配置',
 
@@ -103,11 +131,16 @@ function renderSidebarHtml(ctx) {
     byok3Host: esc(tmp33a),
     byok3Key: esc(tmp33b),
     byok3ModelOption: tmp33c ? `<option value="${esc(tmp33c)}" selected>${esc(tmp33c)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
-    byok3ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp33c))),
-    byok3ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp33c, tmp33d),
-    // BYOK #3 卡片状态（可选槽位未配置时折叠）
-    byok3HeadCollapsed: byok3Collapsed ? 'collapsed' : '',
-    byok3BodyHidden: byok3Collapsed ? 'hidden' : '',
+    byok3ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
+      thinkingEffort.protocolToThinkingProvider(byok3Protocol) || thinkingEffort.detectModelProvider(tmp33c)
+    )),
+    byok3ThinkingOptions: byok3Protocol
+      ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok3Protocol), tmp33d)
+      : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33c, tmp33d),
+    byok3ProtocolOptions: buildProtocolOptions(byok3Protocol),
+    // BYOK #3 卡片状态（默认折叠）
+    byok3HeadCollapsed: 'collapsed',
+    byok3BodyHidden: 'hidden',
     byok3BadgeClass: byok3Configured ? 'badge-ok' : 'badge-warn',
     byok3BadgeText: byok3Configured ? '已配置' : '未配置',
 
@@ -115,11 +148,16 @@ function renderSidebarHtml(ctx) {
     byok4Host: esc(tmp33e),
     byok4Key: esc(tmp33f),
     byok4ModelOption: tmp33g ? `<option value="${esc(tmp33g)}" selected>${esc(tmp33g)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
-    byok4ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(thinkingEffort.detectModelProvider(tmp33g))),
-    byok4ThinkingOptions: thinkingEffort.buildThinkingEffortOptionsHtml(tmp33g, tmp33h),
-    // BYOK #4 卡片状态（可选槽位未配置时折叠）
-    byok4HeadCollapsed: byok4Collapsed ? 'collapsed' : '',
-    byok4BodyHidden: byok4Collapsed ? 'hidden' : '',
+    byok4ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
+      thinkingEffort.protocolToThinkingProvider(byok4Protocol) || thinkingEffort.detectModelProvider(tmp33g)
+    )),
+    byok4ThinkingOptions: byok4Protocol
+      ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok4Protocol), tmp33h)
+      : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33g, tmp33h),
+    byok4ProtocolOptions: buildProtocolOptions(byok4Protocol),
+    // BYOK #4 卡片状态（默认折叠）
+    byok4HeadCollapsed: 'collapsed',
+    byok4BodyHidden: 'hidden',
     byok4BadgeClass: byok4Configured ? 'badge-ok' : 'badge-warn',
     byok4BadgeText: byok4Configured ? '已配置' : '未配置',
 

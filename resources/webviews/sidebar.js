@@ -232,19 +232,36 @@
     const tmp32 = tmp20[arg0] || tmp20.claude;
     return tmp32.some(([tmp02]) => tmp02 === tmp22) ? tmp22 : "";
   }
+  // 读取槽位手动协议下拉框的值：anthropic / openai / gemini / ""
+  function fn19a(arg0) {
+    const tmp32 = fn2(arg0);
+    const el = fn4("cfgByok" + tmp32 + "Protocol");
+    return el ? String(el.value || "").toLowerCase() : "";
+  }
+  // 协议 -> thinking provider 映射
+  function fn19b(protocol) {
+    if (protocol === "anthropic") return "claude";
+    if (protocol === "openai") return "gpt";
+    if (protocol === "gemini") return "gemini";
+    return null;
+  }
   function fn19(arg0, arg1, arg2) {
     const tmp32 = fn2(arg0);
     const tmp4 = fn4("cfgByok" + tmp32 + "ThinkingEffortRow");
     const tmp5 = fn4("cfgByok" + tmp32 + "ThinkingEffort");
     const tmp6 = fn4("cfgByok" + tmp32 + "ThinkingLabel");
-    const tmp7 = fn15(arg1);
+    // 手动协议优先于自动检测
+    const manual = fn19b(fn19a(arg0));
+    const tmp7 = manual || fn15(arg1);
+    // 手动协议下总是显示思考深度行；否则按模型能力判定
+    const visible = manual ? !!tmp7 : fn17(tmp7, arg1);
     if (tmp4) {
-      tmp4.classList.toggle("hidden", !fn17(tmp7, arg1));
+      tmp4.classList.toggle("hidden", !visible);
     }
     if (tmp6) {
       tmp6.textContent = fn16(tmp7);
     }
-    if (!tmp5 || !fn17(tmp7, arg1)) {
+    if (!tmp5 || !visible) {
       return;
     }
     const tmp8 = fn18(tmp7, arg2 !== undefined ? arg2 : tmp5.value);
@@ -286,6 +303,7 @@
     const tmp6 = arg0[tmp32 + "MODEL"] || (tmp22 === 1 ? arg0.DEFAULT_MODEL || "" : "");
     fn13("cfgByok" + tmp22 + "Host", tmp4);
     fn13("cfgByok" + tmp22 + "Key", tmp5);
+    fn13("cfgByok" + tmp22 + "Protocol", String(arg0[tmp32 + "PROTOCOL"] || "").toLowerCase());
     fn13("cfgByok" + tmp22 + "ThinkingEffort", arg0[tmp32 + "THINKING_EFFORT"] || (tmp22 === 1 ? arg0.OPENAI_REASONING_EFFORT || "" : ""));
     fn19(arg1, tmp6, arg0[tmp32 + "THINKING_EFFORT"] || (tmp22 === 1 ? arg0.OPENAI_REASONING_EFFORT || "" : ""));
     const tmp7 = fn11(tmp22);
@@ -360,6 +378,42 @@
   // ========== 配置方案列表 ==========
   let profilesState = { profiles: [], activeId: "", editingId: "" };
 
+  // 协议 label：anthropic/openai/gemini → 简称
+  function protocolShortLabel(p) {
+    const v = String(p || "").toLowerCase();
+    if (v === "anthropic") return "Anthropic";
+    if (v === "openai") return "OpenAI";
+    if (v === "gemini") return "Gemini";
+    return "";
+  }
+  // 思考深度显示：空 → "-"
+  function thinkingEffortShort(v) {
+    const s = String(v || "").trim().toLowerCase();
+    return s || "-";
+  }
+  // 构造某槽位摘要（弱化显示）；未配置返回空串
+  function buildSlotSummary(p, slotIdx) {
+    const configured = p["byok" + slotIdx + "Configured"];
+    if (!configured) return "";
+    const proto = protocolShortLabel(p["byok" + slotIdx + "Protocol"]) || "未识别";
+    const manual = String(p["byok" + slotIdx + "ProtocolManual"] || "");
+    const protoBadge = manual ? proto + " · 手动" : proto;
+    const model = p["byok" + slotIdx + "Model"] || "-";
+    const thinking = thinkingEffortShort(p["byok" + slotIdx + "ThinkingEffort"]);
+    // hover 完整值：截断行仍能看到全模型名
+    const titleText = "#" + slotIdx + " · " + protoBadge + " · " + model + " · 思考：" + thinking;
+    return (
+      '<div class="profile-slot-line" title="' + fn6(titleText) + '">' +
+      '<span class="profile-slot-tag">#' + slotIdx + '</span>' +
+      '<span class="profile-slot-proto">' + fn6(protoBadge) + '</span>' +
+      '<span class="profile-slot-sep">·</span>' +
+      '<span class="profile-slot-model">' + fn6(model) + '</span>' +
+      '<span class="profile-slot-sep">·</span>' +
+      '<span class="profile-slot-thinking">思考：' + fn6(thinking) + '</span>' +
+      '</div>'
+    );
+  }
+
   function renderProfileList(state) {
     if (state) {
       profilesState = {
@@ -387,12 +441,16 @@
         : configured
           ? '<button type="button" class="btn btn-s sm" data-ws-action="activateProfile" data-profile-id="' + fn6(p.id) + '">启 用</button>'
           : '<span class="badge badge-warn">未配齐</span>';
+      // 每槽位摘要（协议/模型/思考深度）—— 仅显示已配置槽位
+      const summaryLines = [1, 2, 3, 4].map((n) => buildSlotSummary(p, n)).filter(Boolean).join("");
+      const summaryBlock = summaryLines ? '<div class="profile-slots">' + summaryLines + '</div>' : "";
       return (
         '<div class="profile-item ' + cls.slice(1).join(" ") + '" data-profile-id="' + fn6(p.id) + '" data-ws-action="editProfile">' +
         '<span class="profile-radio"></span>' +
         '<div class="profile-meta">' +
         '<div class="profile-name">' + fn6(p.name) + '</div>' +
         '<div class="profile-desc">' + desc + '</div>' +
+        summaryBlock +
         '</div>' +
         '<div class="profile-actions">' +
         '<button type="button" class="profile-action-btn" data-ws-action="renameProfile" data-profile-id="' + fn6(p.id) + '" title="重命名">✎</button>' +
@@ -485,7 +543,8 @@
       [tmp6 + "OPENAI_API_KEY"]: tmp22,
       [tmp6 + "OPENAI_API_PATH"]: (fn4("cfgOpenaiPath") || {}).value || "",
       [tmp6 + "MODEL"]: tmp5,
-      [tmp6 + "THINKING_EFFORT"]: ((fn4("cfgByok" + tmp12 + "ThinkingEffort") || {}).value || "").trim()
+      [tmp6 + "THINKING_EFFORT"]: ((fn4("cfgByok" + tmp12 + "ThinkingEffort") || {}).value || "").trim(),
+      [tmp6 + "PROTOCOL"]: fn19a(tmp12)
     };
   }
   function fn27() {
@@ -970,11 +1029,16 @@
       fn5("setAutoStartProxy", {
         value: tmp12.checked === true
       });
-    } else if (tmp12.id === "cfgByok1Model" || tmp12.id === "cfgByok2Model" || tmp12.id === "cfgByok3Model" || tmp12.id === "cfgByok4Model" || tmp12.id === "cfgByok1ThinkingEffort" || tmp12.id === "cfgByok2ThinkingEffort" || tmp12.id === "cfgByok3ThinkingEffort" || tmp12.id === "cfgByok4ThinkingEffort") {
+    } else if (tmp12.id === "cfgByok1Model" || tmp12.id === "cfgByok2Model" || tmp12.id === "cfgByok3Model" || tmp12.id === "cfgByok4Model" || tmp12.id === "cfgByok1ThinkingEffort" || tmp12.id === "cfgByok2ThinkingEffort" || tmp12.id === "cfgByok3ThinkingEffort" || tmp12.id === "cfgByok4ThinkingEffort" || tmp12.id === "cfgByok1Protocol" || tmp12.id === "cfgByok2Protocol" || tmp12.id === "cfgByok3Protocol" || tmp12.id === "cfgByok4Protocol") {
       const tmp02 = /cfgByok2/.test(tmp12.id) ? 2 : /cfgByok3/.test(tmp12.id) ? 3 : /cfgByok4/.test(tmp12.id) ? 4 : 1;
       if (tmp12.id.endsWith("Model")) {
         tmp3["lastSelectedModel" + tmp02] = tmp12.value || "";
         fn3(tmp02);
+      }
+      // 手动协议变更时，立即根据新协议重建思考深度下拉
+      if (tmp12.id.endsWith("Protocol")) {
+        const modelEl = fn4("cfgByok" + tmp02 + "Model");
+        fn19(tmp02, (modelEl || {}).value || "");
       }
       fn20();
     } else if (tmp12.id === "cfgByok1Host" || tmp12.id === "cfgByok2Host" || tmp12.id === "cfgByok3Host" || tmp12.id === "cfgByok4Host") {
@@ -1016,6 +1080,10 @@
       }
       if (tmp12.thinkingEffort) {
         fn13("cfgByok" + tmp02 + "ThinkingEffort", tmp12.thinkingEffort);
+      }
+      // 导入外部配置时同步手动协议（Claude→anthropic / Codex→openai）
+      if (typeof tmp12.protocol === "string") {
+        fn13("cfgByok" + tmp02 + "Protocol", String(tmp12.protocol || "").toLowerCase());
       }
       const tmp13 = fn4("cfgByok" + tmp02 + "Model");
       if (tmp12.model && tmp13) {
@@ -1079,10 +1147,10 @@
   // ========== 静默自动保存功能 ==========
   // 配置字段白名单（需要自动保存的字段）
   const AUTO_SAVE_FIELDS = new Set([
-    'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort',
-    'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort',
-    'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort',
-    'cfgByok4Host', 'cfgByok4Key', 'cfgByok4Model', 'cfgByok4ThinkingEffort',
+    'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort', 'cfgByok1Protocol',
+    'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort', 'cfgByok2Protocol',
+    'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort', 'cfgByok3Protocol',
+    'cfgByok4Host', 'cfgByok4Key', 'cfgByok4Model', 'cfgByok4ThinkingEffort', 'cfgByok4Protocol',
     'cfgHybridPort', 'cfgInferencePort', 'cfgAnthropicPath', 'cfgOpenaiPath',
     'cfgMaxTokens', 'cfgCompletionTimeoutMs'
   ]);

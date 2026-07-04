@@ -26,6 +26,7 @@ import {
   getProviderConfig,
   getRuntimeConfig,
   getSlotModel,
+  getSlotProtocol,
   getSlotThinkingEffort,
 } from './models.js';
 import {
@@ -396,6 +397,17 @@ function isClaudeModel(arg0) {
   const tmp1 = stripThinkingSuffix(arg0).toLowerCase();
   return tmp1.startsWith('claude-') || tmp1.startsWith('model_claude');
 }
+// 解析槽位有效协议：手动 BYOKn_PROTOCOL 优先，否则回退到模型名自动检测
+function resolveEffectiveProvider(model, slot, gptForced = false) {
+  const manual = slot ? getSlotProtocol(slot) : '';
+  if (manual === 'gemini') return 'gemini';
+  if (manual === 'openai') return 'gpt';
+  if (manual === 'anthropic') return 'claude';
+  if (isGeminiModel(model)) return 'gemini';
+  if (isOpenAIModel(model) || gptForced) return 'gpt';
+  if (isClaudeModel(model)) return 'claude';
+  return detectModelProvider(model) || 'claude';
+}
 function resolveSlotThinkingEffort(arg0, arg1) {
   if (arg0 === 1 || arg0 === 2 || arg0 === 3 || arg0 === 4) {
     return getSlotThinkingEffort(arg0) || (arg0 === 1 ? arg1.openaiReasoningEffort || '' : '');
@@ -406,12 +418,13 @@ function buildThinkingOptions(arg0, arg1, tmp2 = null) {
   const tmp3 = getRuntimeConfig();
   const tmp4 = isThinkingModel(arg0);
   const tmp5 = resolveSlotThinkingEffort(tmp2, tmp3);
-  const tmp6 = isClaudeModel(arg0);
-  const tmp7 = isGeminiModel(arg0);
-  const tmp8 = isOpenAIModel(arg0);
+  const provider = resolveEffectiveProvider(arg0, tmp2, arg1);
+  const tmp6 = provider === 'claude';
+  const tmp7 = provider === 'gemini';
+  const tmp8 = provider === 'gpt';
   let tmp9 = false;
   let tmp10 = '';
-  if (arg1 || tmp8) {
+  if (tmp8) {
     tmp9 = tmp4 || tmp3.openaiThinkingEnabled === true || !!tmp5;
     tmp10 = tmp9 ? tmp5 || tmp3.openaiReasoningEffort || '' : '';
   } else if (tmp7) {
@@ -434,13 +447,7 @@ function buildThinkingOptions(arg0, arg1, tmp2 = null) {
             : thinkingEffortToGeminiBudget(tmp10)
           : thinkingEffortToAnthropicBudget(tmp10)) || (tmp7 ? 8192 : 10000)
       : 0,
-    provider: tmp7
-      ? 'gemini'
-      : tmp8 || arg1
-        ? 'gpt'
-        : tmp6
-          ? 'claude'
-          : detectModelProvider(arg0) || 'claude',
+    provider,
   };
   return tmp11;
 }
@@ -477,8 +484,9 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     return;
   }
   let tmp11 = resolveConfiguredModel(tmp7);
-  const tmp12 = isOpenAICompatibleModel(tmp11);
   const tmp13 = buildThinkingOptions(tmp11, isOpenAIModel(tmp11), tmp10);
+  // 使用 thinkingOptions.provider（尊重 BYOKn_PROTOCOL 手动覆盖）决定上游路由
+  const tmp12 = tmp13.provider === 'gpt' || tmp13.provider === 'gemini';
   tmp11 = stripThinkingSuffix(tmp11);
   if (!tmp11) {
     const tmp02 = '未解析到可用模型。请先在 Devin BYOK Bridge 中加载模型并选择默认模型。';
@@ -487,7 +495,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     return;
   }
   const tmp14 = getProviderConfig(tmp10);
-  const tmp15 = isGeminiModel(tmp11);
+  const tmp15 = tmp13.provider === 'gemini';
   const requiredKey = tmp12
     ? tmp15
       ? tmp14.openai.apiKey || tmp14.anthropic.apiKey
@@ -863,8 +871,9 @@ function buildOpenAIResponsesBody({
     tmp19.max_output_tokens = tmp20;
   }
   const tmp21 = tmp12?.thinkingEnabled === true;
+  const isGeminiRoute = tmp12?.provider === 'gemini' || (tmp12?.provider == null && isGeminiModel(tmp6));
   if (OPENAI_ENABLE_REASONING && tmp21) {
-    if (isGeminiModel(tmp6)) {
+    if (isGeminiRoute) {
       const tmp02 = buildGeminiThinkingPayload(tmp6, tmp12?.reasoningEffort);
       if (tmp02?.thinkingConfig) {
         const tmp03 = {};
@@ -938,8 +947,9 @@ export function buildOpenAIChatCompletionsBody({
     tmp19.max_tokens = tmp20;
   }
   const tmp21 = tmp12?.thinkingEnabled === true;
+  const isGeminiRoute = tmp12?.provider === 'gemini' || (tmp12?.provider == null && isGeminiModel(tmp6));
   if (OPENAI_ENABLE_REASONING && tmp21) {
-    if (isGeminiModel(tmp6)) {
+    if (isGeminiRoute) {
       if (!tmp18) {
         const tmp02 = buildGeminiThinkingPayload(tmp6, tmp12?.reasoningEffort);
         if (tmp02?.thinkingConfig) {
@@ -1679,8 +1689,9 @@ function streamOpenAI(
   };
   const tmp31 = buildOpenAIResponsesBody(tmp30);
   const tmp32 = buildOpenAIChatCompletionsBody(tmp30);
+  const isGeminiRoute = tmp12?.provider === 'gemini' || (tmp12?.provider == null && isGeminiModel(tmp6));
   const tmp36 =
-    isGeminiModel(tmp6) && tmp12?.thinkingEnabled === true
+    isGeminiRoute && tmp12?.thinkingEnabled === true
       ? buildOpenAIChatCompletionsBody({
           ...tmp30,
           omitGeminiThinking: true,
@@ -1688,7 +1699,7 @@ function streamOpenAI(
       : null;
   console.log(
     '  🧩 OpenAI/Sub2API reasoning: ' +
-      (isGeminiModel(tmp6)
+      (isGeminiRoute
         ? tmp31.thinking_config
           ? usesGeminiThinkingLevel(tmp6)
             ? 'gemini level=' + (tmp31.thinking_config.thinking_level || '?')
@@ -1721,7 +1732,7 @@ function streamOpenAI(
     host: tmp14.parsed.hostname,
     port: tmp38,
     apiPath: tmp14.apiPath || '/v1/responses',
-    providerKind: isGeminiModel(tmp6) ? 'gemini' : 'openai',
+    providerKind: isGeminiRoute ? 'gemini' : 'openai',
     slot: tmp13 || 'default',
   });
   const tmp40 = getGatewayCapability(tmp39);

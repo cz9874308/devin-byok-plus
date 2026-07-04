@@ -1,7 +1,7 @@
 import https from "node:https";
 import http from "node:http";
 import { stripProtocol, parseHost, isLocalTarget } from "../net-utils.js";
-import { slotField, sanitizeThinkingEffort } from "./byok-slots.js";
+import { slotField, sanitizeThinkingEffort, sanitizeSlotProtocol } from "./byok-slots.js";
 const _initialAnthropicHost = stripProtocol(process.env.ANTHROPIC_API_HOST || "");
 const _initialOpenaiHost = stripProtocol(process.env.OPENAI_API_HOST || _initialAnthropicHost);
 function readSlotConfigFromEnv(arg0, tmp1 = null) {
@@ -13,6 +13,7 @@ function readSlotConfigFromEnv(arg0, tmp1 = null) {
   const tmp7 = process.env[slotField(arg0, "OPENAI_API_PATH")] || "/v1/responses";
   const tmp8 = String(process.env[slotField(arg0, "MODEL")] || "").trim();
   const tmp9 = sanitizeThinkingEffort(process.env[slotField(arg0, "THINKING_EFFORT")] || "");
+  const tmp11 = sanitizeSlotProtocol(process.env[slotField(arg0, "PROTOCOL")] || "");
   const tmp10 = {
     anthropicHost: tmp2,
     anthropicApiPath: tmp4,
@@ -21,7 +22,8 @@ function readSlotConfigFromEnv(arg0, tmp1 = null) {
     openaiApiPath: tmp7,
     openaiApiKey: tmp6,
     model: tmp8,
-    thinkingEffort: tmp9
+    thinkingEffort: tmp9,
+    protocol: tmp11
   };
   if (!tmp10.anthropicHost && !tmp10.anthropicApiKey && !tmp10.model && tmp1) {
     return {
@@ -38,7 +40,8 @@ const _legacySlotFallback = {
   openaiApiPath: process.env.OPENAI_API_PATH || "/v1/responses",
   openaiApiKey: process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || "",
   model: process.env.DEFAULT_MODEL || "",
-  thinkingEffort: sanitizeThinkingEffort(process.env.BYOK1_THINKING_EFFORT || process.env.OPENAI_REASONING_EFFORT || "")
+  thinkingEffort: sanitizeThinkingEffort(process.env.BYOK1_THINKING_EFFORT || process.env.OPENAI_REASONING_EFFORT || ""),
+  protocol: sanitizeSlotProtocol(process.env.BYOK1_PROTOCOL || "")
 };
 const _emptySlot = {
   anthropicHost: "",
@@ -48,7 +51,8 @@ const _emptySlot = {
   openaiApiPath: "/v1/responses",
   openaiApiKey: "",
   model: "",
-  thinkingEffort: ""
+  thinkingEffort: "",
+  protocol: ""
 };
 function sanitizeReasoningEffort(arg0) {
   const tmp1 = String(arg0 ?? "").trim();
@@ -134,6 +138,9 @@ export function getSlotModel(arg0) {
 export function getSlotThinkingEffort(arg0) {
   return getSlotRuntime(arg0).thinkingEffort || "";
 }
+export function getSlotProtocol(arg0) {
+  return getSlotRuntime(arg0).protocol || "";
+}
 export function getRuntimeConfig() {
   const tmp0 = {
     ..._runtimeConfig
@@ -191,6 +198,14 @@ function applySlotPatch(arg0, arg1) {
     const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
     if (_runtimeConfig[tmp1].thinkingEffort !== tmp0) {
       _runtimeConfig[tmp1].thinkingEffort = tmp0;
+      tmp2 = true;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(arg0, tmp3 + "PROTOCOL")) {
+    const tmp0 = sanitizeSlotProtocol(arg0[tmp3 + "PROTOCOL"]);
+    const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
+    if (_runtimeConfig[tmp1].protocol !== tmp0) {
+      _runtimeConfig[tmp1].protocol = tmp0;
       tmp2 = true;
     }
   }
