@@ -892,18 +892,36 @@
     @apply flex-shrink-0;
   }
 
-  /* 编辑器头部状态 */
-  .profile-editor-status {
-    @apply flex items-center gap-2 px-3 py-2 mb-3 rounded-lg border border-vsborder;
-    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 5%, var(--vscode-editorWidget-background));
+  /* 编辑器卡片（默认隐藏，点击列表项或新建后展开） */
+  .profile-editor-card {
+    @apply mt-4 rounded-lg border border-vsborder;
+    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 3%, var(--vscode-editorWidget-background));
   }
 
-  .profile-editor-label {
-    @apply text-[10px] text-vsdesc;
+  .profile-editor-head {
+    @apply flex items-center gap-2 px-3 py-2 border-b border-vsborder;
+    background: color-mix(in srgb, var(--vscode-button-background, #0d9488) 8%, var(--vscode-editorWidget-background));
   }
 
-  .profile-editor-name {
-    @apply flex-1 text-[11px] font-bold text-vsinputfg overflow-hidden text-ellipsis whitespace-nowrap;
+  .profile-editor-icon {
+    @apply text-sm;
+  }
+
+  .profile-editor-title {
+    @apply flex-1 text-xs font-bold text-vsinputfg;
+  }
+
+  .profile-editor-close {
+    @apply w-6 h-6 flex items-center justify-center rounded border-none cursor-pointer transition-all duration-150;
+    @apply bg-transparent text-vsdesc;
+  }
+
+  .profile-editor-close:hover {
+    @apply bg-white/10 text-vsinputfg;
+  }
+
+  .profile-editor-body {
+    @apply p-3;
   }
 
   /* ========== BYOK 配置布局（侧栏始终单列） ========== */

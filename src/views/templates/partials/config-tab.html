@@ -11,14 +11,20 @@
     </div>
 </div>
 
-<!-- 编辑器头部状态 -->
-<div class="profile-editor-status" id="profileEditorStatus">
-    <span class="profile-editor-label">正在编辑：</span>
-    <span class="profile-editor-name" id="profileEditorName">方案 1</span>
-    <span class="badge badge-info" id="profileEditorBadge">使用中</span>
-</div>
-
-<div class="byok-grid">
+<!-- 方案编辑器（默认隐藏，点击「新建」或列表项后展开） -->
+<div id="profileEditorCard" class="profile-editor-card hidden">
+    <div class="profile-editor-head">
+        <span class="profile-editor-icon">📝</span>
+        <span class="profile-editor-title">编辑方案</span>
+        <span class="badge badge-info" id="profileEditorBadge">使用中</span>
+        <button type="button" class="profile-editor-close" data-ws-action="closeProfileEditor" title="关闭编辑器">✕</button>
+    </div>
+    <div class="profile-editor-body">
+        <div class="fg">
+            <label>方案名称</label>
+            <input type="text" id="cfgProfileName" placeholder="方案名称" autocomplete="off">
+        </div>
+        <div class="byok-grid">
     <!-- BYOK #1 配置卡片 -->
     <div class="byok-card byok1-stripe">
         <div class="byok-card-head {{byok1HeadCollapsed}}" data-ws-toggle="byok1Body">
@@ -152,7 +158,10 @@
     </div>
 </div>
 
-<!-- 保存按钮 -->
-<div class="btns" style="margin-top:12px;padding-top:12px;border-top:1px solid {{borderColor}}">
-    <button type="button" class="btn btn-p" data-ws-action="saveConfig">💾 保存配置</button>
+<!-- 编辑器底部按钮 -->
+<div class="btns" style="margin-top:16px;padding-top:12px;border-top:1px solid {{borderColor}}">
+    <button type="button" class="btn btn-p" data-ws-action="saveProfileEditor">💾 应用到方案</button>
+    <button type="button" class="btn btn-s" data-ws-action="resetProfileEditor">↻ 重置</button>
 </div>
+    </div><!-- .profile-editor-body -->
+</div><!-- #profileEditorCard -->

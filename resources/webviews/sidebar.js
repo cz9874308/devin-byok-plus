@@ -462,21 +462,42 @@
       );
     });
     container.innerHTML = items.join("");
-    updateEditorStatus();
   }
 
-  function updateEditorStatus() {
-    const nameEl = fn4("profileEditorName");
-    const badgeEl = fn4("profileEditorBadge");
-    const editing = profilesState.profiles.find((p) => p.id === profilesState.editingId);
-    if (nameEl) {
-      nameEl.textContent = editing ? editing.name : "方案";
+  // 当前编辑中的 profile 状态
+  let currentEditingProfile = null;
+
+  function showProfileEditor(profileId, profileName, isActive, config) {
+    currentEditingProfile = { profileId, profileName, isActive };
+    const card = fn4("profileEditorCard");
+    const nameInput = fn4("cfgProfileName");
+    const badge = fn4("profileEditorBadge");
+    if (card) card.classList.remove("hidden");
+    if (nameInput) nameInput.value = profileName || "";
+    if (badge) {
+      badge.textContent = isActive ? "使用中" : "未启用";
+      badge.className = isActive ? "badge badge-info" : "badge badge-warn";
     }
-    if (badgeEl) {
-      const isActive = editing && editing.id === profilesState.activeId;
-      badgeEl.textContent = isActive ? "使用中" : "未启用";
-      badgeEl.className = isActive ? "badge badge-info" : "badge badge-warn";
+    // 水合配置到表单
+    if (config) {
+      fn23(config, 1);
+      fn23(config, 2);
+      fn23(config, 3);
+      fn23(config, 4);
+      fn13("cfgAnthropicPath", config.BYOK1_ANTHROPIC_API_PATH || config.ANTHROPIC_API_PATH || "");
+      fn13("cfgOpenaiPath", config.BYOK1_OPENAI_API_PATH || config.OPENAI_API_PATH || "");
+      fn13("cfgMaxTokens", config.MAX_TOKENS || "64000");
+      fn13("cfgCompletionTimeoutMs", config.COMPLETION_TIMEOUT_MS || "12000");
+      fn13("cfgHybridPort", config.HYBRID_PORT || "3006");
+      fn13("cfgInferencePort", config.INFERENCE_PORT || "3001");
+      fn20();
     }
+  }
+
+  function hideProfileEditor() {
+    currentEditingProfile = null;
+    const card = fn4("profileEditorCard");
+    if (card) card.classList.add("hidden");
   }
 
   function fn25(arg0, arg1, arg2) {
@@ -871,6 +892,21 @@
       fn5("saveConfig", {
         config: fn27()
       });
+    } else if (tmp32 === "saveProfileEditor") {
+      if (!currentEditingProfile) return;
+      fn7("config", "busy", "正在应用到方案...");
+      const nameInput = fn4("cfgProfileName");
+      fn5("saveConfig", {
+        config: fn27(),
+        profileName: nameInput ? nameInput.value.trim() : "",
+        silent: false
+      });
+    } else if (tmp32 === "closeProfileEditor") {
+      hideProfileEditor();
+      fn5("closeProfileEditor");
+    } else if (tmp32 === "resetProfileEditor") {
+      if (!currentEditingProfile) return;
+      fn5("resetProfileEditor", { profileId: currentEditingProfile.profileId });
     } else if (tmp32 === "createProfile") {
       fn5("createProfile", { config: fn27() });
     } else if (tmp32 === "activateProfile") {
@@ -1061,6 +1097,8 @@
       fn12(tmp12.patch);
     } else if (tmp12.type === "profileList") {
       renderProfileList(tmp12);
+    } else if (tmp12.type === "openProfileEditor") {
+      showProfileEditor(tmp12.profileId, tmp12.profileName, tmp12.isActive, tmp12.config);
     } else if (tmp12.type === "actionState" && tmp12.section) {
       fn7(tmp12.section, tmp12.state === "error" ? "error" : "success", tmp12.message || "完成");
     } else if (tmp12.type === "modelList") {
@@ -1147,6 +1185,7 @@
   // ========== 静默自动保存功能 ==========
   // 配置字段白名单（需要自动保存的字段）
   const AUTO_SAVE_FIELDS = new Set([
+    'cfgProfileName',
     'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort', 'cfgByok1Protocol',
     'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort', 'cfgByok2Protocol',
     'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort', 'cfgByok3Protocol',
@@ -1163,11 +1202,15 @@
    */
   function scheduleAutoSave(immediate = false) {
     clearTimeout(autoSaveTimer);
+    // 只在编辑器打开时才自动保存
+    if (!currentEditingProfile) return;
 
     if (immediate) {
       // 立即保存（用于 change 事件）
+      const nameInput = fn4("cfgProfileName");
       fn5('saveConfig', {
         config: collectCurrentConfig(),
+        profileName: nameInput ? nameInput.value.trim() : "",
         silent: true  // 静默保存标志
       });
       return;
@@ -1175,8 +1218,10 @@
 
     // 防抖：650ms 后保存（用于 input 事件）
     autoSaveTimer = setTimeout(() => {
+      const nameInput = fn4("cfgProfileName");
       fn5('saveConfig', {
         config: collectCurrentConfig(),
+        profileName: nameInput ? nameInput.value.trim() : "",
         silent: true
       });
     }, 650);

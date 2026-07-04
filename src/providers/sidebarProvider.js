@@ -1406,6 +1406,7 @@ class SidebarProvider {
       case 'saveConfig': {
         const tmp03 = tmp02.config;
         const silent = tmp02.silent === true;
+        const profileName = typeof tmp02.profileName === 'string' ? tmp02.profileName.trim() : '';
         const envConfig = this.proxyManager.readEnvConfig();
         const list = profileStore_1.listProfiles(envConfig);
         if (!this.editingProfileId || !list.profiles.some((p) => p.id === this.editingProfileId)) {
@@ -1413,6 +1414,13 @@ class SidebarProvider {
         }
         const fields = this.envConfigToProfileFields(tmp03);
         profileStore_1.updateProfile(this.editingProfileId, fields, envConfig);
+        // 同步方案名（如果 webview 提供了名字）
+        if (profileName) {
+          const current = profileStore_1.getProfileById(this.editingProfileId, envConfig);
+          if (current && current.name !== profileName) {
+            profileStore_1.renameProfile(this.editingProfileId, profileName, envConfig);
+          }
+        }
         const isEditingActive = this.editingProfileId === list.activeId;
         if (!isEditingActive) {
           if (!silent) {
@@ -1447,6 +1455,17 @@ class SidebarProvider {
         this.editingProfileId = created.id;
         this.postActionState('config', 'success', '已创建新方案：' + created.name);
         this.postProfileList();
+        // 新建后自动打开编辑器
+        const scoped = this.getModeScopedConfig(profileStore_1.projectToEnvConfig(created));
+        if (this.view) {
+          this.view.webview.postMessage({
+            type: 'openProfileEditor',
+            profileId: created.id,
+            profileName: created.name,
+            isActive: created.id === profileStore_1.listProfiles(envConfig).activeId,
+            config: scoped,
+          });
+        }
         this.refresh();
         break;
       }
@@ -1461,14 +1480,45 @@ class SidebarProvider {
         this.editingProfileId = pid;
         const scoped = this.getModeScopedConfig(profileStore_1.projectToEnvConfig(profile));
         if (this.view) {
+          const activeId = profileStore_1.listProfiles(envConfig).activeId;
           this.view.webview.postMessage({
-            type: 'status',
-            proxy: this.proxyManager.getStatus(),
-            patch: this.getPatchStatus(),
+            type: 'openProfileEditor',
+            profileId: profile.id,
+            profileName: profile.name,
+            isActive: profile.id === activeId,
             config: scoped,
           });
         }
         this.postProfileList();
+        break;
+      }
+      case 'closeProfileEditor': {
+        this.editingProfileId = null;
+        this.postProfileList();
+        break;
+      }
+      case 'resetProfileEditor': {
+        const pid = tmp02.profileId || this.editingProfileId;
+        if (!pid) break;
+        const envConfig = this.proxyManager.readEnvConfig();
+        const profile = profileStore_1.getProfileById(pid, envConfig);
+        if (!profile) {
+          this.postActionState('config', 'error', '方案不存在');
+          break;
+        }
+        const scoped = this.getModeScopedConfig(profileStore_1.projectToEnvConfig(profile));
+        if (this.view) {
+          const activeId = profileStore_1.listProfiles(envConfig).activeId;
+          this.view.webview.postMessage({
+            type: 'openProfileEditor',
+            profileId: profile.id,
+            profileName: profile.name,
+            isActive: profile.id === activeId,
+            config: scoped,
+            reset: true,
+          });
+        }
+        this.postActionState('config', 'success', '已重置到方案已保存的值');
         break;
       }
       case 'activateProfile': {

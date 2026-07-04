@@ -71,10 +71,14 @@ test('HTML 结构渲染', async (t) => {
     assert.ok(html.includes('tutorialBody'), '应该包含教程内容区域');
   });
 
-  await t.test('应该包含保存配置按钮', () => {
+  await t.test('应该包含方案编辑器与保存按钮', () => {
     const html = renderSidebarHtml(mockContext);
-    assert.ok(html.includes('💾 保存配置'), '应该包含保存按钮');
-    assert.ok(html.includes('data-ws-action="saveConfig"'), '应该有 saveConfig action');
+    assert.ok(html.includes('id="profileEditorCard"'), '应该包含方案编辑器卡片');
+    assert.ok(html.includes('id="cfgProfileName"'), '应该包含方案名称输入框');
+    assert.ok(html.includes('💾 应用到方案'), '应该包含「应用到方案」按钮');
+    assert.ok(html.includes('data-ws-action="saveProfileEditor"'), '应该有 saveProfileEditor action');
+    assert.ok(html.includes('data-ws-action="resetProfileEditor"'), '应该有 resetProfileEditor action');
+    assert.ok(html.includes('data-ws-action="closeProfileEditor"'), '应该有 closeProfileEditor action');
   });
 
   await t.test('应该包含日志控制按钮', () => {
