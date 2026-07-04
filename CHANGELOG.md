@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.0] - 2026-07-04
+
+### Added
+- **OpenAI service_tier=fast 支持**（移植上游 v2.4.0）：各 BYOK 槽位支持独立配置 `OPENAI_SERVICE_TIER`（取值 `fast` 或空），启用 OpenAI 优先级通道（priority tier）。UI 层新增 "GPT Fast Mode" 下拉选项（仅在协议为 `openai/gpt` 时显示），配置通过 `.env` 持久化并支持热重载。模型名以 `-priority` 结尾时自动启用 fast 模式。三层回退机制：slot 级配置 → BYOK1 回退 → 全局 `OPENAI_SERVICE_TIER`。诊断报告集成 service tier 状态显示。
+- **手动协议选择**：BYOK 配置卡片新增 Protocol 下拉框（anthropic / openai / gemini），支持手动覆盖自动检测的 provider。协议变更时思考强度下拉和 GPT Fast Mode 行会联动显隐/重建选项，避免协议与参数不匹配。存储于 `BYOKn_PROTOCOL` 环境变量，空值时回退自动检测。扩展 `profileStore` 支持 protocol 字段持久化到 profiles.json。
+- **方案编辑器 UI 优化**：方案编辑器从嵌入式改为独立折叠卡片，默认隐藏以减少首屏信息密度。卡片标题栏显示当前激活方案名，支持点击展开/折叠。Tutorial 教程文案同步更新方案管理流程说明。
+
+### Changed
+- BYOK 配置卡片 Thinking Effort 行在手动协议下**总是显示**（之前仅按模型名自动判断）；协议切换时立即根据新协议重建思考强度选项列表。
+- `sidebarTemplate.js` 新增 `buildProtocolOptions()` 和 `buildOpenAIServiceTierOptions()` helper，统一下拉选项生成逻辑。
+- `profileStore.js` 的 `sanitizeProtocol()` 和 `detectModelProtocol()` 增强协议白名单校验与自动识别（anthropic/openai/gemini）。
+- `diagnostics.js` 的 `resolveDiagnosticModelRoute` 扩展支持 4 个 BYOK 槽位的 service tier 读取（BYOK1=Opus, BYOK2=Opus Thinking, BYOK3=Sonnet, BYOK4=Sonnet Thinking）。
+
+### Fixed
+- 修复协议手动切换后思考强度选项未联动更新的问题。
+- 修复 GPT Fast Mode 行在非 OpenAI 协议下仍显示的问题（现按 protocol 严格控制可见性）。
+
 ## [2.2.0] - 2026-07-03
 
 ### Added
