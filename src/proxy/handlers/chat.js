@@ -28,6 +28,7 @@ import {
   getSlotModel,
   getSlotProtocol,
   getSlotThinkingEffort,
+  getSlotServiceTier,
 } from './models.js';
 import {
   consumeInjectedMessages,
@@ -350,14 +351,24 @@ const tmp0 = {
   MODEL_CHAT: '__DEFAULT__',
 };
 const MODEL_MAP = tmp0;
-function getServiceTier(arg0) {
-  if (!arg0) {
-    return undefined;
-  }
-  if (arg0.endsWith('-priority')) {
+function getServiceTier(arg0, arg1 = '', arg2 = null) {
+  const tmp1 = String(arg0 || '').trim();
+  const tmp2 = String(arg1 || '').trim();
+  if (tmp1.endsWith('-priority') || tmp2.endsWith('-priority')) {
     return 'fast';
   }
-  return undefined;
+  const tmp3 = arg2 || getByokSlot(tmp1);
+  if (tmp3 === 1 || tmp3 === 2 || tmp3 === 3 || tmp3 === 4) {
+    const tmp4 = getSlotServiceTier(tmp3);
+    if (tmp4) {
+      return tmp4;
+    }
+    const tmp5 = getSlotModel(tmp3);
+    if (tmp5.endsWith('-priority')) {
+      return 'fast';
+    }
+  }
+  return getRuntimeConfig().openaiServiceTier || undefined;
 }
 function isOpenAIModel(arg0) {
   if (!arg0) {
@@ -511,7 +522,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     arg1.end();
     return;
   }
-  const tmp16 = getServiceTier(tmp7);
+  const tmp16 = getServiceTier(tmp7, tmp11, tmp10);
   const tmp17 = tmp15 ? 'Gemini' : tmp12 ? 'OpenAI' : 'Anthropic';
   if (EXPOSE_BACKEND_INFO) {
     tmp3 += '\n\nCurrent backend: ' + tmp11 + ' (' + tmp17 + ').';

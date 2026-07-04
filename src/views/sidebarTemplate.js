@@ -42,10 +42,29 @@ function renderSidebarHtml(ctx) {
     }).join('');
   };
 
+  // GPT Fast Mode (service_tier) 下拉选项：只接受 fast 或空
+  const buildOpenAIServiceTierOptions = (selected) => {
+    const cur = String(selected || '').trim().toLowerCase() === 'fast' ? 'fast' : '';
+    const opts = [
+      ['', '默认 · 不覆盖 service_tier'],
+      ['fast', 'Fast · service_tier=fast'],
+    ];
+    return opts.map(([v, label]) => {
+      const sel = cur === v ? ' selected' : '';
+      return `<option value="${esc(v)}"${sel}>${esc(label)}</option>`;
+    }).join('');
+  };
+
   const byok1Protocol = String(ctx.tmp2?.BYOK1_PROTOCOL || '').toLowerCase();
   const byok2Protocol = String(ctx.tmp2?.BYOK2_PROTOCOL || '').toLowerCase();
   const byok3Protocol = String(ctx.tmp2?.BYOK3_PROTOCOL || '').toLowerCase();
   const byok4Protocol = String(ctx.tmp2?.BYOK4_PROTOCOL || '').toLowerCase();
+
+  // Slot 级 service_tier 取值：slot#1 回退顶层 OPENAI_SERVICE_TIER
+  const byok1ServiceTier = String(ctx.tmp2?.BYOK1_OPENAI_SERVICE_TIER || ctx.tmp2?.OPENAI_SERVICE_TIER || '').trim();
+  const byok2ServiceTier = String(ctx.tmp2?.BYOK2_OPENAI_SERVICE_TIER || '').trim();
+  const byok3ServiceTier = String(ctx.tmp2?.BYOK3_OPENAI_SERVICE_TIER || '').trim();
+  const byok4ServiceTier = String(ctx.tmp2?.BYOK4_OPENAI_SERVICE_TIER || '').trim();
 
   // 准备模板数据
   const templateData = {
@@ -104,6 +123,7 @@ function renderSidebarHtml(ctx) {
       ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok1Protocol), tmp31)
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp27, tmp31),
     byok1ProtocolOptions: buildProtocolOptions(byok1Protocol),
+    byok1ServiceTierOptions: buildOpenAIServiceTierOptions(byok1ServiceTier),
     // BYOK #1 卡片状态（默认折叠）
     byok1HeadCollapsed: 'collapsed',
     byok1BodyHidden: 'hidden',
@@ -121,6 +141,7 @@ function renderSidebarHtml(ctx) {
       ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok2Protocol), tmp32)
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp30, tmp32),
     byok2ProtocolOptions: buildProtocolOptions(byok2Protocol),
+    byok2ServiceTierOptions: buildOpenAIServiceTierOptions(byok2ServiceTier),
     // BYOK #2 卡片状态（默认折叠）
     byok2HeadCollapsed: 'collapsed',
     byok2BodyHidden: 'hidden',
@@ -138,6 +159,7 @@ function renderSidebarHtml(ctx) {
       ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok3Protocol), tmp33d)
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33c, tmp33d),
     byok3ProtocolOptions: buildProtocolOptions(byok3Protocol),
+    byok3ServiceTierOptions: buildOpenAIServiceTierOptions(byok3ServiceTier),
     // BYOK #3 卡片状态（默认折叠）
     byok3HeadCollapsed: 'collapsed',
     byok3BodyHidden: 'hidden',
@@ -155,6 +177,7 @@ function renderSidebarHtml(ctx) {
       ? thinkingEffort.buildThinkingEffortOptionsHtmlForProvider(thinkingEffort.protocolToThinkingProvider(byok4Protocol), tmp33h)
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33g, tmp33h),
     byok4ProtocolOptions: buildProtocolOptions(byok4Protocol),
+    byok4ServiceTierOptions: buildOpenAIServiceTierOptions(byok4ServiceTier),
     // BYOK #4 卡片状态（默认折叠）
     byok4HeadCollapsed: 'collapsed',
     byok4BodyHidden: 'hidden',

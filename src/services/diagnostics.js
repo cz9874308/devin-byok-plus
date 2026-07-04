@@ -174,7 +174,26 @@ function resolveDiagnosticModelRoute(requested, config) {
       : mapped || defaultModel || (req && !req.startsWith('MODEL_') ? req : '');
   const upstream = stripDiagnosticThinkingSuffix(resolved);
   const provider = upstream ? (isDiagnosticOpenAIModel(upstream) ? 'OpenAI' : 'Anthropic') : '未解析';
-  const serviceTier = req.endsWith('-priority') ? 'fast' : undefined;
+  
+  // serviceTier 逻辑：模型后缀 -priority 或从配置读取
+  let serviceTier = undefined;
+  if (req.endsWith('-priority') || resolved.endsWith('-priority')) {
+    serviceTier = 'fast';
+  } else if (req === 'MODEL_CLAUDE_4_OPUS_THINKING_BYOK') {
+    serviceTier = config.BYOK2_OPENAI_SERVICE_TIER;
+  } else if (req === 'MODEL_CLAUDE_4_OPUS_BYOK') {
+    serviceTier = config.BYOK1_OPENAI_SERVICE_TIER || config.OPENAI_SERVICE_TIER;
+  } else if (req === 'MODEL_CLAUDE_4_SONNET_THINKING_BYOK') {
+    serviceTier = config.BYOK4_OPENAI_SERVICE_TIER;
+  } else if (req === 'MODEL_CLAUDE_4_SONNET_BYOK' || req === 'MODEL_CLAUDE_SONNET_4') {
+    serviceTier = config.BYOK3_OPENAI_SERVICE_TIER;
+  } else if (isDiagnosticOpenAIModel(upstream)) {
+    serviceTier = config.OPENAI_SERVICE_TIER;
+  }
+  
+  // 白名单过滤
+  serviceTier = String(serviceTier || '').trim().toLowerCase() === 'fast' ? 'fast' : undefined;
+  
   return {
     requested: req,
     resolved,
@@ -239,7 +258,7 @@ function checkInlineFastTimeoutRisk(config) {
   const model = String(config.DEFAULT_MODEL || '').trim();
   const base = model.replace(/-thinking$/i, '');
   const isOpenAI = /^(gpt-)/i.test(base) || /^MODEL_GPT/i.test(model);
-  const effort = String(config.OPENAI_REASONING_EFFORT || '').trim();
+  const effort = String(config.BYOK1_THINKING_EFFORT || config.OPENAI_REASONING_EFFORT || '').trim();
   const maxTokens = Number.parseInt(String(config.MAX_TOKENS || '0'), 10);
   const risks = [];
   if (/opus/i.test(model)) {
@@ -261,6 +280,11 @@ function checkInlineFastTimeoutRisk(config) {
   if (!model) {
     risks.push('未设置默认模型');
   }
+  const hasFastTier =
+    isOpenAI &&
+    String(config.BYOK1_OPENAI_SERVICE_TIER || config.OPENAI_SERVICE_TIER || '')
+      .trim()
+      .toLowerCase() === 'fast';
   const detail =
     risks.length > 0
       ? 'Inline/Fast 首包窗口较紧（当前补全超时约 ' +
@@ -269,8 +293,11 @@ function checkInlineFastTimeoutRisk(config) {
         risks.join('、') +
         '。如频繁空返回，优先降低模型/Token' +
         (isOpenAI ? '/推理强度' : '') +
-        ' 或改用普通 Chat。'
-      : '当前默认模型未命中明显慢首包风险；Inline/Fast 仍受上游首包延迟影响。';
+        ' 或改用普通 Chat。' +
+        (hasFastTier ? '当前已启用 service_tier=fast。' : '')
+      : '当前默认模型未命中明显慢首包风险；' +
+        (hasFastTier ? '已启用 service_tier=fast；' : '') +
+        'Inline/Fast 仍受上游首包延迟影响。';
   return envCheckItem(
     'inline-fast-timeout',
     'Inline/Fast 超时风险',

@@ -271,6 +271,9 @@ class SidebarProvider {
     if (!String(tmp1.BYOK1_THINKING_EFFORT || '').trim()) {
       tmp1.BYOK1_THINKING_EFFORT = tmp1.OPENAI_REASONING_EFFORT || '';
     }
+    if (!String(tmp1.BYOK1_OPENAI_SERVICE_TIER || '').trim()) {
+      tmp1.BYOK1_OPENAI_SERVICE_TIER = tmp1.OPENAI_SERVICE_TIER || '';
+    }
     return tmp1;
   }
   validateByokSlots(tmp02) {
