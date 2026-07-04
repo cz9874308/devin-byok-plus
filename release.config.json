@@ -1,16 +1,16 @@
 {
-  "version": "2.2.0",
-  "releaseDate": "2026-07-03",
+  "version": "2.3.0",
+  "releaseDate": "2026-07-04",
   "changeType": "Added",
   "changes": [
-    "扩展 BYOK 配置从 2 槽位到 4 槽位：新增 Claude Sonnet 4 BYOK（#3）与 Claude Sonnet 4 Thinking BYOK（#4），支持更灵活的多模型配置",
-    "多渠道 Profile 系统：支持创建/切换/重命名/复制/删除配置方案，每个方案独立管理 4 槽位 + 高级配置，存储于 profiles.json（0o600 权限）",
-    "移植上游 v2.3.0 Prompt Cache：Anthropic 请求自动对 system/tools/消息稳定前缀打 cache_control 断点；网关不支持时自动降级重试；OpenAI/Gemini 路径稳定排序 tools 提升隐式前缀缓存命中",
-    "Token 用量日志：各 provider 流结束时输出统一 📊 日志（input/output/cached/creation/命中率/模式/路由），便于观测缓存效果与 token 消耗",
-    "上游地址覆盖：支持 PROXY_API_HOST（hybrid-server）与 PROXY_INFERENCE_HOST（inference-proxy）环境变量自定义上游 API 地址",
-    "新增 5 个 Prompt Cache 环境变量：PROMPT_CACHE_ENABLED / ANTHROPIC_PROMPT_CACHE / OPENAI_PROMPT_CACHE / PROMPT_CACHE_SORT_TOOLS / PROMPT_CACHE_TAIL_MESSAGES",
-    "UI 层新增 BYOK #3/#4 配置卡片（紫色/琥珀色条纹），表单自动保存与槽位状态徽章完整支持 4 槽位",
-    "向后兼容：现有 2 槽位用户无感迁移，旧 profiles.json 自动补齐 byok3/byok4 字段；BYOK #3/#4 为可选扩展槽位，不强制配置"
+    "移植上游 v2.4.0 OpenAI service_tier=fast：各 BYOK 槽位支持独立配置 OPENAI_SERVICE_TIER（取值 fast 或空），启用 OpenAI 优先级通道。UI 层新增 GPT Fast Mode 下拉选项（仅在协议为 openai/gpt 时显示），模型名以 -priority 结尾时自动启用 fast 模式。三层回退机制：slot 级 → BYOK1 → 全局",
+    "手动协议选择：BYOK 配置卡片新增 Protocol 下拉框（anthropic / openai / gemini），支持手动覆盖自动检测的 provider。协议变更时思考强度下拉和 GPT Fast Mode 行会联动显隐/重建选项，避免协议与参数不匹配。存储于 BYOKn_PROTOCOL 环境变量",
+    "方案编辑器 UI 优化：从嵌入式改为独立折叠卡片，默认隐藏以减少首屏信息密度。卡片标题栏显示当前激活方案名，支持点击展开/折叠。Tutorial 教程文案同步更新",
+    "profileStore 支持 protocol 字段持久化到 profiles.json，新增 sanitizeProtocol / detectModelProtocol / resolveEffectiveProtocol 逻辑",
+    "diagnostics.js 的 resolveDiagnosticModelRoute 扩展支持 4 个 BYOK 槽位的 service tier 读取（BYOK1=Opus, BYOK2=Opus Thinking, BYOK3=Sonnet, BYOK4=Sonnet Thinking）",
+    "sidebarTemplate.js 新增 buildProtocolOptions() 和 buildOpenAIServiceTierOptions() helper，统一下拉选项生成逻辑",
+    "修复协议手动切换后思考强度选项未联动更新的问题",
+    "修复 GPT Fast Mode 行在非 OpenAI 协议下仍显示的问题（现按 protocol 严格控制可见性）"
   ],
   "breaking": false,
   "autoPackage": true,
