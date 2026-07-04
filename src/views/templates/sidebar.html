@@ -30,6 +30,29 @@
     </div>
 </div>
 
+<!-- 版本更新提示 -->
+<div class="version-update-banner hidden" id="versionUpdateBanner">
+    <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="version-update-icon">🎉</span>
+            <div class="flex-1 min-w-0">
+                <div class="version-update-title">新版本可用</div>
+                <div class="version-update-text">
+                    <span id="versionUpdateText"></span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button type="button" class="btn btn-sm btn-p" id="btnOpenRelease">
+                查看更新
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btnDismissUpdate">
+                忽略
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- 标签页导航 -->
 <div class="tabs">
     <button type="button" class="tab-btn active" data-tab="tab-config">

@@ -6,8 +6,10 @@ const { ProxyManager } = require('./managers/proxyManager');
 const { PatchManager } = require('./managers/patchManager');
 const { reloadWorkbenchWindow } = require('./utils/reloadWorkbench');
 const { getDeviceId, getClientVersion } = require('./utils/integrity');
+const { VersionChecker } = require('./services/versionChecker');
 
 let proxyManager;
+let versionChecker;
 const KEY_AUTO_START_PROXY = 'devin-byok-plus.autoStartProxy';
 const LEGACY_KEY_AUTO_START_PROXY = 'windsurf-byok-plus.autoStartProxy';
 const LEGACY_KEY_AUTO_START_PROXY_2 = 'devin-byok-plus.autoStartProxy';
@@ -17,7 +19,10 @@ function activate(context) {
   const deviceId = getDeviceId(context);
   const clientVersion = getClientVersion(extensionPath);
   proxyManager = new ProxyManager(context, deviceId, clientVersion);
-  const sidebar = new SidebarProvider(context, proxyManager);
+  versionChecker = new VersionChecker(context, clientVersion);
+  const sidebar = new SidebarProvider(context, proxyManager, versionChecker);
+  
+  versionChecker.start();
 
   if (context.globalState.get(KEY_AUTO_START_PROXY) === undefined && context.globalState.get(LEGACY_KEY_AUTO_START_PROXY) === true) {
     context.globalState.update(KEY_AUTO_START_PROXY, true);
@@ -81,6 +86,7 @@ function activate(context) {
 
 function deactivate() {
   proxyManager?.dispose();
+  versionChecker?.stop();
 }
 
 exports.activate = activate;

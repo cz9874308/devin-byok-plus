@@ -1171,8 +1171,48 @@
       const tmp13 = /GetChatMessage|GetStreamingCompletions|GetEmbeddings/.test(tmp12.line) ? " hi" : /err|stderr/i.test(tmp12.line) ? " err" : "";
       tmp02.innerHTML += "<div class=\"log-line" + tmp13 + "\">" + fn6(tmp12.line) + "</div>";
       tmp02.scrollTop = tmp02.scrollHeight;
+    } else if (tmp12.type === "versionUpdate" || (tmp12.type === "status" && tmp12.versionUpdate)) {
+      const updateInfo = tmp12.versionUpdate || tmp12.versionUpdate;
+      if (updateInfo && updateInfo.hasUpdate) {
+        showVersionUpdateBanner(updateInfo);
+      } else {
+        hideVersionUpdateBanner();
+      }
     }
   });
+  
+  // ========== 版本更新提示功能 ==========
+  function showVersionUpdateBanner(updateInfo) {
+    const banner = fn4("versionUpdateBanner");
+    const textEl = fn4("versionUpdateText");
+    if (!banner || !textEl) return;
+    
+    textEl.innerHTML = "v" + fn6(updateInfo.currentVersion) + " → <span class=\"version-tag\">v" + fn6(updateInfo.latestVersion) + "</span>";
+    banner.classList.remove("hidden");
+  }
+  
+  function hideVersionUpdateBanner() {
+    const banner = fn4("versionUpdateBanner");
+    if (banner) {
+      banner.classList.add("hidden");
+    }
+  }
+  
+  const btnOpenRelease = fn4("btnOpenRelease");
+  if (btnOpenRelease) {
+    btnOpenRelease.addEventListener("click", () => {
+      fn5("openReleaseUrl");
+    });
+  }
+  
+  const btnDismissUpdate = fn4("btnDismissUpdate");
+  if (btnDismissUpdate) {
+    btnDismissUpdate.addEventListener("click", () => {
+      fn5("dismissVersionUpdate");
+      hideVersionUpdateBanner();
+    });
+  }
+  // ========== 版本更新提示功能结束 ==========
   fn24a();
   fn5("getStatus");
   fn5("getProfiles");

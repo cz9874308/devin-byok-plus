@@ -686,6 +686,64 @@
     @apply text-vslink font-mono font-bold;
   }
 
+  /* ========== 版本更新提示 ========== */
+  .version-update-banner {
+    @apply mb-3 px-3 py-2 rounded-lg;
+    @apply border text-[11px];
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--vscode-button-background, #0d9488) 18%, transparent),
+      color-mix(in srgb, var(--vscode-button-background, #0d9488) 6%, transparent)
+    );
+    border-color: color-mix(in srgb, var(--vscode-button-background, #0d9488) 40%, var(--vscode-panel-border));
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.15);
+    animation: version-banner-in 0.35s ease-out;
+  }
+
+  @keyframes version-banner-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .version-update-banner.hidden {
+    display: none;
+  }
+
+  .version-update-icon {
+    @apply text-base leading-none flex-shrink-0;
+  }
+
+  .version-update-title {
+    @apply text-[11px] font-bold text-vsinputfg leading-tight;
+  }
+
+  .version-update-text {
+    @apply text-[10px] text-vsdesc leading-snug mt-0.5;
+    word-break: break-word;
+  }
+
+  .version-update-text .version-tag {
+    @apply text-vslink font-mono font-bold;
+  }
+
+  .btn.btn-sm {
+    @apply min-h-[22px] px-2 py-0.5 text-[10px] rounded;
+  }
+
+  .btn.btn-ghost {
+    @apply bg-transparent text-vsdesc border border-vsborder;
+    box-shadow: none;
+  }
+  .btn.btn-ghost:hover {
+    @apply bg-white/5 text-vsinputfg;
+  }
+
   /* ========== 流程指示器 ========== */
   /* ========== 流程指示器（竖向 stepper 卡片） ========== */
   .flow-indicator {

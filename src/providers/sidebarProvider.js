@@ -73,12 +73,13 @@ function getWebviewNonce() {
   return tmp02;
 }
 class SidebarProvider {
-  constructor(tmp02, tmp1) {
+  constructor(tmp02, tmp1, versionChecker) {
     this.context = tmp02;
     this.logLines = [];
     this.lastStatusPostMs = 0;
     this.editingProfileId = null;
     this.proxyManager = tmp1;
+    this.versionChecker = versionChecker;
     this.proxyManager.onLog((arg0) => {
       this.logLines.push(arg0);
       if (this.logLines.length > 200) {
@@ -195,6 +196,14 @@ class SidebarProvider {
       patch: this.getPatchStatus(),
       config: this.getEditingScopedConfig(),
       logs: this.logLines.slice(-50),
+      versionUpdate: this.versionChecker ? this.versionChecker.getUpdateInfo() : null,
+    });
+  }
+  postVersionUpdate() {
+    if (!this.view || !this.versionChecker) return;
+    this.view.webview.postMessage({
+      type: 'versionUpdate',
+      versionUpdate: this.versionChecker.getUpdateInfo(),
     });
   }
   getEditingScopedConfig() {
@@ -1964,6 +1973,27 @@ class SidebarProvider {
       }
       case 'getStatus': {
         await this.postStatusSnapshot();
+        break;
+      }
+      case 'checkVersionUpdate': {
+        if (this.versionChecker) {
+          await this.versionChecker.checkForUpdates();
+          this.postVersionUpdate();
+        }
+        break;
+      }
+      case 'openReleaseUrl': {
+        const url = tmp02.url || (this.versionChecker && this.versionChecker.getUpdateInfo().releaseUrl);
+        if (url) {
+          await vscode.env.openExternal(vscode.Uri.parse(url));
+        }
+        break;
+      }
+      case 'dismissVersionUpdate': {
+        if (this.versionChecker) {
+          await this.versionChecker.dismissUpdate();
+          this.postVersionUpdate();
+        }
         break;
       }
     }
