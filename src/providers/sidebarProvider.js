@@ -2092,6 +2092,9 @@ class SidebarProvider {
     const tmp12a = this.view.webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'webviews', 'dist', 'sidebar.css')
     );
+    const completionSoundUri = this.view.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'sound', 'completion.mp3')
+    );
     const tmp13 = 'var(--vscode-button-background,#0d9488)';
     const tmp14 = 'var(--vscode-button-hoverBackground,#0f766e)';
     const tmp15 = 'var(--vscode-textLink-foreground,#5eead4)';
@@ -2164,6 +2167,7 @@ class SidebarProvider {
       cspSource: tmp11,
       scriptUri: tmp12,
       cssUri: tmp12a,
+      completionSoundUri,
       // 原始 tmp 变量（保持向后兼容）
       tmp02,
       tmp1,

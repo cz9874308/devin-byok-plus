@@ -93,6 +93,7 @@ function renderSidebarHtml(ctx) {
     cssUri: cssUri,
     tailwindCssUri: tmp12a,
     scriptUri: tmp12,
+    completionSoundUri: ctx.completionSoundUri || '',
 
     // 全局状态栏数据
     statusDotClass: tmp02.running ? 'running' : 'stopped',

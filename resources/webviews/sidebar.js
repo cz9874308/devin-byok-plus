@@ -1043,6 +1043,28 @@
     } else if (tmp32 === "revertLabelPatch") {
       fn7("labelPatch", "busy", "正在还原标签...");
       fn5("revertLabelPatch");
+    } else if (tmp32 === "testCompletionSound") {
+      const tmp02 = fn4("completionSound");
+      const tmp13 = fn4("completionSoundTestResult");
+      if (!tmp02) {
+        if (tmp13) tmp13.textContent = "未找到 audio 元素";
+        return;
+      }
+      try {
+        tmp02.currentTime = 0;
+        const tmp23 = tmp02.play();
+        if (tmp23 && typeof tmp23.then === "function") {
+          tmp23.then(() => {
+            if (tmp13) tmp13.textContent = "✅ 播放成功，声音可用";
+          }).catch(arg02 => {
+            if (tmp13) tmp13.textContent = "❌ 播放被拒绝：" + (arg02 && arg02.name ? arg02.name : "") + " " + (arg02 && arg02.message ? arg02.message : String(arg02));
+          });
+        } else {
+          if (tmp13) tmp13.textContent = "▶️ 已触发播放（无 Promise 返回）";
+        }
+      } catch (arg02) {
+        if (tmp13) tmp13.textContent = "❌ 播放异常：" + (arg02 && arg02.message ? arg02.message : String(arg02));
+      }
     } else if (tmp32 === "locateExtJs") {
       fn7("patch", "busy", "请选择 Devin Desktop 的 extension.js...");
       fn5("locateExtJs");
