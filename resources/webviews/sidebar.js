@@ -327,6 +327,7 @@
     fn13("cfgByok" + tmp22 + "Protocol", String(arg0[tmp32 + "PROTOCOL"] || "").toLowerCase());
     fn13("cfgByok" + tmp22 + "ThinkingEffort", arg0[tmp32 + "THINKING_EFFORT"] || (tmp22 === 1 ? arg0.OPENAI_REASONING_EFFORT || "" : ""));
     fn13("cfgByok" + tmp22 + "ServiceTier", arg0[tmp32 + "OPENAI_SERVICE_TIER"] || (tmp22 === 1 ? arg0.OPENAI_SERVICE_TIER || "" : ""));
+    fn13("cfgByok" + tmp22 + "ContextWindow", String(arg0[tmp32 + "CONTEXT_WINDOW"] || "").trim());
     fn19(arg1, tmp6, arg0[tmp32 + "THINKING_EFFORT"] || (tmp22 === 1 ? arg0.OPENAI_REASONING_EFFORT || "" : ""));
     const tmp7 = fn11(tmp22);
     const tmp8 = fn();
@@ -588,7 +589,8 @@
       [tmp6 + "OPENAI_SERVICE_TIER"]: ((fn4("cfgByok" + tmp12 + "ServiceTier") || {}).value || "").trim(),
       [tmp6 + "MODEL"]: tmp5,
       [tmp6 + "THINKING_EFFORT"]: ((fn4("cfgByok" + tmp12 + "ThinkingEffort") || {}).value || "").trim(),
-      [tmp6 + "PROTOCOL"]: fn19a(tmp12)
+      [tmp6 + "PROTOCOL"]: fn19a(tmp12),
+      [tmp6 + "CONTEXT_WINDOW"]: ((fn4("cfgByok" + tmp12 + "ContextWindow") || {}).value || "").trim()
     };
   }
   function fn27() {
@@ -1259,10 +1261,10 @@
   // 配置字段白名单（需要自动保存的字段）
   const AUTO_SAVE_FIELDS = new Set([
     'cfgProfileName',
-    'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort', 'cfgByok1Protocol', 'cfgByok1ServiceTier',
-    'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort', 'cfgByok2Protocol', 'cfgByok2ServiceTier',
-    'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort', 'cfgByok3Protocol', 'cfgByok3ServiceTier',
-    'cfgByok4Host', 'cfgByok4Key', 'cfgByok4Model', 'cfgByok4ThinkingEffort', 'cfgByok4Protocol', 'cfgByok4ServiceTier',
+    'cfgByok1Host', 'cfgByok1Key', 'cfgByok1Model', 'cfgByok1ThinkingEffort', 'cfgByok1Protocol', 'cfgByok1ServiceTier', 'cfgByok1ContextWindow',
+    'cfgByok2Host', 'cfgByok2Key', 'cfgByok2Model', 'cfgByok2ThinkingEffort', 'cfgByok2Protocol', 'cfgByok2ServiceTier', 'cfgByok2ContextWindow',
+    'cfgByok3Host', 'cfgByok3Key', 'cfgByok3Model', 'cfgByok3ThinkingEffort', 'cfgByok3Protocol', 'cfgByok3ServiceTier', 'cfgByok3ContextWindow',
+    'cfgByok4Host', 'cfgByok4Key', 'cfgByok4Model', 'cfgByok4ThinkingEffort', 'cfgByok4Protocol', 'cfgByok4ServiceTier', 'cfgByok4ContextWindow',
     'cfgHybridPort', 'cfgInferencePort', 'cfgAnthropicPath', 'cfgOpenaiPath',
     'cfgMaxTokens', 'cfgCompletionTimeoutMs'
   ]);

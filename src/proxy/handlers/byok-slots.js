@@ -28,8 +28,41 @@ export const SLOT_CONFIG_FIELDS = [
   "OPENAI_SERVICE_TIER",
   "MODEL",
   "THINKING_EFFORT",
-  "PROTOCOL"
+  "PROTOCOL",
+  "CONTEXT_WINDOW"
 ];
+
+// 可配置上下文窗口档位: 0=原始(不改写,保持官方值), 其余为改写目标值。
+export const CONTEXT_WINDOW_PRESETS = {
+  0: "原始",
+  500000: "500K",
+  1000000: "1M"
+};
+
+const CONTEXT_WINDOW_VALUES = new Set(Object.keys(CONTEXT_WINDOW_PRESETS).map(Number));
+
+// 非法/未知档位一律归 0(原始, 不改写)。
+export function sanitizeContextWindow(value) {
+  const n = Number.parseInt(String(value ?? "").trim(), 10);
+  if (Number.isInteger(n) && CONTEXT_WINDOW_VALUES.has(n)) {
+    return n;
+  }
+  return 0;
+}
+
+// 槽位 -> GetUserStatus 模型条目 field1 数值 ID 的映射。
+// 用于结构化改写时把某个槽位的窗口档位定位到对应的模型条目。
+// 四个 ID 均已抓包确认(GetUserStatus 模型数组):
+//   277 = MODEL_CLAUDE_4_OPUS_BYOK          (槽位1 OPUS)
+//   278 = MODEL_CLAUDE_4_OPUS_THINKING_BYOK (槽位2 OPUS_THINKING)
+//   279 = MODEL_CLAUDE_4_SONNET_BYOK        (槽位3 SONNET)
+//   280 = MODEL_CLAUDE_4_SONNET_THINKING_BYOK (槽位4 SONNET_THINKING)
+export const SLOT_MODEL_ID = {
+  1: 277,
+  2: 278,
+  3: 279,
+  4: 280
+};
 
 const PROTOCOL_VALUES = ["", "anthropic", "openai", "gemini"];
 

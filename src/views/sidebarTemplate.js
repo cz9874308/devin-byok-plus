@@ -55,10 +55,29 @@ function renderSidebarHtml(ctx) {
     }).join('');
   };
 
+  // 上下文窗口档位下拉选项：0=原始(不改写) / 500K / 1M
+  const buildContextWindowOptions = (selected) => {
+    const cur = String(selected ?? '').trim();
+    const opts = [
+      ['', '原始 · 不改写（保持官方值）'],
+      ['500000', '500K'],
+      ['1000000', '1M'],
+    ];
+    return opts.map(([v, label]) => {
+      const sel = cur === v ? ' selected' : '';
+      return `<option value="${esc(v)}"${sel}>${esc(label)}</option>`;
+    }).join('');
+  };
+
   const byok1Protocol = String(ctx.tmp2?.BYOK1_PROTOCOL || '').toLowerCase();
   const byok2Protocol = String(ctx.tmp2?.BYOK2_PROTOCOL || '').toLowerCase();
   const byok3Protocol = String(ctx.tmp2?.BYOK3_PROTOCOL || '').toLowerCase();
   const byok4Protocol = String(ctx.tmp2?.BYOK4_PROTOCOL || '').toLowerCase();
+
+  const byok1ContextWindow = String(ctx.tmp2?.BYOK1_CONTEXT_WINDOW || '').trim();
+  const byok2ContextWindow = String(ctx.tmp2?.BYOK2_CONTEXT_WINDOW || '').trim();
+  const byok3ContextWindow = String(ctx.tmp2?.BYOK3_CONTEXT_WINDOW || '').trim();
+  const byok4ContextWindow = String(ctx.tmp2?.BYOK4_CONTEXT_WINDOW || '').trim();
 
   // Slot 级 service_tier 取值：slot#1 回退顶层 OPENAI_SERVICE_TIER
   const byok1ServiceTier = String(ctx.tmp2?.BYOK1_OPENAI_SERVICE_TIER || ctx.tmp2?.OPENAI_SERVICE_TIER || '').trim();
@@ -124,6 +143,7 @@ function renderSidebarHtml(ctx) {
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp27, tmp31),
     byok1ProtocolOptions: buildProtocolOptions(byok1Protocol),
     byok1ServiceTierOptions: buildOpenAIServiceTierOptions(byok1ServiceTier),
+    byok1ContextWindowOptions: buildContextWindowOptions(byok1ContextWindow),
     // BYOK #1 卡片状态（默认折叠）
     byok1HeadCollapsed: 'collapsed',
     byok1BodyHidden: 'hidden',
@@ -142,6 +162,7 @@ function renderSidebarHtml(ctx) {
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp30, tmp32),
     byok2ProtocolOptions: buildProtocolOptions(byok2Protocol),
     byok2ServiceTierOptions: buildOpenAIServiceTierOptions(byok2ServiceTier),
+    byok2ContextWindowOptions: buildContextWindowOptions(byok2ContextWindow),
     // BYOK #2 卡片状态（默认折叠）
     byok2HeadCollapsed: 'collapsed',
     byok2BodyHidden: 'hidden',
@@ -160,6 +181,7 @@ function renderSidebarHtml(ctx) {
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33c, tmp33d),
     byok3ProtocolOptions: buildProtocolOptions(byok3Protocol),
     byok3ServiceTierOptions: buildOpenAIServiceTierOptions(byok3ServiceTier),
+    byok3ContextWindowOptions: buildContextWindowOptions(byok3ContextWindow),
     // BYOK #3 卡片状态（默认折叠）
     byok3HeadCollapsed: 'collapsed',
     byok3BodyHidden: 'hidden',
@@ -178,6 +200,7 @@ function renderSidebarHtml(ctx) {
       : thinkingEffort.buildThinkingEffortOptionsHtml(tmp33g, tmp33h),
     byok4ProtocolOptions: buildProtocolOptions(byok4Protocol),
     byok4ServiceTierOptions: buildOpenAIServiceTierOptions(byok4ServiceTier),
+    byok4ContextWindowOptions: buildContextWindowOptions(byok4ContextWindow),
     // BYOK #4 卡片状态（默认折叠）
     byok4HeadCollapsed: 'collapsed',
     byok4BodyHidden: 'hidden',
@@ -254,4 +277,5 @@ function renderSidebarHtml(ctx) {
   return renderSidebar(templateData);
 }
 
+module.exports = { renderSidebarHtml };
 module.exports = { renderSidebarHtml };

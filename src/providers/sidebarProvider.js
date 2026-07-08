@@ -325,6 +325,7 @@ class SidebarProvider {
         protocol: profileStore_1.sanitizeProtocol(norm.BYOK1_PROTOCOL || ''),
         anthropicPath: norm.BYOK1_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK1_OPENAI_API_PATH || '',
+        contextWindow: norm.BYOK1_CONTEXT_WINDOW || '',
       },
       byok2: {
         host: norm.BYOK2_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK2_ANTHROPIC_API_HOST) : '',
@@ -334,6 +335,7 @@ class SidebarProvider {
         protocol: profileStore_1.sanitizeProtocol(norm.BYOK2_PROTOCOL || ''),
         anthropicPath: norm.BYOK2_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK2_OPENAI_API_PATH || '',
+        contextWindow: norm.BYOK2_CONTEXT_WINDOW || '',
       },
       byok3: {
         host: norm.BYOK3_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK3_ANTHROPIC_API_HOST) : '',
@@ -343,6 +345,7 @@ class SidebarProvider {
         protocol: profileStore_1.sanitizeProtocol(norm.BYOK3_PROTOCOL || ''),
         anthropicPath: norm.BYOK3_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK3_OPENAI_API_PATH || '',
+        contextWindow: norm.BYOK3_CONTEXT_WINDOW || '',
       },
       byok4: {
         host: norm.BYOK4_ANTHROPIC_API_HOST ? this.stripProtocol(norm.BYOK4_ANTHROPIC_API_HOST) : '',
@@ -352,6 +355,7 @@ class SidebarProvider {
         protocol: profileStore_1.sanitizeProtocol(norm.BYOK4_PROTOCOL || ''),
         anthropicPath: norm.BYOK4_ANTHROPIC_API_PATH || '',
         openaiPath: norm.BYOK4_OPENAI_API_PATH || '',
+        contextWindow: norm.BYOK4_CONTEXT_WINDOW || '',
       },
       advanced: {
         hybridPort: norm.HYBRID_PORT || '',
