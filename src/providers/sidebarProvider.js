@@ -64,6 +64,7 @@ const KEY_AUTO_START_PROXY = 'devin-byok-plus.autoStartProxy';
 const KEY_PATCH_EXTENSION_PATH = 'devin-byok-plus.patchExtensionPath';
 const LEGACY_KEY_PATCH_EXTENSION_PATH = 'windsurf-byok-plus.patchExtensionPath';
 const LEGACY_KEY_PATCH_EXTENSION_PATH_2 = 'devin-byok-plus.patchExtensionPath';
+const KEY_LABEL_PATCH_TEXT = 'devin-byok-plus.labelPatchText';
 function getWebviewNonce() {
   let tmp02 = '';
   const tmp1 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -194,6 +195,7 @@ class SidebarProvider {
       type: 'status',
       proxy: this.proxyManager.getStatus(),
       patch: this.getPatchStatus(),
+      labelPatch: this.getLabelPatchStatus(),
       config: this.getEditingScopedConfig(),
       logs: this.logLines.slice(-50),
       versionUpdate: this.versionChecker ? this.versionChecker.getUpdateInfo() : null,
@@ -516,6 +518,23 @@ class SidebarProvider {
   async setStoredPatchExtensionPath(tmp02) {
     const tmp1 = typeof tmp02 === 'string' && tmp02.trim() ? tmp02.trim() : undefined;
     await this.context.globalState.update(KEY_PATCH_EXTENSION_PATH, tmp1);
+  }
+  getStoredLabelPatchText() {
+    const tmp02 = this.context.globalState.get(KEY_LABEL_PATCH_TEXT);
+    if (typeof tmp02 === 'string' && tmp02.trim()) {
+      return tmp02.trim();
+    }
+    return patchManager_1.PatchManager.labelPatchDefaultText();
+  }
+  async setStoredLabelPatchText(tmp02) {
+    const tmp1 = typeof tmp02 === 'string' && tmp02.trim() ? tmp02.trim().replace(/"/g, '') : undefined;
+    await this.context.globalState.update(KEY_LABEL_PATCH_TEXT, tmp1);
+  }
+  getLabelPatchStatus() {
+    return patchManager_1.PatchManager.getLabelStatus(
+      this.getStoredPatchExtensionPath(),
+      this.getStoredLabelPatchText()
+    );
   }
   getPatchStatus() {
     const tmp02 = this.proxyManager.getStatus();
@@ -1971,6 +1990,56 @@ class SidebarProvider {
         this.refresh();
         break;
       }
+      case 'applyLabelPatch': {
+        const tmp03 =
+          typeof tmp02.text === 'string' && tmp02.text.trim()
+            ? tmp02.text.trim().replace(/"/g, '')
+            : this.getStoredLabelPatchText();
+        await this.setStoredLabelPatchText(tmp03);
+        const tmp1 = patchManager_1.PatchManager.applyLabelPatch(
+          this.getStoredPatchExtensionPath() || undefined,
+          tmp03
+        );
+        const tmp2 = '重载窗口';
+        if (tmp1.applied > 0) {
+          const tmp3 = '标签已改为「' + tmp03 + '」，需重载窗口生效';
+          this.postActionState('labelPatch', 'success', tmp3);
+          const tmp4 = await vscode.window.showInformationMessage(tmp3, tmp2);
+          if (tmp4 === tmp2) {
+            await (0, reloadWorkbench_1.reloadWorkbenchWindow)();
+          }
+        } else if (tmp1.skipped > 0) {
+          this.postActionState('labelPatch', 'success', '标签已是「' + tmp03 + '」');
+        } else {
+          const tmp3 = tmp1.details && tmp1.details.length ? tmp1.details.join('；') : '未找到可改写的标签';
+          this.postActionState('labelPatch', 'error', tmp3);
+          await vscode.window.showInformationMessage('标签补丁失败：' + tmp3);
+        }
+        this.refresh();
+        break;
+      }
+      case 'revertLabelPatch': {
+        const tmp1 = patchManager_1.PatchManager.revertLabelPatch(
+          this.getStoredPatchExtensionPath() || undefined
+        );
+        const tmp2 = '重载窗口';
+        if (tmp1.reverted > 0) {
+          this.postActionState('labelPatch', 'success', '标签已还原，需重载窗口生效');
+          const tmp3 = await vscode.window.showInformationMessage(
+            '标签已还原为 Cascade，需重载窗口生效',
+            tmp2
+          );
+          if (tmp3 === tmp2) {
+            await (0, reloadWorkbench_1.reloadWorkbenchWindow)();
+          }
+        } else {
+          const tmp3 = tmp1.details && tmp1.details.length ? tmp1.details.join('；') : '未找到备份或可还原的标签';
+          this.postActionState('labelPatch', 'error', tmp3);
+          await vscode.window.showInformationMessage('标签还原失败：' + tmp3);
+        }
+        this.refresh();
+        break;
+      }
       case 'getStatus': {
         await this.postStatusSnapshot();
         break;
@@ -2068,6 +2137,24 @@ class SidebarProvider {
             })
             .join('');
 
+    const labelStatus = this.getLabelPatchStatus();
+    const labelText = this.getStoredLabelPatchText();
+    const labelBadgeClass = !labelStatus.found
+      ? 'badge-warn'
+      : labelStatus.applied
+        ? 'badge-ok'
+        : 'badge-warn';
+    const labelBadgeText = !labelStatus.found
+      ? '未检测到'
+      : labelStatus.applied
+        ? '已生效'
+        : '未应用';
+    const labelCurrentDisplay = !labelStatus.found
+      ? '未找到 workbench/sessions bundle，请在上方"选择路径"指向 Devin 安装目录'
+      : labelStatus.currentText
+        ? '当前显示：' + labelStatus.currentText
+        : '当前显示：Cascade（默认）';
+
     return sidebarTemplate_1.renderSidebarHtml({
       nonce: tmp10,
       cspSource: tmp11,
@@ -2120,6 +2207,10 @@ class SidebarProvider {
       tmp34,
       tmp35,
       tmp36,
+      labelPatchText: labelText,
+      labelPatchBadgeClass: labelBadgeClass,
+      labelPatchBadgeText: labelBadgeText,
+      labelPatchCurrentDisplay: labelCurrentDisplay,
     });
   }
 }

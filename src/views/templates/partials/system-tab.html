@@ -21,3 +21,24 @@
         <div class="action-progress"><div class="action-progress-bar"></div></div>
     </div>
 </div>
+
+<!-- 聊天标签改名补丁 -->
+<div class="card" style="margin-bottom:12px">
+    <div class="card-head between">
+        <span>聊天标签改名</span>
+        <span id="labelPatchBadge" class="badge {{labelPatchBadgeClass}}">{{labelPatchBadgeText}}</span>
+    </div>
+    <div id="labelPatchCurrent" class="patch-path">{{labelPatchCurrentDisplay}}</div>
+    <div class="fg">
+        <label>输入框标签文案</label>
+        <input type="text" id="cfgLabelPatchText" value="{{labelPatchText}}" placeholder="例如 Devin Proxy" autocomplete="off">
+    </div>
+    <div class="btns" id="labelPatchActionButtons">
+        <button type="button" class="btn btn-p sm" data-ws-action="applyLabelPatch">应用改名</button>
+        <button type="button" class="btn btn-s sm" data-ws-action="revertLabelPatch">还原</button>
+    </div>
+    <div id="labelPatchActionState" class="action-state hidden">
+        <div id="labelPatchActionText" class="action-text"></div>
+        <div class="action-progress"><div class="action-progress-bar"></div></div>
+    </div>
+</div>

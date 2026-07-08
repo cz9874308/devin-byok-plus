@@ -469,5 +469,265 @@ class PatchManager {
     };
     return tmp13;
   }
+
+  // ============================================================
+  // Label 改名补丁：把聊天输入框 Agent 标签 "Cascade" 改成自定义文案
+  // 作用于两个运行时核心 bundle（不是 extension.js）：
+  //   out/vs/workbench/workbench.desktop.main.js
+  //   out/vs/sessions/sessions.desktop.main.js
+  // 这两个文件在 product.json 里有完整性校验（base64 去 padding、精确 key），
+  // 因此必须同步更新 checksum。
+  // ============================================================
+
+  // 目标标签的结构特征：label:"<文案>",icon:...WindsurfLogo...（变量名混淆，用结构匹配）
+  static labelPatchOriginalRegex() {
+    return /label:"Cascade",icon:/g;
+  }
+  static labelPatchDefaultText() {
+    return "Devin Proxy";
+  }
+  // 匹配任意已被改过的文案（用于检测已应用状态 / 还原前定位）
+  static labelPatchAnyRegex() {
+    // label:"<任意不含双引号的文案>",icon:(0,X.jsx)(Y.WindsurfLogo
+    return /label:"([^"]*)",icon:\(0,[A-Za-z_$][\w$]*\.jsx\)\([A-Za-z_$][\w$]*\.WindsurfLogo/g;
+  }
+
+  // product.json 里这两个 bundle 对应的 checksum key
+  static labelBundleChecksumKey(tmp0) {
+    const tmp1 = path.normalize(tmp0).replace(/\\/g, "/").toLowerCase();
+    if (tmp1.includes("/workbench/workbench.desktop.main.js")) {
+      return "vs/workbench/workbench.desktop.main.js";
+    }
+    if (tmp1.includes("/sessions/sessions.desktop.main.js")) {
+      return "vs/sessions/sessions.desktop.main.js";
+    }
+    return null;
+  }
+
+  // 从 extension.js 路径或候选路径推导 app 根目录（含 product.json 的目录）
+  static resolveAppRoot(tmp0) {
+    let tmp1 = tmp0 ? path.dirname(tmp0) : null;
+    const tmp2 = PatchManager.resolveExtensionJsPath(tmp0);
+    if (tmp2) {
+      tmp1 = path.dirname(tmp2);
+    }
+    if (!tmp1) {
+      return null;
+    }
+    for (let tmp3 = 0; tmp3 < 10; tmp3++) {
+      if (fs.existsSync(path.join(tmp1, "product.json"))) {
+        return tmp1;
+      }
+      const tmp4 = path.dirname(tmp1);
+      if (tmp4 === tmp1) {
+        break;
+      }
+      tmp1 = tmp4;
+    }
+    return null;
+  }
+
+  // 定位两个 bundle 的绝对路径（存在才返回）
+  static findLabelBundles(tmp0) {
+    const tmp1 = PatchManager.resolveAppRoot(tmp0);
+    if (!tmp1) {
+      return [];
+    }
+    const tmp2 = [
+      path.join(tmp1, "out", "vs", "workbench", "workbench.desktop.main.js"),
+      path.join(tmp1, "out", "vs", "sessions", "sessions.desktop.main.js")
+    ];
+    return tmp2.filter(arg0 => fs.existsSync(arg0));
+  }
+
+  static labelBackupPath(tmp0) {
+    return tmp0 + ".devin-label-bak";
+  }
+
+  // 计算文件的 base64 checksum（去掉末尾 padding，匹配 product.json 格式）
+  static computeBundleChecksum(tmp0) {
+    const tmp1 = fs.readFileSync(tmp0);
+    return crypto.createHash("sha256").update(tmp1).digest("base64").replace(/=+$/, "");
+  }
+
+  // 更新 product.json 里某个 bundle 的 checksum（精确 key、去 padding）
+  static updateBundleChecksum(tmp0) {
+    try {
+      const tmp1 = PatchManager.resolveAppRoot(tmp0);
+      if (!tmp1) {
+        return;
+      }
+      const tmp2 = path.join(tmp1, "product.json");
+      if (!fs.existsSync(tmp2)) {
+        return;
+      }
+      const tmp3 = PatchManager.labelBundleChecksumKey(tmp0);
+      if (!tmp3) {
+        return;
+      }
+      let tmp4 = fs.readFileSync(tmp2, "utf-8");
+      if (tmp4.charCodeAt(0) === 65279) {
+        tmp4 = tmp4.substring(1);
+      }
+      const tmp5 = JSON.parse(tmp4);
+      if (tmp5.checksums && Object.prototype.hasOwnProperty.call(tmp5.checksums, tmp3)) {
+        tmp5.checksums[tmp3] = PatchManager.computeBundleChecksum(tmp0);
+        fs.writeFileSync(tmp2, JSON.stringify(tmp5, null, "\t"), "utf-8");
+      }
+    } catch {}
+  }
+
+  // 从内容中读出当前的 label 文案（返回第一个匹配到的文案，未匹配返回 null）
+  static readLabelText(tmp0) {
+    const tmp1 = PatchManager.labelPatchAnyRegex();
+    const tmp2 = tmp1.exec(tmp0);
+    return tmp2 ? tmp2[1] : null;
+  }
+
+  // Label 补丁状态：返回每个 bundle 的路径与当前文案
+  static getLabelStatus(tmp0, tmp1 = PatchManager.labelPatchDefaultText()) {
+    const tmp2 = PatchManager.findLabelBundles(tmp0);
+    if (tmp2.length === 0) {
+      return {
+        found: false,
+        currentText: "",
+        desiredText: tmp1,
+        applied: false,
+        bundles: []
+      };
+    }
+    const tmp3 = tmp2.map(arg0 => {
+      let tmp02 = "";
+      try {
+        tmp02 = PatchManager.readLabelText(fs.readFileSync(arg0, "utf-8")) || "";
+      } catch {}
+      return {
+        path: arg0,
+        currentText: tmp02
+      };
+    });
+    // 所有 bundle 都已是目标文案，才算 applied
+    const tmp4 = tmp3.every(arg0 => arg0.currentText === tmp1);
+    const tmp5 = tmp3.find(arg0 => arg0.currentText)?.currentText || "";
+    return {
+      found: true,
+      currentText: tmp5,
+      desiredText: tmp1,
+      applied: tmp4,
+      bundles: tmp3
+    };
+  }
+
+  // 应用 label 补丁：把当前文案替换为 desiredText
+  static applyLabelPatch(tmp0, tmp1 = PatchManager.labelPatchDefaultText()) {
+    const tmp2 = String(tmp1 || "").trim() || PatchManager.labelPatchDefaultText();
+    // 文案禁止含双引号，避免破坏 JS 字符串
+    const tmp3 = tmp2.replace(/"/g, "");
+    const tmp4 = PatchManager.findLabelBundles(tmp0);
+    if (tmp4.length === 0) {
+      return {
+        success: false,
+        applied: 0,
+        skipped: 0,
+        failed: 0,
+        details: ["未找到 workbench/sessions bundle，请确认补丁路径指向 Devin 安装目录"]
+      };
+    }
+    const tmp5 = [];
+    let tmp6 = 0;
+    let tmp7 = 0;
+    let tmp8 = 0;
+    for (const tmp02 of tmp4) {
+      try {
+        let tmp03 = fs.readFileSync(tmp02, "utf-8");
+        const tmp04 = PatchManager.readLabelText(tmp03);
+        if (tmp04 === tmp3) {
+          tmp7++;
+          tmp5.push("[跳过] " + path.basename(tmp02) + " (已是 " + tmp3 + ")");
+          continue;
+        }
+        // 备份（仅首次）：始终存干净的 Cascade 基线，避免备份到已改过的文案
+        const tmp05 = PatchManager.labelBackupPath(tmp02);
+        if (!fs.existsSync(tmp05)) {
+          const tmp07 = tmp03.replace(
+            /label:"[^"]*",icon:(\(0,[A-Za-z_$][\w$]*\.jsx\)\([A-Za-z_$][\w$]*\.WindsurfLogo)/g,
+            'label:"Cascade",icon:$1'
+          );
+          fs.writeFileSync(tmp05, tmp07, "utf-8");
+        }
+        // 用"任意文案 → 目标文案"的正则替换，兼容已被改过的情况
+        const tmp06 = tmp03.replace(
+          /label:"[^"]*",icon:(\(0,[A-Za-z_$][\w$]*\.jsx\)\([A-Za-z_$][\w$]*\.WindsurfLogo)/g,
+          'label:"' + tmp3 + '",icon:$1'
+        );
+        if (tmp06 === tmp03) {
+          tmp8++;
+          tmp5.push("[失败] " + path.basename(tmp02) + " (未匹配目标标签)");
+          continue;
+        }
+        fs.writeFileSync(tmp02, tmp06, "utf-8");
+        PatchManager.updateBundleChecksum(tmp02);
+        tmp6++;
+        tmp5.push("[成功] " + path.basename(tmp02));
+      } catch (tmp03) {
+        tmp8++;
+        tmp5.push("[失败] " + path.basename(tmp02) + " (" + (tmp03 && tmp03.message || "写入错误") + ")");
+      }
+    }
+    return {
+      success: tmp8 === 0,
+      applied: tmp6,
+      skipped: tmp7,
+      failed: tmp8,
+      details: tmp5
+    };
+  }
+
+  // 还原 label 补丁：优先用备份恢复；无备份则回改成 "Cascade"
+  static revertLabelPatch(tmp0) {
+    const tmp1 = PatchManager.findLabelBundles(tmp0);
+    if (tmp1.length === 0) {
+      return {
+        success: false,
+        reverted: 0,
+        details: ["未找到 workbench/sessions bundle"]
+      };
+    }
+    const tmp2 = [];
+    let tmp3 = 0;
+    for (const tmp02 of tmp1) {
+      try {
+        const tmp03 = PatchManager.labelBackupPath(tmp02);
+        if (fs.existsSync(tmp03)) {
+          fs.copyFileSync(tmp03, tmp02);
+          PatchManager.updateBundleChecksum(tmp02);
+          tmp3++;
+          tmp2.push("[还原] " + path.basename(tmp02) + " (来自备份)");
+          continue;
+        }
+        // 无备份：把当前文案回改成 Cascade
+        let tmp04 = fs.readFileSync(tmp02, "utf-8");
+        const tmp05 = tmp04.replace(
+          /label:"[^"]*",icon:(\(0,[A-Za-z_$][\w$]*\.jsx\)\([A-Za-z_$][\w$]*\.WindsurfLogo)/g,
+          'label:"Cascade",icon:$1'
+        );
+        if (tmp05 !== tmp04) {
+          fs.writeFileSync(tmp02, tmp05, "utf-8");
+          PatchManager.updateBundleChecksum(tmp02);
+          tmp3++;
+          tmp2.push("[还原] " + path.basename(tmp02) + " (回改为 Cascade)");
+        } else {
+          tmp2.push("[跳过] " + path.basename(tmp02) + " (无备份且未匹配)");
+        }
+      } catch (tmp03) {
+        tmp2.push("[失败] " + path.basename(tmp02) + " (" + (tmp03 && tmp03.message || "写入错误") + ")");
+      }
+    }
+    return {
+      success: tmp3 > 0,
+      reverted: tmp3,
+      details: tmp2
+    };
+  }
 }
 exports.PatchManager = PatchManager;
