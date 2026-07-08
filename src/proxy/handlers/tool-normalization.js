@@ -4,8 +4,9 @@ export function isMcpToolName(name) {
   return MCP_TOOL_NAME_RE.test(String(name || "").trim());
 }
 export function isAllowedToolName(name) {
-  const trimmed = String(name || "").trim();
-  return KNOWN_TOOL_NAMES.has(trimmed) || isMcpToolName(trimmed);
+  // 放开白名单：只要工具名非空即透传，支持 Devin 下发的所有工具。
+  // KNOWN_TOOL_NAMES / isMcpToolName 仍保留，作为别名重映射的触发条件。
+  return String(name || "").trim().length > 0;
 }
 export function normalizeToolInvocation(arg0, arg1) {
   let tmp2 = arg0;
