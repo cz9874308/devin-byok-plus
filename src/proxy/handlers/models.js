@@ -1,7 +1,7 @@
 import https from "node:https";
 import http from "node:http";
 import { stripProtocol, parseHost, isLocalTarget } from "../net-utils.js";
-import { slotField, sanitizeThinkingEffort, sanitizeSlotProtocol } from "./byok-slots.js";
+import { slotField, sanitizeThinkingEffort, sanitizeSlotProtocol, sanitizeContextWindow } from "./byok-slots.js";
 const _initialAnthropicHost = stripProtocol(process.env.ANTHROPIC_API_HOST || "");
 const _initialOpenaiHost = stripProtocol(process.env.OPENAI_API_HOST || _initialAnthropicHost);
 function readSlotConfigFromEnv(arg0, tmp1 = null) {
@@ -15,6 +15,7 @@ function readSlotConfigFromEnv(arg0, tmp1 = null) {
   const tmp9 = sanitizeThinkingEffort(process.env[slotField(arg0, "THINKING_EFFORT")] || "");
   const tmp11 = sanitizeSlotProtocol(process.env[slotField(arg0, "PROTOCOL")] || "");
   const tmp12 = sanitizeOpenAIServiceTier(process.env[slotField(arg0, "OPENAI_SERVICE_TIER")] || (arg0 === 1 ? process.env.OPENAI_SERVICE_TIER || "" : ""));
+  const tmp13 = sanitizeContextWindow(process.env[slotField(arg0, "CONTEXT_WINDOW")] || "");
   const tmp10 = {
     anthropicHost: tmp2,
     anthropicApiPath: tmp4,
@@ -25,7 +26,8 @@ function readSlotConfigFromEnv(arg0, tmp1 = null) {
     model: tmp8,
     thinkingEffort: tmp9,
     protocol: tmp11,
-    serviceTier: tmp12
+    serviceTier: tmp12,
+    contextWindow: tmp13
   };
   if (!tmp10.anthropicHost && !tmp10.anthropicApiKey && !tmp10.model && tmp1) {
     return {
@@ -44,7 +46,8 @@ const _legacySlotFallback = {
   model: process.env.DEFAULT_MODEL || "",
   thinkingEffort: sanitizeThinkingEffort(process.env.BYOK1_THINKING_EFFORT || process.env.OPENAI_REASONING_EFFORT || ""),
   protocol: sanitizeSlotProtocol(process.env.BYOK1_PROTOCOL || ""),
-  serviceTier: sanitizeOpenAIServiceTier(process.env.BYOK1_OPENAI_SERVICE_TIER || process.env.OPENAI_SERVICE_TIER || "")
+  serviceTier: sanitizeOpenAIServiceTier(process.env.BYOK1_OPENAI_SERVICE_TIER || process.env.OPENAI_SERVICE_TIER || ""),
+  contextWindow: sanitizeContextWindow(process.env.BYOK1_CONTEXT_WINDOW || "")
 };
 const _emptySlot = {
   anthropicHost: "",
@@ -56,7 +59,8 @@ const _emptySlot = {
   model: "",
   thinkingEffort: "",
   protocol: "",
-  serviceTier: ""
+  serviceTier: "",
+  contextWindow: 0
 };
 function sanitizeReasoningEffort(arg0) {
   const tmp1 = String(arg0 ?? "").trim();
@@ -154,6 +158,10 @@ export function getSlotServiceTier(arg0) {
   const tmp0 = getSlotRuntime(arg0).serviceTier || "";
   return tmp0 || (arg0 === 1 ? _runtimeConfig.openaiServiceTier || "" : "");
 }
+export function getSlotContextWindow(arg0) {
+  const tmp0 = getSlotRuntime(arg0).contextWindow;
+  return Number.isInteger(tmp0) && tmp0 > 0 ? tmp0 : 0;
+}
 export function getRuntimeConfig() {
   const tmp0 = {
     ..._runtimeConfig
@@ -220,6 +228,14 @@ function applySlotPatch(arg0, arg1) {
     const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
     if (_runtimeConfig[tmp1].protocol !== tmp0) {
       _runtimeConfig[tmp1].protocol = tmp0;
+      tmp2 = true;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(arg0, tmp3 + "CONTEXT_WINDOW")) {
+    const tmp0 = sanitizeContextWindow(arg0[tmp3 + "CONTEXT_WINDOW"]);
+    const tmp1 = arg1 === 2 ? "byok2" : arg1 === 3 ? "byok3" : arg1 === 4 ? "byok4" : "byok1";
+    if (_runtimeConfig[tmp1].contextWindow !== tmp0) {
+      _runtimeConfig[tmp1].contextWindow = tmp0;
       tmp2 = true;
     }
   }

@@ -8,7 +8,10 @@ import { handleGetWebSearchResults, handleGetWebSearchRedirect } from "./handler
 import { handleGetEmbeddings } from "./handlers/embeddings.js";
 import { handleModelsRequest, handleConfigRequest } from "./handlers/models.js";
 import { parseFields, writeStringField, writeBytesField, writeVarintField, writeFixed64Field, writeFixed32Field } from "./proto.js";
-import { tryGunzip } from "./connect.js";
+import { tryGunzip, gzipSync } from "./connect.js";
+import { rewriteUserStatusContextWindow } from "./handlers/context-window-rewrite.js";
+import { SLOT_MODEL_ID } from "./handlers/byok-slots.js";
+import { getSlotContextWindow } from "./handlers/models.js";
 import crypto from "node:crypto";
 import { startWSBridge, getChatQueue, ackChatQueue, pushChatQueue, setActiveMonitorTarget } from "./ws-bridge.js";
 import { getLoopbackListenHosts, loopbackApiUrl } from "./net-utils.js";
@@ -124,6 +127,15 @@ function rewriteRegisterUser(arg0) {
   }
 }
 const STREAMING_METHODS = new Set(["GetStreamingCompletions", "GetStreamingExternalChatCompletions"]);
+// 模型数值ID -> 该模型所属 BYOK 槽位配置的 contextWindow 档位(0 表示不改写)。
+function resolveContextWindowByModelId(modelId) {
+  for (const slot of [1, 2, 3, 4]) {
+    if (SLOT_MODEL_ID[slot] === modelId) {
+      return getSlotContextWindow(slot);
+    }
+  }
+  return 0;
+}
 function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
   const tmp5 = getRpcMethod(arg0.url);
   const tmp6 = getUpstreamHost(arg0.url);
@@ -185,6 +197,20 @@ function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
             }
           } catch (tmp04) {
             console.error("  [#" + arg3 + "] RegisterUser rewrite error: " + tmp04.message);
+          }
+        }
+        if (tmp5 === "GetUserStatus" && arg02.statusCode === 200 && tmp03[0] === 0x1f && tmp03[1] === 0x8b) {
+          try {
+            const tmp04 = tryGunzip(tmp03);
+            if (tmp04) {
+              const tmp14 = rewriteUserStatusContextWindow(tmp04, resolveContextWindowByModelId);
+              if (tmp14.changed) {
+                tmp03 = gzipSync(tmp14.buffer);
+                console.log("  [#" + arg3 + "] 🔄 GetUserStatus contextWindow rewritten (x" + tmp14.count + ")");
+              }
+            }
+          } catch (tmp04) {
+            console.error("  [#" + arg3 + "] GetUserStatus rewrite error: " + tmp04.message);
           }
         }
         const tmp1 = {

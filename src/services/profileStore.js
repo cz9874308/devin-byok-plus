@@ -42,6 +42,7 @@ function createDefaultProfile(envConfig = {}) {
       protocol: sanitizeProtocol(envConfig.BYOK1_PROTOCOL),
       anthropicPath: envConfig.BYOK1_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK1_OPENAI_API_PATH || '',
+      contextWindow: envConfig.BYOK1_CONTEXT_WINDOW || '',
     },
     byok2: {
       host: envConfig.BYOK2_ANTHROPIC_API_HOST || '',
@@ -51,6 +52,7 @@ function createDefaultProfile(envConfig = {}) {
       protocol: sanitizeProtocol(envConfig.BYOK2_PROTOCOL),
       anthropicPath: envConfig.BYOK2_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK2_OPENAI_API_PATH || '',
+      contextWindow: envConfig.BYOK2_CONTEXT_WINDOW || '',
     },
     byok3: {
       host: envConfig.BYOK3_ANTHROPIC_API_HOST || '',
@@ -60,6 +62,7 @@ function createDefaultProfile(envConfig = {}) {
       protocol: sanitizeProtocol(envConfig.BYOK3_PROTOCOL),
       anthropicPath: envConfig.BYOK3_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK3_OPENAI_API_PATH || '',
+      contextWindow: envConfig.BYOK3_CONTEXT_WINDOW || '',
     },
     byok4: {
       host: envConfig.BYOK4_ANTHROPIC_API_HOST || '',
@@ -69,6 +72,7 @@ function createDefaultProfile(envConfig = {}) {
       protocol: sanitizeProtocol(envConfig.BYOK4_PROTOCOL),
       anthropicPath: envConfig.BYOK4_ANTHROPIC_API_PATH || '',
       openaiPath: envConfig.BYOK4_OPENAI_API_PATH || '',
+      contextWindow: envConfig.BYOK4_CONTEXT_WINDOW || '',
     },
     advanced: {
       hybridPort: envConfig.HYBRID_PORT || '',
@@ -118,6 +122,7 @@ function emptySlot() {
     protocol: '',
     anthropicPath: '',
     openaiPath: '',
+    contextWindow: '',
   };
 }
 
@@ -210,21 +215,25 @@ function listProfiles(envConfig) {
         byok1Protocol: resolveEffectiveProtocol(b1),
         byok1ProtocolManual: sanitizeProtocol(b1.protocol),
         byok1ThinkingEffort: b1.thinkingEffort || '',
+        byok1ContextWindow: b1.contextWindow || '',
         byok2Display: b2.host || 'api.anthropic.com',
         byok2Model: b2.model,
         byok2Protocol: resolveEffectiveProtocol(b2),
         byok2ProtocolManual: sanitizeProtocol(b2.protocol),
         byok2ThinkingEffort: b2.thinkingEffort || '',
+        byok2ContextWindow: b2.contextWindow || '',
         byok3Display: b3.host || 'api.anthropic.com',
         byok3Model: b3.model,
         byok3Protocol: resolveEffectiveProtocol(b3),
         byok3ProtocolManual: sanitizeProtocol(b3.protocol),
         byok3ThinkingEffort: b3.thinkingEffort || '',
+        byok3ContextWindow: b3.contextWindow || '',
         byok4Display: b4.host || 'api.anthropic.com',
         byok4Model: b4.model,
         byok4Protocol: resolveEffectiveProtocol(b4),
         byok4ProtocolManual: sanitizeProtocol(b4.protocol),
         byok4ThinkingEffort: b4.thinkingEffort || '',
+        byok4ContextWindow: b4.contextWindow || '',
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       };
@@ -363,6 +372,7 @@ function projectToEnvConfig(profile) {
     BYOK1_MODEL: b1.model || '',
     BYOK1_THINKING_EFFORT: b1.thinkingEffort || '',
     BYOK1_PROTOCOL: b1.protocol || '',
+    BYOK1_CONTEXT_WINDOW: b1.contextWindow || '',
 
     BYOK2_ANTHROPIC_API_HOST: b2.host || '',
     BYOK2_ANTHROPIC_API_KEY: b2.key || '',
@@ -373,6 +383,7 @@ function projectToEnvConfig(profile) {
     BYOK2_MODEL: b2.model || '',
     BYOK2_THINKING_EFFORT: b2.thinkingEffort || '',
     BYOK2_PROTOCOL: b2.protocol || '',
+    BYOK2_CONTEXT_WINDOW: b2.contextWindow || '',
 
     BYOK3_ANTHROPIC_API_HOST: b3.host || '',
     BYOK3_ANTHROPIC_API_KEY: b3.key || '',
@@ -383,6 +394,7 @@ function projectToEnvConfig(profile) {
     BYOK3_MODEL: b3.model || '',
     BYOK3_THINKING_EFFORT: b3.thinkingEffort || '',
     BYOK3_PROTOCOL: b3.protocol || '',
+    BYOK3_CONTEXT_WINDOW: b3.contextWindow || '',
 
     BYOK4_ANTHROPIC_API_HOST: b4.host || '',
     BYOK4_ANTHROPIC_API_KEY: b4.key || '',
@@ -393,6 +405,7 @@ function projectToEnvConfig(profile) {
     BYOK4_MODEL: b4.model || '',
     BYOK4_THINKING_EFFORT: b4.thinkingEffort || '',
     BYOK4_PROTOCOL: b4.protocol || '',
+    BYOK4_CONTEXT_WINDOW: b4.contextWindow || '',
 
     ANTHROPIC_API_PATH: adv.anthropicPath || '/v1/messages',
     OPENAI_API_PATH: adv.openaiPath || '/v1/responses',
