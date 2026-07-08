@@ -150,6 +150,22 @@
       tmp4.innerHTML = arg0.path ? "<b>补丁路径</b> " + fn6(arg0.path) : "<b>补丁路径</b> 自动检测失败；非默认安装请点\"选择路径\"";
     }
   }
+  function fnLabelPatch(arg0) {
+    if (!arg0) {
+      return;
+    }
+    const applied = !!arg0.applied;
+    const found = !!arg0.found;
+    fn8(fn4("labelPatchBadge"), applied, !found ? "未检测到" : applied ? "已生效" : "未应用");
+    const cur = fn4("labelPatchCurrent");
+    if (cur) {
+      cur.innerHTML = !found
+        ? "未找到 workbench/sessions bundle，请在上方\"选择路径\"指向 Devin 安装目录"
+        : arg0.currentText
+          ? "当前显示：" + fn6(arg0.currentText)
+          : "当前显示：Cascade（默认）";
+    }
+  }
   function fn13(arg0, arg1) {
     const tmp22 = fn4(arg0);
     if (!tmp22 || document.activeElement === tmp22) {
@@ -1017,6 +1033,14 @@
     } else if (tmp32 === "refreshPatchStatus") {
       fn7("patch", "busy", "正在刷新补丁状态...");
       fn5("refreshPatchStatus");
+    } else if (tmp32 === "applyLabelPatch") {
+      fn7("labelPatch", "busy", "正在应用标签改名...");
+      fn5("applyLabelPatch", {
+        text: (fn4("cfgLabelPatchText") || {}).value || ""
+      });
+    } else if (tmp32 === "revertLabelPatch") {
+      fn7("labelPatch", "busy", "正在还原标签...");
+      fn5("revertLabelPatch");
     } else if (tmp32 === "locateExtJs") {
       fn7("patch", "busy", "请选择 Devin Desktop 的 extension.js...");
       fn5("locateExtJs");
@@ -1103,6 +1127,7 @@
       fn35(tmp12.proxy);
       fn24(tmp12.config, tmp12.proxy);
       fn12(tmp12.patch);
+      fnLabelPatch(tmp12.labelPatch);
     } else if (tmp12.type === "profileList") {
       renderProfileList(tmp12);
     } else if (tmp12.type === "openProfileEditor") {

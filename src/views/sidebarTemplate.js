@@ -207,6 +207,12 @@ function renderSidebarHtml(ctx) {
     patchInferenceUrl: esc(tmp4),
     patchPathDisplay: tmp6 ? '<b>补丁路径</b> ' + esc(tmp6) : '<b>补丁路径</b> 自动检测；非默认安装请点"选择路径"',
 
+    // 标签改名补丁数据
+    labelPatchText: esc(ctx.labelPatchText || 'Devin Proxy'),
+    labelPatchBadgeClass: ctx.labelPatchBadgeClass || 'badge-warn',
+    labelPatchBadgeText: esc(ctx.labelPatchBadgeText || '未应用'),
+    labelPatchCurrentDisplay: esc(ctx.labelPatchCurrentDisplay || ''),
+
     // 流程可视化数据
     flowStep1Class: (tmp26 || tmp29) ? 'completed' : 'active',
     flowStep1Icon: (tmp26 || tmp29) ? '✓' : '1',
