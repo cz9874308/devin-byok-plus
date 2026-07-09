@@ -65,6 +65,7 @@ const KEY_PATCH_EXTENSION_PATH = 'devin-byok-plus.patchExtensionPath';
 const LEGACY_KEY_PATCH_EXTENSION_PATH = 'windsurf-byok-plus.patchExtensionPath';
 const LEGACY_KEY_PATCH_EXTENSION_PATH_2 = 'devin-byok-plus.patchExtensionPath';
 const KEY_LABEL_PATCH_TEXT = 'devin-byok-plus.labelPatchText';
+const KEY_COMPLETION_SOUND_ENABLED = 'devin-byok-plus.completionSoundEnabled';
 function getWebviewNonce() {
   let tmp02 = '';
   const tmp1 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -133,6 +134,11 @@ class SidebarProvider {
       );
     }
     tmp02.webview.onDidReceiveMessage((arg0) => this.handleMessage(arg0));
+    this.proxyManager.onChatDone((tmp03) => {
+      if (this.getStoredCompletionSoundEnabled()) {
+        this.view?.webview.postMessage({ type: 'chatDone', reason: tmp03?.reason || 'unknown' });
+      }
+    });
     if (this.proxyManager.getStatus().running) {
       this.refresh();
     }
@@ -533,6 +539,18 @@ class SidebarProvider {
   async setStoredLabelPatchText(tmp02) {
     const tmp1 = typeof tmp02 === 'string' && tmp02.trim() ? tmp02.trim().replace(/"/g, '') : undefined;
     await this.context.globalState.update(KEY_LABEL_PATCH_TEXT, tmp1);
+  }
+  getStoredCompletionSoundEnabled() {
+    const tmp02 = this.context.globalState.get(KEY_COMPLETION_SOUND_ENABLED);
+    return tmp02 !== false;
+  }
+  async setStoredCompletionSoundEnabled(tmp02) {
+    await this.context.globalState.update(KEY_COMPLETION_SOUND_ENABLED, tmp02 === true);
+  }
+  playInteractionSound() {
+    if (this.getStoredCompletionSoundEnabled()) {
+      this.view?.webview.postMessage({ type: 'playSound' });
+    }
   }
   getLabelPatchStatus() {
     return patchManager_1.PatchManager.getLabelStatus(
@@ -994,6 +1012,7 @@ class SidebarProvider {
     if (!tmp02) {
       return;
     }
+    this.playInteractionSound();
     const tmp10 = await vscode.window.showInformationMessage(tmp8, '重载窗口');
     if (tmp10 === '重载窗口') {
       await (0, reloadWorkbench_1.reloadWorkbenchWindow)();
@@ -1268,6 +1287,7 @@ class SidebarProvider {
     if (!tmp02.running) {
       return false;
     }
+    this.playInteractionSound();
     const tmp1 = await vscode.window.showInformationMessage(
       '提示词配置已更新，需要重启代理后生效。是否立即重启？',
       '立即重启',
@@ -1686,6 +1706,10 @@ class SidebarProvider {
         await this.context.globalState.update(KEY_AUTO_START_PROXY, tmp02.value === true);
         break;
       }
+      case 'setCompletionSound': {
+        await this.setStoredCompletionSoundEnabled(tmp02.value === true);
+        break;
+      }
       case 'maintenanceTools': {
         try {
           await this.openMaintenanceTools();
@@ -1936,6 +1960,7 @@ class SidebarProvider {
         const tmp8 = '重载窗口';
         if (tmp6.applied > 0) {
           this.postActionState('patch', 'success', tmp7);
+          this.playInteractionSound();
           const tmp04 = await vscode.window.showInformationMessage(tmp7, tmp8);
           if (tmp04 === tmp8) {
             await (0, reloadWorkbench_1.reloadWorkbenchWindow)();
@@ -1980,6 +2005,7 @@ class SidebarProvider {
         const tmp1 = '重载窗口';
         if (tmp03) {
           this.postActionState('patch', 'success', '补丁已还原，需重载窗口生效');
+          this.playInteractionSound();
           const tmp04 = await vscode.window.showInformationMessage(
             '补丁已还原，需重载窗口生效',
             tmp1
@@ -2008,6 +2034,7 @@ class SidebarProvider {
         if (tmp1.applied > 0) {
           const tmp3 = '标签已改为「' + tmp03 + '」，需重载窗口生效';
           this.postActionState('labelPatch', 'success', tmp3);
+          this.playInteractionSound();
           const tmp4 = await vscode.window.showInformationMessage(tmp3, tmp2);
           if (tmp4 === tmp2) {
             await (0, reloadWorkbench_1.reloadWorkbenchWindow)();
@@ -2029,6 +2056,7 @@ class SidebarProvider {
         const tmp2 = '重载窗口';
         if (tmp1.reverted > 0) {
           this.postActionState('labelPatch', 'success', '标签已还原，需重载窗口生效');
+          this.playInteractionSound();
           const tmp3 = await vscode.window.showInformationMessage(
             '标签已还原为 Cascade，需重载窗口生效',
             tmp2
@@ -2091,6 +2119,9 @@ class SidebarProvider {
     );
     const tmp12a = this.view.webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'webviews', 'dist', 'sidebar.css')
+    );
+    const completionSoundUri = this.view.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'sound', 'completion.mp3')
     );
     const tmp13 = 'var(--vscode-button-background,#0d9488)';
     const tmp14 = 'var(--vscode-button-hoverBackground,#0f766e)';
@@ -2164,6 +2195,8 @@ class SidebarProvider {
       cspSource: tmp11,
       scriptUri: tmp12,
       cssUri: tmp12a,
+      completionSoundUri,
+      completionSoundEnabled: this.getStoredCompletionSoundEnabled(),
       // 原始 tmp 变量（保持向后兼容）
       tmp02,
       tmp1,

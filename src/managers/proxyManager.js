@@ -58,6 +58,7 @@ class ProxyManager {
     this.startTime = 0;
     this.requestCount = 0;
     this.logCallback = null;
+    this.chatDoneCallback = null;
     this.autoRestart = true;
     this.restartCount = 0;
     this.externalProxy = false;
@@ -236,6 +237,9 @@ class ProxyManager {
   }
   onLog(tmp0) {
     this.logCallback = tmp0;
+  }
+  onChatDone(tmp0) {
+    this.chatDoneCallback = tmp0;
   }
   log(tmp0) {
     console.log("[Devin BYOK Bridge] " + tmp0);
@@ -911,7 +915,21 @@ class ProxyManager {
     });
     const tmp8 = this.hybridProcess;
     this.hybridProcess.stdout?.on("data", arg0 => {
-      const tmp12 = arg0.toString().trim();
+      const tmp11 = arg0.toString();
+      const tmp10 = [];
+      for (const tmp13 of tmp11.split("\n")) {
+        const tmp14 = tmp13.trim();
+        if (tmp14.startsWith("__CHAT_DONE__")) {
+          let tmp15 = {};
+          try {
+            tmp15 = JSON.parse(tmp14.slice("__CHAT_DONE__".length));
+          } catch {}
+          this.chatDoneCallback?.(tmp15);
+        } else {
+          tmp10.push(tmp13);
+        }
+      }
+      const tmp12 = tmp10.join("\n").trim();
       if (tmp12) {
         if (tmp12.includes("⚡ Devin BYOK Bridge hybrid on http://127.0.0.1:" + tmp5) || tmp12.includes("⚡ Devin BYOK Bridge hybrid on http://localhost:" + tmp5)) {
           tmp7 = true;

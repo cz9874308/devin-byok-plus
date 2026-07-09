@@ -32,7 +32,9 @@ function activate(context) {
   }
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('devin-byok-plus.sidebar', sidebar),
+    vscode.window.registerWebviewViewProvider('devin-byok-plus.sidebar', sidebar, {
+      webviewOptions: { retainContextWhenHidden: true }
+    }),
     vscode.commands.registerCommand('devin-byok-plus.startProxy', async () => {
       const ok = await proxyManager.start('both', sidebar.getRuntimeConfigForCurrentMode());
       if (ok) {
@@ -53,6 +55,7 @@ function activate(context) {
         PatchManager.loopbackApiUrl(status.inferencePort)
       );
       if (result.applied > 0) {
+        sidebar.playInteractionSound();
         vscode.window.showInformationMessage('已应用 ' + result.applied + ' 个补丁，需重启 Devin Desktop', '重启 Devin').then(choice => {
           if (choice === '重启 Devin') reloadWorkbenchWindow();
         });
