@@ -1,55 +1,116 @@
-// One-off generator: rasterize the W icon (matching icon.svg) into icon.png
-// 128x128, grayscale+alpha, white stroke with anti-aliasing. No external deps.
+// One-off generator: rasterize the Devin official logo (matching icon.svg) into icon.png
+// 128x128, grayscale+alpha, white fill with anti-aliasing. No external deps.
 const fs = require('fs');
 const zlib = require('zlib');
 const path = require('path');
 
 const SIZE = 128;
-const SCALE = SIZE / 24; // svg viewBox is 24x24
-const STROKE = 2.2 * SCALE; // svg stroke-width 2.2
-const HALF = STROKE / 2;
+const VIEWBOX = 425; // svg viewBox is 425x425
+const SCALE = SIZE / VIEWBOX;
 
-// W polyline points from icon.svg: M3 5 L7.5 19 L12 9 L16.5 19 L21 5
-const pts = [
-  [3, 5],
-  [7.5, 19],
-  [12, 9],
-  [16.5, 19],
-  [21, 5],
-].map(([x, y]) => [x * SCALE, y * SCALE]);
+// Devin official logo path from icon.svg (viewBox 0 0 425 425)
+const PATH_D =
+  'M70 159.333V91.3471C70 88.3592 71.594 85.5983 74.1816 84.1044L133.043 50.1205C135.631 48.6265 138.819 48.6265 141.407 50.1205L200.269 84.1044C202.856 85.5983 204.45 88.3592 204.45 91.3471V126.068C204.708 137.606 210.806 148.734 221.531 154.926C232.256 161.117 244.942 160.834 255.063 155.289L285.132 137.929C287.719 136.435 290.907 136.435 293.495 137.929L352.357 171.913C354.944 173.406 356.538 176.167 356.538 179.155V247.123C356.538 250.111 354.944 252.872 352.357 254.366L293.495 288.35C290.907 289.844 287.719 289.844 285.132 288.35L255.306 271.13C245.146 265.456 232.344 265.117 221.534 271.358C210.809 277.55 204.711 288.678 204.453 300.215V334.926C204.453 337.914 202.859 340.675 200.271 342.169L141.41 376.153C138.822 377.647 135.634 377.647 133.046 376.153L74.1845 342.169C71.5969 340.675 70.0028 337.914 70.0028 334.926V266.959C70.0029 263.971 71.5969 261.21 74.1845 259.716L133.046 225.732C135.634 224.238 138.822 224.238 141.41 225.732L171.547 243.132C181.656 248.638 194.306 248.906 205.005 242.729C215.815 236.488 221.922 225.231 222.088 213.595C221.83 202.057 215.732 189.737 205.008 183.545C194.283 177.353 181.597 177.636 171.476 183.181L141.269 200.72C138.67 202.229 135.461 202.228 132.864 200.716L74.1576 166.562C71.5835 165.065 70 162.311 70 159.333Z';
 
-const segs = [];
-for (let i = 0; i < pts.length - 1; i++) segs.push([pts[i], pts[i + 1]]);
+// Parse absolute SVG path (supports M, L, H, V, C, Z) into a flat polygon (subpath).
+function parsePath(d) {
+  const tokens = d.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
+  const poly = [];
+  let i = 0;
+  let cx = 0;
+  let cy = 0;
+  let cmd = '';
+  const num = () => parseFloat(tokens[i++]);
+  const push = (x, y) => poly.push([x * SCALE, y * SCALE]);
+  const bezier = (x0, y0, x1, y1, x2, y2, x3, y3) => {
+    const N = 24;
+    for (let s = 1; s <= N; s++) {
+      const t = s / N;
+      const mt = 1 - t;
+      const x = mt * mt * mt * x0 + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t * x3;
+      const y = mt * mt * mt * y0 + 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t * y3;
+      push(x, y);
+    }
+  };
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (/[a-zA-Z]/.test(tok)) {
+      cmd = tok;
+      i++;
+    }
+    switch (cmd) {
+      case 'M':
+        cx = num();
+        cy = num();
+        push(cx, cy);
+        cmd = 'L';
+        break;
+      case 'L':
+        cx = num();
+        cy = num();
+        push(cx, cy);
+        break;
+      case 'H':
+        cx = num();
+        push(cx, cy);
+        break;
+      case 'V':
+        cy = num();
+        push(cx, cy);
+        break;
+      case 'C': {
+        const x1 = num();
+        const y1 = num();
+        const x2 = num();
+        const y2 = num();
+        const x3 = num();
+        const y3 = num();
+        bezier(cx, cy, x1, y1, x2, y2, x3, y3);
+        cx = x3;
+        cy = y3;
+        break;
+      }
+      case 'Z':
+      case 'z':
+        break;
+      default:
+        i++;
+    }
+  }
+  return poly;
+}
 
-function distToSeg(px, py, [ax, ay], [bx, by]) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  const cx = ax + t * dx;
-  const cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
+const poly = parsePath(PATH_D);
+
+// Even-odd point-in-polygon test.
+function inside(px, py, pts) {
+  let hit = false;
+  for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
+    const [xi, yi] = pts[a];
+    const [xj, yj] = pts[b];
+    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+      hit = !hit;
+    }
+  }
+  return hit;
 }
 
 // Build raw scanlines: colorType 4 => [gray, alpha] per pixel, filter byte per row
 const raw = Buffer.alloc((SIZE * 2 + 1) * SIZE);
-const SS = 3; // supersample factor for anti-aliasing
+const SS = 4; // supersample factor for anti-aliasing
 for (let y = 0; y < SIZE; y++) {
   const rowStart = y * (SIZE * 2 + 1);
   raw[rowStart] = 0; // filter: none
   for (let x = 0; x < SIZE; x++) {
-    let inside = 0;
+    let cover = 0;
     for (let sy = 0; sy < SS; sy++) {
       for (let sx = 0; sx < SS; sx++) {
         const px = x + (sx + 0.5) / SS;
         const py = y + (sy + 0.5) / SS;
-        let d = Infinity;
-        for (const s of segs) d = Math.min(d, distToSeg(px, py, s[0], s[1]));
-        if (d <= HALF) inside++;
+        if (inside(px, py, poly)) cover++;
       }
     }
-    const alpha = Math.round((inside / (SS * SS)) * 255);
+    const alpha = Math.round((cover / (SS * SS)) * 255);
     const o = rowStart + 1 + x * 2;
     raw[o] = 255; // gray = white
     raw[o + 1] = alpha;
