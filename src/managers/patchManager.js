@@ -551,30 +551,90 @@ class PatchManager {
   }
 
   // 更新 product.json 里某个 bundle 的 checksum（精确 key、去 padding）
+  // 返回 { ok: boolean, reason?: string }，让调用方能感知同步是否真的成功
   static updateBundleChecksum(tmp0) {
     try {
       const tmp1 = PatchManager.resolveAppRoot(tmp0);
       if (!tmp1) {
-        return;
+        return { ok: false, reason: "未定位到 product.json 所在目录" };
       }
       const tmp2 = path.join(tmp1, "product.json");
       if (!fs.existsSync(tmp2)) {
-        return;
+        return { ok: false, reason: "product.json 不存在" };
       }
       const tmp3 = PatchManager.labelBundleChecksumKey(tmp0);
       if (!tmp3) {
-        return;
+        return { ok: false, reason: "无法识别 bundle 对应的 checksum key" };
       }
       let tmp4 = fs.readFileSync(tmp2, "utf-8");
       if (tmp4.charCodeAt(0) === 65279) {
         tmp4 = tmp4.substring(1);
       }
       const tmp5 = JSON.parse(tmp4);
-      if (tmp5.checksums && Object.prototype.hasOwnProperty.call(tmp5.checksums, tmp3)) {
-        tmp5.checksums[tmp3] = PatchManager.computeBundleChecksum(tmp0);
-        fs.writeFileSync(tmp2, JSON.stringify(tmp5, null, "\t"), "utf-8");
+      // 没有 checksums 段：该版本未启用完整性校验，视为无需同步
+      if (!tmp5.checksums) {
+        return { ok: true, reason: "product.json 无 checksums 段，跳过" };
       }
-    } catch {}
+      if (!Object.prototype.hasOwnProperty.call(tmp5.checksums, tmp3)) {
+        return { ok: false, reason: "product.json checksums 中缺少 key: " + tmp3 };
+      }
+      const tmp6 = PatchManager.computeBundleChecksum(tmp0);
+      // 已经一致：无需重写，直接视为成功
+      if (tmp5.checksums[tmp3] === tmp6) {
+        return { ok: true };
+      }
+      tmp5.checksums[tmp3] = tmp6;
+      fs.writeFileSync(tmp2, JSON.stringify(tmp5, null, "\t"), "utf-8");
+      // 回读校验：确认写入确实落盘且值正确（防御静默写失败/被回滚）
+      let tmp7 = fs.readFileSync(tmp2, "utf-8");
+      if (tmp7.charCodeAt(0) === 65279) {
+        tmp7 = tmp7.substring(1);
+      }
+      const tmp8 = JSON.parse(tmp7);
+      if (!tmp8.checksums || tmp8.checksums[tmp3] !== tmp6) {
+        return { ok: false, reason: "写入 product.json 后回读校验不一致" };
+      }
+      return { ok: true };
+    } catch (tmp0e) {
+      return { ok: false, reason: (tmp0e && tmp0e.message) || "更新 product.json 失败" };
+    }
+  }
+
+  // 检测单个 bundle 的实际 checksum 是否与 product.json 记录一致
+  // 返回 { synced: boolean, reason?: string }
+  //   synced=true  表示一致，或该版本未启用完整性校验（无需同步）
+  //   synced=false 表示文件已改但 product.json 未同步，Devin 会报安装损坏
+  static isBundleChecksumSynced(tmp0) {
+    try {
+      const tmp1 = PatchManager.resolveAppRoot(tmp0);
+      if (!tmp1) {
+        return { synced: false, reason: "未定位到 product.json 所在目录" };
+      }
+      const tmp2 = path.join(tmp1, "product.json");
+      if (!fs.existsSync(tmp2)) {
+        return { synced: false, reason: "product.json 不存在" };
+      }
+      const tmp3 = PatchManager.labelBundleChecksumKey(tmp0);
+      if (!tmp3) {
+        return { synced: false, reason: "无法识别 bundle 对应的 checksum key" };
+      }
+      let tmp4 = fs.readFileSync(tmp2, "utf-8");
+      if (tmp4.charCodeAt(0) === 65279) {
+        tmp4 = tmp4.substring(1);
+      }
+      const tmp5 = JSON.parse(tmp4);
+      // 没有 checksums 段或缺少该 key：该版本未对此 bundle 启用校验，视为无需同步
+      if (!tmp5.checksums || !Object.prototype.hasOwnProperty.call(tmp5.checksums, tmp3)) {
+        return { synced: true, reason: "product.json 未对该 bundle 启用校验" };
+      }
+      const tmp6 = PatchManager.computeBundleChecksum(tmp0);
+      if (tmp5.checksums[tmp3] === tmp6) {
+        return { synced: true };
+      }
+      return { synced: false, reason: "文件已改但 product.json checksum 未同步" };
+    } catch (tmp0e) {
+      return { synced: false, reason: (tmp0e && tmp0e.message) || "检测 checksum 失败" };
+    }
   }
 
   // 从内容中读出当前的 label 文案（返回第一个匹配到的文案，未匹配返回 null）
@@ -601,19 +661,29 @@ class PatchManager {
       try {
         tmp02 = PatchManager.readLabelText(fs.readFileSync(arg0, "utf-8")) || "";
       } catch {}
+      const tmp03 = PatchManager.isBundleChecksumSynced(arg0);
       return {
         path: arg0,
-        currentText: tmp02
+        currentText: tmp02,
+        checksumSynced: !!(tmp03 && tmp03.synced),
+        checksumReason: (tmp03 && tmp03.reason) || ""
       };
     });
     // 所有 bundle 都已是目标文案，才算 applied
     const tmp4 = tmp3.every(arg0 => arg0.currentText === tmp1);
     const tmp5 = tmp3.find(arg0 => arg0.currentText)?.currentText || "";
+    // 任一 bundle 的 checksum 与 product.json 不同步 => 存在"安装损坏"风险
+    const tmp6 = tmp3.every(arg0 => arg0.checksumSynced);
+    const tmp7 = tmp3
+      .filter(arg0 => !arg0.checksumSynced)
+      .map(arg0 => path.basename(arg0.path) + "（" + (arg0.checksumReason || "checksum 未同步") + "）");
     return {
       found: true,
       currentText: tmp5,
       desiredText: tmp1,
       applied: tmp4,
+      checksumHealthy: tmp6,
+      checksumIssues: tmp7,
       bundles: tmp3
     };
   }
@@ -666,7 +736,27 @@ class PatchManager {
           continue;
         }
         fs.writeFileSync(tmp02, tmp06, "utf-8");
-        PatchManager.updateBundleChecksum(tmp02);
+        // checksum 同步失败必须视为整体失败：否则文件已改、product.json 未同步，
+        // Devin 启动会报 "installation appears to be corrupt"
+        const tmp08 = PatchManager.updateBundleChecksum(tmp02);
+        if (!tmp08 || !tmp08.ok) {
+          // 同步失败：回滚 bundle 到改动前内容，避免残留"文件已改、校验未同步"的损坏状态
+          let tmp09 = "";
+          try {
+            fs.writeFileSync(tmp02, tmp03, "utf-8");
+            tmp09 = "，已自动回滚该文件";
+          } catch (tmp0e) {
+            tmp09 = "，且回滚失败(" + ((tmp0e && tmp0e.message) || "未知") + ")，请手动还原";
+          }
+          tmp8++;
+          tmp5.push(
+            "[失败] " + path.basename(tmp02) +
+            " (product.json checksum 同步失败：" +
+            ((tmp08 && tmp08.reason) || "未知原因") +
+            tmp09 + ")"
+          );
+          continue;
+        }
         tmp6++;
         tmp5.push("[成功] " + path.basename(tmp02));
       } catch (tmp03) {
@@ -700,7 +790,16 @@ class PatchManager {
         const tmp03 = PatchManager.labelBackupPath(tmp02);
         if (fs.existsSync(tmp03)) {
           fs.copyFileSync(tmp03, tmp02);
-          PatchManager.updateBundleChecksum(tmp02);
+          const tmp08 = PatchManager.updateBundleChecksum(tmp02);
+          if (!tmp08 || !tmp08.ok) {
+            tmp2.push(
+              "[失败] " + path.basename(tmp02) +
+              " (已还原文件但 product.json checksum 同步失败：" +
+              ((tmp08 && tmp08.reason) || "未知原因") +
+              "，可能导致 Devin 报安装损坏)"
+            );
+            continue;
+          }
           tmp3++;
           tmp2.push("[还原] " + path.basename(tmp02) + " (来自备份)");
           continue;
@@ -713,7 +812,16 @@ class PatchManager {
         );
         if (tmp05 !== tmp04) {
           fs.writeFileSync(tmp02, tmp05, "utf-8");
-          PatchManager.updateBundleChecksum(tmp02);
+          const tmp09 = PatchManager.updateBundleChecksum(tmp02);
+          if (!tmp09 || !tmp09.ok) {
+            tmp2.push(
+              "[失败] " + path.basename(tmp02) +
+              " (已回改为 Cascade 但 product.json checksum 同步失败：" +
+              ((tmp09 && tmp09.reason) || "未知原因") +
+              "，可能导致 Devin 报安装损坏)"
+            );
+            continue;
+          }
           tmp3++;
           tmp2.push("[还原] " + path.basename(tmp02) + " (回改为 Cascade)");
         } else {

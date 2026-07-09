@@ -2031,7 +2031,12 @@ class SidebarProvider {
           tmp03
         );
         const tmp2 = '重载窗口';
-        if (tmp1.applied > 0) {
+        if (tmp1.failed > 0) {
+          // 有 bundle 失败（含 checksum 同步失败），必须明确告警，避免误以为成功却报安装损坏
+          const tmp3 = tmp1.details && tmp1.details.length ? tmp1.details.join('；') : '部分 bundle 处理失败';
+          this.postActionState('labelPatch', 'error', tmp3);
+          await vscode.window.showErrorMessage('标签补丁失败：' + tmp3);
+        } else if (tmp1.applied > 0) {
           const tmp3 = '标签已改为「' + tmp03 + '」，需重载窗口生效';
           this.postActionState('labelPatch', 'success', tmp3);
           this.playInteractionSound();
@@ -2054,7 +2059,13 @@ class SidebarProvider {
           this.getStoredPatchExtensionPath() || undefined
         );
         const tmp2 = '重载窗口';
-        if (tmp1.reverted > 0) {
+        const tmp5 = tmp1.details && tmp1.details.some(arg0 => arg0.indexOf('[失败]') === 0);
+        if (tmp5) {
+          // 有 bundle 还原失败（含 checksum 同步失败），明确告警避免残留损坏状态
+          const tmp3 = tmp1.details && tmp1.details.length ? tmp1.details.join('；') : '部分 bundle 还原失败';
+          this.postActionState('labelPatch', 'error', tmp3);
+          await vscode.window.showErrorMessage('标签还原失败：' + tmp3);
+        } else if (tmp1.reverted > 0) {
           this.postActionState('labelPatch', 'success', '标签已还原，需重载窗口生效');
           this.playInteractionSound();
           const tmp3 = await vscode.window.showInformationMessage(
@@ -2174,21 +2185,31 @@ class SidebarProvider {
 
     const labelStatus = this.getLabelPatchStatus();
     const labelText = this.getStoredLabelPatchText();
+    // checksum 与 product.json 不同步 => Devin 会报"安装损坏"，优先级高于"已生效"
+    const labelChecksumBroken =
+      labelStatus.found && labelStatus.checksumHealthy === false;
     const labelBadgeClass = !labelStatus.found
       ? 'badge-warn'
-      : labelStatus.applied
-        ? 'badge-ok'
-        : 'badge-warn';
+      : labelChecksumBroken
+        ? 'badge-error'
+        : labelStatus.applied
+          ? 'badge-ok'
+          : 'badge-warn';
     const labelBadgeText = !labelStatus.found
       ? '未检测到'
-      : labelStatus.applied
-        ? '已生效'
-        : '未应用';
+      : labelChecksumBroken
+        ? '校验未同步'
+        : labelStatus.applied
+          ? '已生效'
+          : '未应用';
     const labelCurrentDisplay = !labelStatus.found
       ? '未找到 workbench/sessions bundle，请在上方"选择路径"指向 Devin 安装目录'
-      : labelStatus.currentText
-        ? '当前显示：' + labelStatus.currentText
-        : '当前显示：Cascade（默认）';
+      : labelChecksumBroken
+        ? 'product.json checksum 未同步，Devin 可能报安装损坏，请点"应用"重新同步：' +
+          ((labelStatus.checksumIssues && labelStatus.checksumIssues.join('；')) || '')
+        : labelStatus.currentText
+          ? '当前显示：' + labelStatus.currentText
+          : '当前显示：Cascade（默认）';
 
     return sidebarTemplate_1.renderSidebarHtml({
       nonce: tmp10,
