@@ -18,7 +18,7 @@ export function toChatCompletionsPath(arg0) {
 }
 
 export function shouldFallbackToChatCompletions(arg0, arg1) {
-  if (![400, 404, 405, 422, 500, 501, 502].includes(arg0)) {
+  if (![400, 404, 405, 422, 500, 501, 502, 503].includes(arg0)) {
     return false;
   }
   const tmp1 = String(arg1 || "").toLowerCase();

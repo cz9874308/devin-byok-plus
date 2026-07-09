@@ -3,7 +3,7 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import { StringDecoder } from 'node:string_decoder';
 import { parseGetChatMessageRequest } from './parse-request.js';
-import { buildErrorChunk, buildTextDelta } from './build-response.js';
+import { buildErrorChunk, buildStopChunk, buildTextDelta, STOP_REASON } from './build-response.js';
 import { AnthropicStreamProcessor, parseSSEChunk } from './anthropic-stream.js';
 import {
   ChatCompletionsStreamProcessor,
@@ -75,6 +75,7 @@ export {
   collectToolUseNames,
   ensureNamedToolChoiceTool,
   toInjectedTailMessage,
+  isAuxiliaryRequest,
 };
 const keepAliveAgent = new https.Agent({
   keepAlive: true,
@@ -633,7 +634,24 @@ function describeNetworkError(arg0, arg1, arg2) {
   }
   return '' + tmp4 + (arg1 ? ' (' + arg1 + ':' + arg2 + ')' : '');
 }
-function createStreamLifecycle(arg0, fn, arg2, arg3, arg4) {
+// 识别辅助（非主聊天）请求，如会话标题/摘要生成。
+// Devin 的标题/摘要后台请求不携带任何 tools，且 system prompt 很短；
+// 主 agent 聊天则携带大量 tools 或超长 system prompt。二者合取判断，
+// 最大限度避免误伤主聊天，仅对辅助请求在失败时抑制错误正文。
+const AUX_SYSTEM_PROMPT_MAX_CHARS = parseInt(
+  process.env.AUX_SYSTEM_PROMPT_MAX_CHARS || '600',
+  10
+);
+function isAuxiliaryRequest(systemPrompt, tools) {
+  const hasTools = Array.isArray(tools) && tools.length > 0;
+  if (hasTools) {
+    return false;
+  }
+  const promptLen = typeof systemPrompt === 'string' ? systemPrompt.length : 0;
+  return promptLen <= AUX_SYSTEM_PROMPT_MAX_CHARS;
+}
+function createStreamLifecycle(arg0, fn, arg2, arg3, arg4, tmp0 = {}) {
+  const suppressErrorBody = tmp0.suppressErrorBody === true;
   let tmp5 = false;
   let tmp6 = false;
   let tmp7 = null;
@@ -690,7 +708,14 @@ function createStreamLifecycle(arg0, fn, arg2, arg3, arg4) {
       return false;
     }
     if (arg02) {
-      fn3(wrapEnvelope(buildErrorChunk(arg3, arg02)));
+      if (suppressErrorBody) {
+        // 辅助请求（如标题/摘要生成）失败：只发无正文的 ERROR 停止块，
+        // 避免错误文案被 Devin 当作正文写入会话标题。
+        fn3(wrapEnvelope(buildStopChunk(arg3, STOP_REASON.ERROR)));
+        console.log('  🛡️  Suppressed error body for auxiliary request: ' + arg02);
+      } else {
+        fn3(wrapEnvelope(buildErrorChunk(arg3, arg02)));
+      }
     }
     return fn4(arg1);
   };
@@ -1320,7 +1345,9 @@ function streamAnthropic(
   }
   const processor = new AnthropicStreamProcessor(tmp7, tmp6, tmp9);
   let tmp17;
-  const tmp18 = createStreamLifecycle(arg1, () => tmp17, 'Anthropic', tmp7, tmp8);
+  const tmp18 = createStreamLifecycle(arg1, () => tmp17, 'Anthropic', tmp7, tmp8, {
+    suppressErrorBody: isAuxiliaryRequest(tmp2, tmp4),
+  });
   const logAnthropicUsage = () => {
     logUpstreamUsage(processor, 'Anthropic', {
       mode: 'messages',
@@ -1854,7 +1881,9 @@ function streamOpenAI(
   arg1.writeHead(200, streamHeaders());
   let tmp23;
   let processor;
-  const tmp24 = createStreamLifecycle(arg1, () => tmp23, 'OpenAI', tmp8, tmp10);
+  const tmp24 = createStreamLifecycle(arg1, () => tmp23, 'OpenAI', tmp8, tmp10, {
+    suppressErrorBody: isAuxiliaryRequest(tmp2, tmp4),
+  });
   let tmp25 = false;
   let tmp34 = 0;
   let tmp35 = '';
