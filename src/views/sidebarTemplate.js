@@ -94,6 +94,8 @@ function renderSidebarHtml(ctx) {
     tailwindCssUri: tmp12a,
     scriptUri: tmp12,
     completionSoundUri: ctx.completionSoundUri || '',
+    completionSoundEnabled: ctx.completionSoundEnabled !== false,
+    completionSoundChecked: ctx.completionSoundEnabled !== false ? 'checked' : '',
 
     // 全局状态栏数据
     statusDotClass: tmp02.running ? 'running' : 'stopped',

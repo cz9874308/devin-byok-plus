@@ -1227,6 +1227,8 @@
       } else {
         hideVersionUpdateBanner();
       }
+    } else if (tmp12.type === "chatDone" || tmp12.type === "playSound") {
+      fnPlayCompletionSound();
     }
   });
   
@@ -1262,6 +1264,57 @@
     });
   }
   // ========== 版本更新提示功能结束 ==========
+
+  // ========== 完成声音提示功能 ==========
+  function fnPlayCompletionSound() {
+    const tmp_audio = fn4("completionSound");
+    const tmp_toggle = fn4("cfgCompletionSound");
+    if (tmp_audio && tmp_toggle && tmp_toggle.checked) {
+      try {
+        tmp_audio.currentTime = 0;
+        const tmp_p = tmp_audio.play();
+        if (tmp_p && typeof tmp_p.catch === "function") {
+          tmp_p.catch(() => {});
+        }
+      } catch {}
+    }
+  }
+  const tmp_csToggle = fn4("cfgCompletionSound");
+  if (tmp_csToggle) {
+    tmp_csToggle.addEventListener("change", () => {
+      const tmp_enabled = tmp_csToggle.checked;
+      fn5("setCompletionSound", {
+        value: tmp_enabled
+      });
+      // 开关打开时做一次静默 prime（解锁自动播放）
+      if (tmp_enabled) {
+        const tmp_audio = fn4("completionSound");
+        if (tmp_audio) {
+          try {
+            tmp_audio.volume = 0;
+            tmp_audio.currentTime = 0;
+            const tmp_p = tmp_audio.play();
+            if (tmp_p && typeof tmp_p.then === "function") {
+              tmp_p.then(() => {
+                tmp_audio.pause();
+                tmp_audio.currentTime = 0;
+                tmp_audio.volume = 1;
+              }).catch(() => {
+                tmp_audio.volume = 1;
+              });
+            } else {
+              tmp_audio.pause();
+              tmp_audio.currentTime = 0;
+              tmp_audio.volume = 1;
+            }
+          } catch {
+            tmp_audio.volume = 1;
+          }
+        }
+      }
+    });
+  }
+  // ========== 完成声音提示功能结束 ==========
   fn24a();
   fn5("getStatus");
   fn5("getProfiles");

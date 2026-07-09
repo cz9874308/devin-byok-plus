@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { shouldSignalCompletion } from "./handlers/completion-signal.js";
 const WS_PORT_OFFSET = 100;
 let clients = new Set();
 let injectedMessages = [];
@@ -219,6 +220,9 @@ export function emitChatEnd(arg0, arg1, tmp2 = null) {
     stopReason: arg0,
     toolsCalled: arg1 || []
   });
+  if (shouldSignalCompletion(arg0, arg1 || [])) {
+    console.log("__CHAT_DONE__" + JSON.stringify({ reason: arg0 }));
+  }
 }
 export function emitStreamStatus(arg0, arg1, tmp2 = null) {
   if (arg0 === "timing" && process.env.PROXY_MONITOR_TIMING !== "1") {
