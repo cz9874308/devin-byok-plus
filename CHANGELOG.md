@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.1] - 2026-07-09
+
+### Fixed
+- **修复子代理误触发任务完成提示音**：Fast Context 等辅助子 agent 调用底层工具成功后会误触发任务完成提示音。现改为仅携带真实工具的主对话请求才有资格发声，只带 `do_not_call` 哨兵或无工具的辅助子 agent 结束时不再响铃。新增 `isSoundEligibleRequest()` 判据，并为 `shouldSignalCompletion()` 增加 `soundEligible` 门控参数。
+
 ## [2.4.0] - 2026-07-09
 
 ### Added
