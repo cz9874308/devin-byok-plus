@@ -1,16 +1,17 @@
 {
-  "version": "2.3.0",
-  "releaseDate": "2026-07-04",
+  "version": "2.4.0",
+  "releaseDate": "2026-07-09",
   "changeType": "Added",
   "changes": [
-    "移植上游 v2.4.0 OpenAI service_tier=fast：各 BYOK 槽位支持独立配置 OPENAI_SERVICE_TIER（取值 fast 或空），启用 OpenAI 优先级通道。UI 层新增 GPT Fast Mode 下拉选项（仅在协议为 openai/gpt 时显示），模型名以 -priority 结尾时自动启用 fast 模式。三层回退机制：slot 级 → BYOK1 → 全局",
-    "手动协议选择：BYOK 配置卡片新增 Protocol 下拉框（anthropic / openai / gemini），支持手动覆盖自动检测的 provider。协议变更时思考强度下拉和 GPT Fast Mode 行会联动显隐/重建选项，避免协议与参数不匹配。存储于 BYOKn_PROTOCOL 环境变量",
-    "方案编辑器 UI 优化：从嵌入式改为独立折叠卡片，默认隐藏以减少首屏信息密度。卡片标题栏显示当前激活方案名，支持点击展开/折叠。Tutorial 教程文案同步更新",
-    "profileStore 支持 protocol 字段持久化到 profiles.json，新增 sanitizeProtocol / detectModelProtocol / resolveEffectiveProtocol 逻辑",
-    "diagnostics.js 的 resolveDiagnosticModelRoute 扩展支持 4 个 BYOK 槽位的 service tier 读取（BYOK1=Opus, BYOK2=Opus Thinking, BYOK3=Sonnet, BYOK4=Sonnet Thinking）",
-    "sidebarTemplate.js 新增 buildProtocolOptions() 和 buildOpenAIServiceTierOptions() helper，统一下拉选项生成逻辑",
-    "修复协议手动切换后思考强度选项未联动更新的问题",
-    "修复 GPT Fast Mode 行在非 OpenAI 协议下仍显示的问题（现按 protocol 严格控制可见性）"
+    "GitHub 版本更新提示：启动时检测 GitHub 最新 Release，若有新版本则在侧栏提示，便于及时升级",
+    "放开工具白名单：透传所有 Devin 工具，不再按内置白名单过滤，兼容上游新增工具",
+    "聊天标签改名补丁：支持将聊天输入框 Agent 标签 Cascade 改名为自定义文案（默认 Devin Proxy），接入补丁管理器一键应用/还原，带可自定义文案输入框；同步更新受完整性校验的 workbench/sessions bundle checksum",
+    "BYOK 槽位可配置上下文窗口：各 BYOK 槽位支持独立配置 contextWindow，贯通 .env（BYOKn_CONTEXT_WINDOW）→ 运行态 → GetUserStatus 响应改写，UI 层新增上下文窗口档位输入项",
+    "任务完成提示音：任务完成时播放提示音（resources/sound/completion.mp3），支持开关配置",
+    "插件图标统一改为 W 造型"
+  ],
+  "fixes": [
+    "修复 BYOK 503 回退时标题被上游报错覆盖的问题（fallback title guard）"
   ],
   "breaking": false,
   "autoPackage": true,

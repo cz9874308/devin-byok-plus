@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.0] - 2026-07-09
+
+### Added
+- **GitHub 版本更新提示**：启动时检测 GitHub 最新 Release，若存在新版本则在侧栏提示，便于用户及时升级。
+- **放开工具白名单**：透传所有 Devin 工具，不再按内置白名单过滤，兼容上游新增工具（原仅放行已知工具集）。
+- **聊天标签改名补丁**：支持将聊天输入框 Agent 标签 "Cascade" 改名为自定义文案（默认 "Devin Proxy"），接入补丁管理器实现一键应用/还原，带可自定义文案输入框。由于目标 bundle（`workbench.desktop.main.js` / `sessions.desktop.main.js`）受 `product.json` 完整性校验，补丁会同步更新对应 checksum。
+- **BYOK 槽位可配置上下文窗口**：各 BYOK 槽位支持独立配置 contextWindow，贯通 `.env`（`BYOKn_CONTEXT_WINDOW`）→ 运行态 → `GetUserStatus` 响应改写，UI 层新增上下文窗口档位输入项。用于让 Devin 客户端 UI 显示并使用自定义的上下文窗口大小。
+- **任务完成提示音**：任务完成时播放提示音（`resources/sound/completion.mp3`），支持开关配置。
+
+### Changed
+- 插件图标统一改为 W 造型。
+
+### Fixed
+- 修复 BYOK 503 回退时标题被上游报错覆盖的问题（fallback title guard）。
+
 ## [2.3.0] - 2026-07-04
 
 ### Added
