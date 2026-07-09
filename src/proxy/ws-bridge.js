@@ -212,7 +212,7 @@ export function emitChatStart(arg0, arg1, arg2, tmp3 = null) {
     tools: arg2
   });
 }
-export function emitChatEnd(arg0, arg1, tmp2 = null) {
+export function emitChatEnd(arg0, arg1, tmp2 = null, soundEligible = true) {
   broadcast({
     type: "chat_end",
     ts: Date.now(),
@@ -220,7 +220,17 @@ export function emitChatEnd(arg0, arg1, tmp2 = null) {
     stopReason: arg0,
     toolsCalled: arg1 || []
   });
-  if (shouldSignalCompletion(arg0, arg1 || [])) {
+  const tmp3 = arg1 || [];
+  const tmp4 = shouldSignalCompletion(arg0, tmp3, soundEligible);
+  console.log(
+    "  🔔 emitChatEnd: stopReason=" + arg0 +
+    " tools=[" + tmp3.join(", ") + "]" +
+    " eligible=" + soundEligible +
+    " target=" + monitorTarget(tmp2) +
+    " → signalCompletion=" + tmp4
+  );
+  if (tmp4) {
+    console.log("  🔊 __CHAT_DONE__ 触发完成声音 (reason=" + arg0 + ", toolsCalled=" + tmp3.length + ")");
     console.log("__CHAT_DONE__" + JSON.stringify({ reason: arg0 }));
   }
 }

@@ -48,12 +48,16 @@ export class OpenAIStreamProcessor {
     this._errorMessage = null;
     this._allowedTools = null;
     this._usage = null;
+    this._soundEligible = true;
   }
   getUsage() {
     return this._usage;
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
+  }
+  setSoundEligible(v) {
+    this._soundEligible = v !== false;
   }
   get isDone() {
     return this._done;
@@ -257,7 +261,7 @@ export class OpenAIStreamProcessor {
         emitToolCall(tmp02.name, tmp02.arguments_json, tmp02.id, this._targetId);
       }
     }
-    emitChatEnd(this._stopReason, tmp3, this._targetId);
+    emitChatEnd(this._stopReason, tmp3, this._targetId, this._soundEligible);
     return tmp0;
   }
   _handleOutputTextDelta(tmp0, tmp1) {
@@ -344,12 +348,16 @@ export class ChatCompletionsStreamProcessor {
     this._errorMessage = null;
     this._allowedTools = null;
     this._usage = null;
+    this._soundEligible = true;
   }
   getUsage() {
     return this._usage;
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
+  }
+  setSoundEligible(v) {
+    this._soundEligible = v !== false;
   }
   get isDone() {
     return this._done;
@@ -473,7 +481,7 @@ export class ChatCompletionsStreamProcessor {
         emitToolCall(tmp02.name, tmp02.arguments_json, tmp02.id, this._targetId);
       }
     }
-    emitChatEnd(this._stopReason, tmp3, this._targetId);
+    emitChatEnd(this._stopReason, tmp3, this._targetId, this._soundEligible);
     return tmp0;
   }
   _handleOutputTextDelta(tmp0, tmp1) {
