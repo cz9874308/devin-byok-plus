@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.2] - 2026-07-09
+
+### Fixed
+- **修复 BYOK 模型上下文窗口分母显示**：BYOK 模型在 UI 上的上下文分母固定显示 200K，与配置档位（如 1M）不符。修复改写目标为 `GetUserStatus` 响应中 `ClientModelConfig` 条目本级的 `max_tokens`（field18，路径 `1.33.field1[*]`），按 `model_uid`（field22）字符串匹配 BYOK 槽位，替换后 UI 分母正确显示配置值。此前旧逻辑改写的是 `field23.model_info.context_window`（field4），UI 并不读取该字段。注：改写生效后需**完全重启客户端**以清除 `GetUserStatus` 缓存。
+
 ## [2.4.1] - 2026-07-09
 
 ### Fixed
