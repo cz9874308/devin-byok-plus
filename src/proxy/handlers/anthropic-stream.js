@@ -75,6 +75,11 @@ export class AnthropicStreamProcessor {
         this._capturedToolText = "";
         this._emittedToolCall = false;
         this._usage = null;
+        this._soundEligible = true;
+    }
+
+    setSoundEligible(v) {
+        this._soundEligible = v !== false;
     }
 
     getUsage() {
@@ -218,7 +223,7 @@ export class AnthropicStreamProcessor {
         }
         const tmp1 = this._mapStopReason(this._stopReason);
         tmp0.push(buildStopChunk(this._messageId, tmp1, this._modelUid));
-        emitChatEnd(this._stopReason, [], this._targetId);
+        emitChatEnd(this._stopReason, [], this._targetId, this._soundEligible);
         this._done = true;
     }
 

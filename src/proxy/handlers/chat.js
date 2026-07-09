@@ -3,6 +3,7 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import { StringDecoder } from 'node:string_decoder';
 import { parseGetChatMessageRequest } from './parse-request.js';
+import { isSoundEligibleRequest } from './completion-signal.js';
 import { buildErrorChunk, buildStopChunk, buildTextDelta, STOP_REASON } from './build-response.js';
 import { AnthropicStreamProcessor, parseSSEChunk } from './anthropic-stream.js';
 import {
@@ -537,6 +538,21 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     console.log('  📨 Injected ' + tmp18.length + ' message(s) from App');
   }
   const tmp19 = getActiveMonitorTarget();
+  const tmp190 =
+    'Request identity: initiator=' +
+    (tmp8 || 'unknown') +
+    ' promptLen=' +
+    tmp3.length +
+    ' toolCount=' +
+    (tmp5 ? tmp5.length : 0) +
+    ' tools=[' +
+    (tmp5 ? tmp5.map((arg02) => arg02.name).join(', ') : '') +
+    ']' +
+    ' model=' +
+    (tmp7 || 'unknown') +
+    ' target=' +
+    tmp19;
+  console.log('  🆔 ' + tmp190);
   console.log('  � Monitor target: ' + tmp19);
   console.log(
     '  �🧠 Model: ' +
@@ -1344,6 +1360,9 @@ function streamAnthropic(
     arg1.writeHead(200, streamHeaders());
   }
   const processor = new AnthropicStreamProcessor(tmp7, tmp6, tmp9);
+  processor.setSoundEligible(
+    isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
+  );
   let tmp17;
   const tmp18 = createStreamLifecycle(arg1, () => tmp17, 'Anthropic', tmp7, tmp8, {
     suppressErrorBody: isAuxiliaryRequest(tmp2, tmp4),
@@ -1929,6 +1948,9 @@ function streamOpenAI(
       tmp02.mode === 'chat'
         ? new ChatCompletionsStreamProcessor(tmp8, tmp6, tmp11)
         : new OpenAIStreamProcessor(tmp8, tmp6, tmp11);
+    processor.setSoundEligible(
+      isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
+    );
     if (tmp16 && tmp4) {
       processor.setAllowedTools(tmp4.map((arg02) => arg02.name));
     }
