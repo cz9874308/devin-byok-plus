@@ -1,9 +1,9 @@
 {
-  "version": "2.4.2",
-  "releaseDate": "2026-07-09",
+  "version": "2.4.3",
+  "releaseDate": "2026-07-15",
   "changeType": "Fixed",
   "changes": [
-    "修复 BYOK 模型上下文窗口分母显示问题：改写 GetUserStatus 响应中 ClientModelConfig 条目的 max_tokens(field18)，按 model_uid 匹配 BYOK 槽位，使 UI 上下文分母正确显示配置的档位（如 1M）而非固定 200K"
+    "修复任务完成提示音不触发：将声音播放从 webview audio 移至 Extension Host 原生播放，绕过 Chromium auto-play 策略限制，IDE 重启后无需手动触发即可自动播放"
   ],
   "breaking": false,
   "autoPackage": true,

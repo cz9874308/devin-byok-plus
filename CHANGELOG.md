@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.3] - 2026-07-15
+
+### Fixed
+- **修复任务完成提示音不触发**：将声音播放从 webview `<audio>` 移至 Extension Host 原生播放（Windows: PowerShell MediaPlayer, macOS: afplay, Linux: ffplay/mpv），绕过 Chromium auto-play 策略限制。IDE 重启后无需手动触发即可自动播放。
+
 ## [2.4.2] - 2026-07-09
 
 ### Fixed
