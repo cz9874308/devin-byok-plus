@@ -1227,7 +1227,7 @@
       } else {
         hideVersionUpdateBanner();
       }
-    } else if (tmp12.type === "chatDone" || tmp12.type === "playSound") {
+    } else if (tmp12.type === "playSound") {
       fnPlayCompletionSound();
     }
   });
