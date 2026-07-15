@@ -214,19 +214,26 @@
     @apply opacity-0 w-0 h-0;
   }
   .tog span {
-    @apply absolute inset-0 cursor-pointer bg-zinc-700 rounded-full;
+    @apply absolute inset-0 cursor-pointer rounded-full;
     @apply transition-all duration-200;
+    background: var(--vscode-input-background, #27272a);
+    border: 1.5px solid var(--vscode-editorWidget-border, #52525b);
   }
   .tog span::before {
     content: '';
-    @apply absolute w-2.5 h-2.5 left-[3px] bottom-[3px] bg-zinc-400 rounded-full;
+    @apply absolute w-2.5 h-2.5 left-[3px] top-[3px] rounded-full;
     @apply transition-all duration-200;
+    background: var(--vscode-descriptionForeground, #71717a);
   }
   .tog input:checked + span {
     background: var(--vscode-button-background, #0d9488);
+    border-color: var(--vscode-button-background, #0d9488);
   }
   .tog input:checked + span::before {
     @apply translate-x-3 bg-white;
+  }
+  .tog:hover span {
+    border-color: var(--vscode-focusBorder, #0d9488);
   }
 
   /* ========== 日志面板 ========== */
