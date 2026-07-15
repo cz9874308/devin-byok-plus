@@ -136,7 +136,7 @@ class SidebarProvider {
     tmp02.webview.onDidReceiveMessage((arg0) => this.handleMessage(arg0));
     this.proxyManager.onChatDone((tmp03) => {
       if (this.getStoredCompletionSoundEnabled()) {
-        this.view?.webview.postMessage({ type: 'chatDone', reason: tmp03?.reason || 'unknown' });
+        this.playNativeCompletionSound();
       }
     });
     if (this.proxyManager.getStatus().running) {
@@ -547,9 +547,55 @@ class SidebarProvider {
   async setStoredCompletionSoundEnabled(tmp02) {
     await this.context.globalState.update(KEY_COMPLETION_SOUND_ENABLED, tmp02 === true);
   }
+  playNativeCompletionSound() {
+    const soundPath = path.join(
+      this.context.extensionPath,
+      'resources',
+      'sound',
+      'completion.mp3'
+    );
+    if (!fs.existsSync(soundPath)) {
+      return;
+    }
+    const platform = process.platform;
+    try {
+      if (platform === 'win32') {
+        const fileUri = 'file:///' + soundPath.replace(/\\/g, '/');
+        const psScript = [
+          'Add-Type -AssemblyName presentationCore',
+          '$p = New-Object System.Windows.Media.MediaPlayer',
+          '$p.Open([Uri]"' + fileUri + '")',
+          '$p.Play()',
+          'Start-Sleep -Milliseconds 3000',
+        ].join('; ');
+        child_process_1.execFile(
+          'powershell',
+          ['-NoProfile', '-Command', psScript],
+          { windowsHide: true },
+          () => {}
+        );
+      } else if (platform === 'darwin') {
+        child_process_1.execFile('afplay', [soundPath], () => {});
+      } else {
+        child_process_1.execFile(
+          'ffplay',
+          ['-nodisp', '-autoexit', '-loglevel', 'quiet', soundPath],
+          (err) => {
+            if (err) {
+              child_process_1.execFile(
+                'mpv',
+                ['--no-video', '--really-quiet', soundPath],
+                () => {}
+              );
+            }
+          }
+        );
+      }
+    } catch {}
+  }
   playInteractionSound() {
     if (this.getStoredCompletionSoundEnabled()) {
-      this.view?.webview.postMessage({ type: 'playSound' });
+      this.playNativeCompletionSound();
     }
   }
   getLabelPatchStatus() {
