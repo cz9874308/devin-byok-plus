@@ -500,7 +500,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
   const tmp13 = buildThinkingOptions(tmp11, isOpenAIModel(tmp11), tmp10);
   // 使用 thinkingOptions.provider（尊重 BYOKn_PROTOCOL 手动覆盖）决定上游路由
   const tmp12 = tmp13.provider === 'gpt' || tmp13.provider === 'gemini';
-  tmp11 = stripThinkingSuffix(tmp11);
+  if (!tmp10) tmp11 = stripThinkingSuffix(tmp11);
   if (!tmp11) {
     const tmp02 = '未解析到可用模型。请先在 Devin BYOK Bridge 中加载模型并选择默认模型。';
     console.error('  ❌ Empty resolved model for requested model ' + (tmp7 || 'unknown'));
