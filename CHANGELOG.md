@@ -5,6 +5,11 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.4] - 2026-07-16
+
+### Fixed
+- **修复 BYOK 模型名 -thinking 后缀被误剥离**：用户在 BYOK 槽位显式配置的模型名（如 `claude-opus-4-6-thinking`）不再被 `stripThinkingSuffix` 无条件去除后缀，原样发送给上游 API。非 BYOK 内部回退路径保持原有剥离行为。
+
 ## [2.4.3] - 2026-07-15
 
 ### Fixed

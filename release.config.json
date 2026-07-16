@@ -1,9 +1,9 @@
 {
-  "version": "2.4.3",
-  "releaseDate": "2026-07-15",
+  "version": "2.4.4",
+  "releaseDate": "2026-07-16",
   "changeType": "Fixed",
   "changes": [
-    "修复任务完成提示音不触发：将声音播放从 webview audio 移至 Extension Host 原生播放，绕过 Chromium auto-play 策略限制，IDE 重启后无需手动触发即可自动播放"
+    "修复 BYOK 槽位配置的模型名 -thinking 后缀被误剥离：用户显式配置的模型名（如 claude-opus-4-6-thinking）不再被 stripThinkingSuffix 无条件去除后缀，原样发送给上游 API。非 BYOK 内部回退路径保持原有剥离行为"
   ],
   "breaking": false,
   "autoPackage": true,
