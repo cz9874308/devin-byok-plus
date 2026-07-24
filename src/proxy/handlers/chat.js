@@ -77,6 +77,8 @@ export {
   ensureNamedToolChoiceTool,
   toInjectedTailMessage,
   isAuxiliaryRequest,
+  getActiveByokSlot,
+  setActiveByokSlot,
 };
 const keepAliveAgent = new https.Agent({
   keepAlive: true,
@@ -97,6 +99,9 @@ function proxyHeaders(arg0, arg1) {
     'x-proxy-requested-model': arg0 || '',
   };
 }
+let _activeByokSlot = null;
+function getActiveByokSlot() { return _activeByokSlot; }
+function setActiveByokSlot(slot) { _activeByokSlot = slot; }
 const _ENV_DEFAULT_MODEL = process.env.DEFAULT_MODEL || '';
 const _ENV_MAX_TOKENS = parseInt(process.env.MAX_TOKENS || '32768', 10);
 function getDefaultModel() {
@@ -105,11 +110,12 @@ function getDefaultModel() {
 function getMaxTokens() {
   return getRuntimeConfig().maxTokens || _ENV_MAX_TOKENS;
 }
-function resolveConfiguredModel(arg0) {
+function resolveConfiguredModel(arg0, fallbackSlot = null) {
   const tmp1 = String(arg0 || '').trim();
   const tmp2 = getByokSlot(tmp1);
-  if (tmp2) {
-    const tmp02 = getSlotModel(tmp2);
+  const tmp2e = tmp2 || fallbackSlot;
+  if (tmp2e) {
+    const tmp02 = getSlotModel(tmp2e);
     if (!tmp02) {
       return '';
     }
@@ -139,13 +145,14 @@ function resolveConfiguredModel(arg0) {
  * @param {string} modelName - 模型名称
  * @returns {boolean} - 是否缺少必需的配置
  */
-function requiresConfiguredDefaultModel(arg0) {
+function requiresConfiguredDefaultModel(arg0, fallbackSlot = null) {
   const tmp1 = String(arg0 || '').trim();
   const tmp2 = getByokSlot(tmp1);
+  const tmp2e = tmp2 || fallbackSlot;
 
   // BYOK 槽位模型检查
-  if (tmp2) {
-    return !getSlotModel(tmp2);
+  if (tmp2e) {
+    return !getSlotModel(tmp2e);
   }
 
   // 实际模型名（非 MODEL_* 常量）
@@ -475,20 +482,27 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
   } = parseGetChatMessageRequest(arg2, arg0.headers);
   const tmp9 = crypto.randomUUID();
   const tmp10 = getByokSlot(tmp7);
+  if (tmp10) {
+    _activeByokSlot = tmp10;
+  }
+  const effectiveSlot = tmp10 || _activeByokSlot;
+  if (!tmp10 && effectiveSlot) {
+    console.log('  🔗 Sub-request ' + (tmp7 || 'unknown') + ' inheriting active BYOK slot ' + effectiveSlot);
+  }
 
   // ✅ 提前验证模型配置
-  if (requiresConfiguredDefaultModel(tmp7)) {
+  if (requiresConfiguredDefaultModel(tmp7, effectiveSlot)) {
     let tmp02 = 'Default model not configured. Please set DEFAULT_MODEL or BYOK1_MODEL in .env.';
-    if (tmp10 === 2) {
+    if (effectiveSlot === 2) {
       tmp02 =
         'BYOK #2 model not configured. Please set BYOK2_MODEL in .env or configure via sidebar.';
-    } else if (tmp10 === 3) {
+    } else if (effectiveSlot === 3) {
       tmp02 =
         'BYOK #3 model not configured. Please set BYOK3_MODEL in .env or configure via sidebar.';
-    } else if (tmp10 === 4) {
+    } else if (effectiveSlot === 4) {
       tmp02 =
         'BYOK #4 model not configured. Please set BYOK4_MODEL in .env or configure via sidebar.';
-    } else if (tmp10 === 1) {
+    } else if (effectiveSlot === 1) {
       tmp02 = 'BYOK #1 model not configured. Please set BYOK1_MODEL or DEFAULT_MODEL in .env.';
     }
 
@@ -496,18 +510,18 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     writeModelConfigError(arg1, tmp9, tmp02);
     return;
   }
-  let tmp11 = resolveConfiguredModel(tmp7);
-  const tmp13 = buildThinkingOptions(tmp11, isOpenAIModel(tmp11), tmp10);
+  let tmp11 = resolveConfiguredModel(tmp7, effectiveSlot);
+  const tmp13 = buildThinkingOptions(tmp11, isOpenAIModel(tmp11), effectiveSlot);
   // 使用 thinkingOptions.provider（尊重 BYOKn_PROTOCOL 手动覆盖）决定上游路由
   const tmp12 = tmp13.provider === 'gpt' || tmp13.provider === 'gemini';
-  if (!tmp10) tmp11 = stripThinkingSuffix(tmp11);
+  if (!effectiveSlot) tmp11 = stripThinkingSuffix(tmp11);
   if (!tmp11) {
     const tmp02 = '未解析到可用模型。请先在 Devin BYOK Bridge 中加载模型并选择默认模型。';
     console.error('  ❌ Empty resolved model for requested model ' + (tmp7 || 'unknown'));
     writeModelConfigError(arg1, tmp9, tmp02);
     return;
   }
-  const tmp14 = getProviderConfig(tmp10);
+  const tmp14 = getProviderConfig(effectiveSlot);
   const tmp15 = tmp13.provider === 'gemini';
   const requiredKey = tmp12
     ? tmp15
@@ -524,7 +538,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     arg1.end();
     return;
   }
-  const tmp16 = getServiceTier(tmp7, tmp11, tmp10);
+  const tmp16 = getServiceTier(tmp7, tmp11, effectiveSlot);
   const tmp17 = tmp15 ? 'Gemini' : tmp12 ? 'OpenAI' : 'Anthropic';
   if (EXPOSE_BACKEND_INFO) {
     tmp3 += '\n\nCurrent backend: ' + tmp11 + ' (' + tmp17 + ').';
@@ -616,7 +630,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       timing: tmp21,
       monitorTargetId: tmp19,
       thinkingOptions: tmp13,
-      byokSlot: tmp10,
+      byokSlot: effectiveSlot,
     };
     streamOpenAI(arg0, arg1, tmp02);
   } else {
@@ -630,7 +644,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       timing: tmp21,
       monitorTargetId: tmp19,
       thinkingOptions: tmp13,
-      byokSlot: tmp10,
+      byokSlot: effectiveSlot,
     };
     streamAnthropic(arg0, arg1, tmp02);
   }
