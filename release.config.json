@@ -1,9 +1,10 @@
 {
-  "version": "2.4.4",
-  "releaseDate": "2026-07-16",
+  "version": "2.4.6",
+  "releaseDate": "2026-07-26",
   "changeType": "Fixed",
   "changes": [
-    "修复 BYOK 槽位配置的模型名 -thinking 后缀被误剥离：用户显式配置的模型名（如 claude-opus-4-6-thinking）不再被 stripThinkingSuffix 无条件去除后缀，原样发送给上游 API。非 BYOK 内部回退路径保持原有剥离行为"
+    "修复 BYOK 上下文压缩阈值未随窗口配置生效：同时改写 GetUserStatus 的 field18(UI显示) 和 field23.field4(客户端压缩阈值)，解决 UI 显示 1M 但 ~150K 就自动压缩的问题",
+    "修复 context-window-rewrite 单元测试 fixtures 使用旧版 proto 结构导致 5 个测试失败"
   ],
   "breaking": false,
   "autoPackage": true,
