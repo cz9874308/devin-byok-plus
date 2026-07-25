@@ -5,11 +5,13 @@ import { decodeVarint, writeVarintField, writeBytesField } from "../proto.js";
 //   field1  = label(字符串, 如 'Claude Opus 4 Thinking BYOK')
 //   field18 = max_tokens(数值, UI 上下文分母真正读取的字段)
 //   field22 = model_uid(字符串, 如 'MODEL_CLAUDE_4_OPUS_THINKING_BYOK', 用于匹配 BYOK 槽位)
-//   field23 = model_info(子消息, 内部另有 context_window, 但 UI 分母不读它)
+//   field23 = model_info(子消息, 内部 field4 = context_window, 客户端上下文压缩阈值读取此字段)
 const MODEL_ARRAY_PATH = [1, 33];
 const CMC_ENTRY_FIELD = 1;
 const CMC_MAX_TOKENS_FIELD = 18;
 const CMC_MODEL_UID_FIELD = 22;
+const CMC_MODEL_INFO_FIELD = 23;
+const MI_CONTEXT_WINDOW_FIELD = 4;
 
 // 带偏移的 protobuf 解析: 为每个字段保留其完整原始字节(tag+value), 便于未改动字段原样重编, 保证无损 round-trip。
 function parseWithRaw(buf) {
@@ -57,8 +59,37 @@ function parseWithRaw(buf) {
   return { fields, ok: true };
 }
 
+// 改写 model_info 子消息中的 field4(context_window)。
+// 若 field4 存在且值 ≠ targetWindow, 则替换; 无 field4 不追加(保守策略)。
+// 返回重建后的 Buffer, 若无变更返回 null。
+function rewriteModelInfo(modelInfoBuf, targetWindow) {
+  const parsed = parseWithRaw(modelInfoBuf);
+  if (!parsed.ok) {
+    return null;
+  }
+  const parts = [];
+  let replaced = false;
+  for (const f of parsed.fields) {
+    if (f.field === MI_CONTEXT_WINDOW_FIELD && f.wireType === 0) {
+      if (Number(f.value) === targetWindow) {
+        parts.push(f.raw);
+      } else {
+        parts.push(writeVarintField(MI_CONTEXT_WINDOW_FIELD, targetWindow));
+        replaced = true;
+      }
+    } else {
+      parts.push(f.raw);
+    }
+  }
+  if (!replaced) {
+    return null;
+  }
+  return Buffer.concat(parts);
+}
+
 // 重建单个 ClientModelConfig 条目: 读本级 field22(model_uid 字符串)交给 resolver,
-// 若解析出 window>0 且与现值不同, 则替换本级 field18(max_tokens, UI 上下文分母真正读的字段)。
+// 若解析出 window>0 且与现值不同, 则替换本级 field18(max_tokens, UI 上下文分母真正读的字段)
+// 及 field23 内的 field4(context_window, 客户端上下文压缩阈值)。
 // 返回重建后的 Buffer; 若无需改动(未命中/值相同/解析失败)返回 null 表示原样保留。
 function rewriteModelEntry(entryBuf, resolver, state) {
   const parsed = parseWithRaw(entryBuf);
@@ -89,6 +120,14 @@ function rewriteModelEntry(entryBuf, resolver, state) {
       } else {
         parts.push(writeVarintField(CMC_MAX_TOKENS_FIELD, window));
         replaced = true;
+      }
+    } else if (f.field === CMC_MODEL_INFO_FIELD && f.wireType === 2) {
+      const rebuilt = rewriteModelInfo(f.value, window);
+      if (rebuilt !== null) {
+        parts.push(writeBytesField(CMC_MODEL_INFO_FIELD, rebuilt));
+        replaced = true;
+      } else {
+        parts.push(f.raw);
       }
     } else {
       parts.push(f.raw);
