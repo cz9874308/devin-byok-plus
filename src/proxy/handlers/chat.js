@@ -1107,7 +1107,10 @@ function attachOpenAISseStream(
     }
     if (!tmp13.isDone && tmp11 && !tmp11.writableEnded) {
       console.log('  ⚠️  OpenAI stream ended without terminal event — forcing stop');
-      turnLog?.anomaly(Anomaly.FORCED_STOP, 'no terminal event');
+      turnLog?.anomaly(
+        Anomaly.FORCED_STOP,
+        'no terminal event emittedContent=' + (tmp13.emittedContent === true)
+      );
       const tmp02 = tmp13.processEvent({
         done: true,
         type: 'done',
