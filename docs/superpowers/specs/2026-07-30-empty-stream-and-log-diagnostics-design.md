@@ -145,7 +145,7 @@ shouldRetry(kind, attempt, max);                               // → boolean
 - 请求体不变（因此 prompt cache 更可能命中，重发成本低于首次）。
 - 每次触发落一条 `empty_stream`（high），detail 含 `attempt=N/M`、上游主机、已收字节数。
 - `shouldRetryAnthropicRequest` 的 `hasReceivedData` 判定**不改动**。这里有个必须写明的因果：空流时 `hasReceivedData` 为 `true`（确实收到过 SSE 字节），所以 HTTP 层重试天然不会介入 —— 这正是空流需要独立通道的原因，而不是可以顺手复用 HTTP 层判定。
-- **重试预算**：重发前检查客户端是否仍连接（`wasClosedByClient()` 为真则不重试）。两次重试的额外延迟为 1s + 3s，加上上游重新处理时间，须落在客户端 `COMPLETION_TIMEOUT_MS`（当前 180000）之内；实现时把已耗时纳入判断，避免重试把一轮拖过客户端超时 —— 那会用一种更差的失败替换原来的失败。
+- **重试预算**：重发前检查客户端是否仍连接（`wasClosedByClient()` 为真则不重试）。代理侧目前**没有**任何「一轮总时长」上限 —— `ANTHROPIC_REQUEST_TIMEOUT_MS`（300000）是单次尝试的上限，而 `COMPLETION_TIMEOUT_MS`（12000 默认、2000-60000 区间）是补全功能的超时，与聊天流无关，不能拿来当预算。因此新增一个自洽的 `EMPTY_STREAM_BUDGET_MS`（默认 120000），从本轮起始时刻计量：若「已耗时 + 本次重试延迟」超预算就不再重试，直接报错。目的是避免重试把一轮拖到用户已经放弃的时长，用一种更差的失败替换原来的失败。
 - **状态隔离**：递归重发会新建 `processor`（`chat.js:1419`），`_emittedContent` 随之重置，不会被上一次尝试污染；`turnLog` 透传复用同一个（`finish` 幂等），因此一轮多次尝试仍只产出一条 `chat_turn`。`emitChatStart` 在 `handleGetChatMessage` 里，不在重发路径上，不会重复触发。
 
 ### 3.4 重试耗尽
@@ -171,7 +171,9 @@ shouldRetry(kind, attempt, max);                               // → boolean
 
 ### 3.6 OpenAI 路
 
-`classifyStreamEnd` 是纯函数，接到 OpenAI 路（`chat.js:1182-1200` 的 `forcing stop` 分支）几乎零成本。**决定一并接入**，理由是留一条未修的同类路径将来必然复现同一个 bug。当前样本里 OpenAI 路占比为 0，所以它排在实施阶段 2，anthropic 路先落地验证。若不认可可以砍掉，不影响阶段 1。
+`classifyStreamEnd` 是纯函数，但 OpenAI 路**不做空流重试**：它没有 `retryAnthropicRequest` 那样的重发调度器，`attachOpenAISseStream`（`chat.js:1089-1230`）把响应流与 processor 绑在一起，补一条重发通道的改动量远大于 Anthropic 路，而实测流量里该路占比为 0。
+
+OpenAI 路只做一件事：给两个 processor 加上 `emittedContent`，并把 `forced_stop` 的 detail 带上它。这样一条 grep 就能区分“空流”与“半截内容”，将来真出现 OpenAI 路空流时有数据可依。行为完全不变。
 
 ## 4. 可观测补全
 
@@ -181,7 +183,7 @@ shouldRetry(kind, attempt, max);                               // → boolean
 
 | code | severity | 触发位置 | 说明 |
 | --- | --- | --- | --- |
-| `empty_stream` | high | `chat.js` anthropic/openai 的 `end` 分支 | 每次空流重试触发一条 |
+| `empty_stream` | high | `chat.js` anthropic 路的 `end` 分支 | 每次空流重试触发一条 |
 | `empty_stream_exhausted` | high | 同上 | 重试耗尽、向客户端报错时 |
 | `client_closed` | low | 各 `wasClosedByClient()` 早退点 | 用户主动停止，非故障 |
 
@@ -198,7 +200,9 @@ shouldRetry(kind, attempt, max);                               // → boolean
 | `upstreamHost` | 生效的上游主机（`host:port`），排查多槽位/多网关时必需 |
 | `sseBytes` | 本轮收到的上游 SSE 字节数，空流时为区分「完全没数据」与「只有 message_start」的关键 |
 
-新增事件类型 `turn_start`：在 `chat.js:593-602` 创建 turn log 之后立即落一条，携带 `turnId` / `initiator` / `promptLen` / `model` / `byokSlot` / `upstreamHost` / `route`。作用有两个：孤儿轮（只有 anomaly 没有 `chat_turn`）变成可见的「有始无终」，以及使完成率 = `chat_turn / turn_start` 可算。
+新增事件类型 `turn_start`：在 `chat.js:593-602` 创建 turn log 之后立即落一条，携带 `turnId` / `initiator` / `promptLen` / `model` / `byokSlot`。作用有两个：孤儿轮（只有 anomaly 没有 `chat_turn`）变成可见的「有始无终」，以及使完成率 = `chat_turn / turn_start` 可算。
+
+> `turn_start` 不带 `route` 与 `upstreamHost`：创建 turn log 时还未决定走 responses 还是 chat-completions，也还没取 provider 配置。这两个字段由 `chat_turn` 承载。
 
 `anomaly.detail` 内容增强（不改结构）：
 
@@ -237,6 +241,7 @@ shouldRetry(kind, attempt, max);                               // → boolean
 | key | 默认值 | 说明 |
 | --- | --- | --- |
 | `EMPTY_STREAM_MAX_RETRIES` | `2` | 空流最大重试次数，`0` 表示关闭重试（退化为「不伪装成功、直接报错」） |
+| `EMPTY_STREAM_BUDGET_MS` | `120000` | 一轮内用于空流重试的总时长预算，从本轮起始计量（见 3.3） |
 
 只读 env，**不进侧栏白名单**（`proxyManager.js` 的 `writeEnvConfig`）也不进 `buildRuntimeConfigPatch`。理由：这是一个装完就不需要再动的可靠性参数，不值得为它加 UI 与热更新链路；不在白名单的 key 仍会被原样透传给子进程，手改 `.env` 重启代理即生效。
 
@@ -307,7 +312,7 @@ shouldRetry(kind, attempt, max);                               // → boolean
 
 **阶段 2（可观测与 openai 路）**
 7. 503 响应体、`forced_stop` 上下文、Anthropic idle timeout 打标、`client_closed`、`turn_start`、新字段 + `ALLOWED_FIELDS`
-8. OpenAI 路接入 `classifyStreamEnd`
+8. OpenAI 路两个 processor 加 `emittedContent`，`forced_stop` detail 带上它（不接重试，见 3.6）
 
 **阶段 3（工具）**
 9. `scripts/analyze-logs.mjs`（四个纯函数 + `aggregate` 组合）+ 单测 + `package.json` 脚本入口
@@ -326,7 +331,8 @@ shouldRetry(kind, attempt, max);                               // → boolean
 | 弹窗工具 | 本次不做 | 已证明是模型未请求，非代理缺陷；优先级低于断开 |
 | 分析手段 | 加只读脚本 | 本次分析靠一次性手写命令，不可复用 |
 | 日志文件命名 | 保持 UTC 不改 | 改名会让历史文件断档，时区换算放到脚本侧 |
-| OpenAI 路 | 一并接入，排在阶段 2 | 纯函数已具备，留同类未修路径将来必复现 |
+| OpenAI 路 | 只加 `emittedContent` 打标，不做空流重试 | 缺重发调度器，改动量与收益不匹配（当前该路流量为 0）；先把数据采上，真出现再说 |
+| 阶段 0 先搬迁 lifecycle | 先做纯搬迁再加 `detach()` | 分两步提交，出问题时可二分定位 |
 
 ## 12. 评审记录（review-spec）
 
