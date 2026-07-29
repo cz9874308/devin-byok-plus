@@ -96,3 +96,14 @@ test("configureLog 忽略无关键名（如 BYOK 配置）", () => {
   configureLog({ BYOK1_MODEL: "gpt-5.5", DEFAULT_MODEL: "claude" });
   assert.deepEqual(getLogConfig(), before);
 });
+
+test("setRuntimeConfig 推送 LOG_* 到日志配置（单向依赖不产生循环引用）", async () => {
+  const models = await import("../../src/proxy/handlers/models.js");
+  models.setRuntimeConfig({ LOG_VERBOSE: "true", LOG_MAX_MB: "25" });
+  const cfg = getLogConfig();
+  assert.equal(cfg.logVerbose, true);
+  assert.equal(cfg.logMaxMb, 25);
+  models.setRuntimeConfig({ LOG_VERBOSE: "false", LOG_MAX_MB: "10" });
+  assert.equal(getLogConfig().logVerbose, false);
+  assert.equal(getLogConfig().logMaxMb, 10);
+});
