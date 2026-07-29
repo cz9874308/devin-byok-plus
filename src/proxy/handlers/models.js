@@ -2,6 +2,7 @@ import https from "node:https";
 import http from "node:http";
 import { stripProtocol, parseHost, isLocalTarget } from "../net-utils.js";
 import { slotField, sanitizeThinkingEffort, sanitizeSlotProtocol, sanitizeContextWindow } from "./byok-slots.js";
+import { configureLog } from "../logging/log-config.js";
 const _initialAnthropicHost = stripProtocol(process.env.ANTHROPIC_API_HOST || "");
 const _initialOpenaiHost = stripProtocol(process.env.OPENAI_API_HOST || _initialAnthropicHost);
 function readSlotConfigFromEnv(arg0, tmp1 = null) {
@@ -305,6 +306,7 @@ export function setRuntimeConfig(arg0) {
       }
     };
   }
+  configureLog(arg0);
   const tmp3 = {
     ..._runtimeConfig
   };

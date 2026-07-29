@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+- **结构化日志文件落盘**：新增 JSONL 日志能力，用于定位「agent 意外断开」与「未按规则调用工具」两类难复现问题。日志位于 `~/.devin-byok-plus/logs/`（`proxy-<日期>.jsonl` + `blobs/` 子目录），按日轮转、超限切分、按天清理。
+  - 每轮对话落一条 `chat_turn`，记录 `initiator`/`route`/`model`/`byokSlot`/`toolsOffered`/`toolChoice`/`stopReason`/`toolsCalled`/`usage`/`retryCount`/`anomalies`，可按 `turnId` 跨进程串联。
+  - 新增 14 个 anomaly 代码分三档 severity，全部挂在**既有**代码分支旁，不新增任何业务判定逻辑：`stream_aborted`/`stream_error`/`stream_idle_timeout`/`request_timeout`/`forced_stop`/`upstream_error_status` 为 high；`retry`/`circuit_breaker`/`tool_calls_downgraded`/`tools_all_filtered`/`tool_recovered_from_text`/`tool_args_invalid_json` 为 medium；`tool_name_autocorrected`/`tool_unknown_passthrough` 为 low。此前这些降级路径仅打印到 stdout，进程重启即丢失。
+  - 写入全异步且不参与请求响应链路：常规事件攒批合并，`severity=high` 立即调度，仅在进程退出路径（`exit`/`SIGINT`/`SIGTERM`/未捕获异常）同步兜干以保住崩溃尾部日志。队列双阈值背压，超限优先丢普通事件并留 `log_dropped` 计数。
+  - 新增 4 个配置项：`LOG_ENABLED`（默认 `true`）、`LOG_VERBOSE`（默认 `false`）、`LOG_MAX_MB`（默认 `10`）、`LOG_RETAIN_DAYS`（默认 `7`）。经 `/api/config` 热更新，改 `LOG_VERBOSE` 无需重启代理即生效。
+  - `LOG_VERBOSE=true` 时额外把系统提示词、请求体、SSE 原文写入 `blobs/` 并在主日志留指针行。**该模式下日志含完整提示词与代码内容，对外分享前请确认。**
+
+### Fixed
+- **修复流式工具参数非法时无迹可查**：`normalizeToolInvocation` 遇到被截断/非法的 JSON arguments 时原样返回（避免 `remapKey` 抛 `TypeError` 导致代理进程崩溃），此前该分支完全静默。现返回 `argsInvalid` 诊断标记并记录 `tool_args_invalid_json`，既有调用方只解构 `toolName`/`params`，行为不变。
+
 ## [2.4.4] - 2026-07-16
 
 ### Fixed

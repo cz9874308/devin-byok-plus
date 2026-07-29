@@ -56,9 +56,11 @@ export function normalizeToolInvocation(arg0, arg1) {
   // 流式 tool_use 的 arguments 可能是被截断/非法的 JSON 字符串，normalizeToolArguments 会原样返回字符串。
   // 此时不能在字符串上做键重映射（remapKey 会抛 TypeError 并导致整个代理进程崩溃），直接返回。
   if (tmp3 === null || typeof tmp3 !== "object" || Array.isArray(tmp3)) {
+    // argsInvalid 仅作诊断标记，既有调用方只解构 toolName/params，行为不变。
     return {
       toolName: tmp2,
-      params: tmp3
+      params: tmp3,
+      argsInvalid: true
     };
   }
   if (tmp2 === "read_file") {

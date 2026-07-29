@@ -2,6 +2,7 @@ import { emitAIText, emitToolCall, emitChatEnd } from "../ws-bridge.js";
 import { buildTextDelta, buildThinkingDelta, buildToolCallDelta, buildStopChunk, buildErrorChunk, STOP_REASON } from "./build-response.js";
 import { MAX_TOOL_MARKER_LOOKBEHIND, findToolCallStartIndex, parseTextToolCalls } from "./tool-call-parser.js";
 import { normalizeToolInvocation } from "./tool-normalization.js";
+import { Anomaly } from "../logging/anomaly.js";
 import { extractChatCompletionsUsage, extractOpenAIResponsesUsage, mergeUsage } from "./usage-log.js";
 export function parseOpenAISSEChunk(arg0) {
   const tmp1 = [];
@@ -49,9 +50,13 @@ export class OpenAIStreamProcessor {
     this._allowedTools = null;
     this._usage = null;
     this._soundEligible = true;
+    this._toolsCalled = [];
   }
   getUsage() {
     return this._usage;
+  }
+  getToolsCalled() {
+    return this._toolsCalled.slice();
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
@@ -190,6 +195,9 @@ export class OpenAIStreamProcessor {
         const tmp22 = normalizeToolInvocation(tmp12.name, tmp12.arguments);
         const tmp32 = tmp12.arguments ? tmp12.arguments.length : 0;
         console.log("  🔧 OpenAI native tool_call idx=" + arg0 + " id=" + (tmp12.id || "(empty)") + " raw=" + (tmp12.name || "(empty)") + " normalized=" + (tmp22.toolName || "(empty)") + " args=" + tmp32 + "b");
+        if (tmp22.argsInvalid) {
+          this._turnLog?.anomaly(Anomaly.TOOL_ARGS_INVALID_JSON, tmp12.name || "");
+        }
         if (!tmp22.toolName) {
           return null;
         }
@@ -203,9 +211,11 @@ export class OpenAIStreamProcessor {
           const tmp03 = [...this._allowedTools].find(arg02 => arg02 === arg0.name.toLowerCase() || arg0.name.toLowerCase().includes(arg02) || arg02.includes(arg0.name.toLowerCase()));
           if (tmp03) {
             console.log("  🔧 Auto-corrected tool name: " + arg0.name + " → " + tmp03);
+            this._turnLog?.anomaly(Anomaly.TOOL_NAME_AUTOCORRECTED, arg0.name + " -> " + tmp03);
             arg0.name = tmp03;
           } else {
             console.log("  ⚠️  Unknown tool: " + arg0.name + " (not in allowed list, passing through anyway)");
+            this._turnLog?.anomaly(Anomaly.TOOL_UNKNOWN_PASSTHROUGH, arg0.name);
           }
         }
         return arg0;
@@ -216,6 +226,7 @@ export class OpenAIStreamProcessor {
         this._stopReason = "tool_calls";
       } else {
         console.log("  ⚠️  All tool calls filtered out — falling back to text output");
+        this._turnLog?.anomaly(Anomaly.TOOLS_ALL_FILTERED, "fallback to text");
         this._restoreInterceptedText(tmp0);
       }
     } else {
@@ -223,6 +234,7 @@ export class OpenAIStreamProcessor {
       const tmp12 = parseTextToolCalls(tmp02);
       if (tmp12.length > 0) {
         console.log("  🔧 Recovered " + tmp12.length + " tool call(s) from OpenAI text: " + tmp12.map(arg0 => arg0.name).join(", "));
+        this._turnLog?.anomaly(Anomaly.TOOL_RECOVERED_FROM_TEXT, tmp12.map(arg0 => arg0.name).join(","));
         const tmp03 = tmp12.map((arg0, arg1) => {
           const tmp22 = JSON.stringify(arg0.input ?? {});
           console.log("  🔧 OpenAI text tool_call idx=" + arg1 + " id=tc_recovered_" + arg1 + " name=" + (arg0.name || "(empty)") + " args=" + tmp22.length + "b");
@@ -245,9 +257,11 @@ export class OpenAIStreamProcessor {
     }
     if (this._stopReason === "tool_calls" && tmp1.length === 0) {
       console.log("  ⚠️  OpenAI reported stop=tool_calls but no tool calls found — downgrading to stop");
+      this._turnLog?.anomaly(Anomaly.TOOL_CALLS_DOWNGRADED, "reported tool_calls but none found");
       this._stopReason = "stop";
     }
     const tmp3 = tmp1.map(arg0 => arg0.name).filter(Boolean);
+    this._toolsCalled = tmp3.slice();
     if (tmp3.length > 0) {
       console.log("  🔧 Tools called: [" + tmp3.join(", ") + "]");
     } else if (this._stopReason === "stop") {
@@ -349,9 +363,17 @@ export class ChatCompletionsStreamProcessor {
     this._allowedTools = null;
     this._usage = null;
     this._soundEligible = true;
+    this._toolsCalled = [];
+    this._turnLog = null;
   }
   getUsage() {
     return this._usage;
+  }
+  getToolsCalled() {
+    return this._toolsCalled.slice();
+  }
+  setTurnLog(ctx) {
+    this._turnLog = ctx || null;
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
@@ -434,6 +456,9 @@ export class ChatCompletionsStreamProcessor {
       const tmp02 = tmp2.sort((arg0, arg1) => Number(arg0) - Number(arg1)).map(arg0 => {
         const tmp12 = this._toolCalls[arg0];
         const tmp22 = normalizeToolInvocation(tmp12.name, tmp12.arguments);
+        if (tmp22.argsInvalid) {
+          this._turnLog?.anomaly(Anomaly.TOOL_ARGS_INVALID_JSON, tmp12.name || "");
+        }
         if (!tmp22.toolName) {
           return null;
         }
@@ -448,12 +473,14 @@ export class ChatCompletionsStreamProcessor {
         tmp0.push(buildToolCallDelta(this._messageId, tmp02));
         this._stopReason = "tool_calls";
       } else {
+        this._turnLog?.anomaly(Anomaly.TOOLS_ALL_FILTERED, "fallback to text");
         this._restoreInterceptedText(tmp0);
       }
     } else {
       const tmp02 = "" + this._capturedToolText + this._pendingText;
       const tmp12 = parseTextToolCalls(tmp02);
       if (tmp12.length > 0) {
+        this._turnLog?.anomaly(Anomaly.TOOL_RECOVERED_FROM_TEXT, tmp12.map(arg0 => arg0.name).join(","));
         const tmp03 = tmp12.map((arg0, arg1) => ({
           id: "tc_recovered_" + arg1,
           name: arg0.name,
@@ -470,9 +497,11 @@ export class ChatCompletionsStreamProcessor {
       this._stopReason = "stop";
     }
     if (this._stopReason === "tool_calls" && tmp1.length === 0) {
+      this._turnLog?.anomaly(Anomaly.TOOL_CALLS_DOWNGRADED, "reported tool_calls but none found");
       this._stopReason = "stop";
     }
     const tmp3 = tmp1.map(arg0 => arg0.name).filter(Boolean);
+    this._toolsCalled = tmp3.slice();
     const tmp4 = this._mapStopReason(this._stopReason);
     tmp0.push(buildStopChunk(this._messageId, tmp4, this._modelUid));
     this._done = true;

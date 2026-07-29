@@ -16,6 +16,7 @@ const http2 = require("http2");
 const proxyConfig = require("./proxy-config");
 const proxyProcess = require("./proxy-process");
 const proxyPaths = require("./proxy-paths");
+const logWriter = require("./log-writer");
 
 const KEY_HTTP_PROXY_BACKUP = "devin-byok-plus.httpProxyBackup";
 class ProxyManager {
@@ -257,6 +258,7 @@ class ProxyManager {
   }
   setStartError(tmp0) {
     this.lastStartError = tmp0;
+    logWriter.logExtEvent({ event: "start_error", message: tmp0 });
     this.log(tmp0);
     vscode.window.showWarningMessage(tmp0);
   }
@@ -520,7 +522,7 @@ class ProxyManager {
   writeEnvConfig(tmp0) {
     const tmp1 = this.getEnvFilePath();
     const tmp2 = this.readEnvConfig();
-    const tmp3 = new Set(["ANTHROPIC_API_HOST", "ANTHROPIC_API_KEY", "ANTHROPIC_API_PATH", "OPENAI_API_HOST", "OPENAI_API_KEY", "OPENAI_API_PATH", "OPENAI_SERVICE_TIER", "HYBRID_PORT", "INFERENCE_PORT", "DEFAULT_MODEL", "MAX_TOKENS", "OPENAI_REASONING_EFFORT", "OPENAI_THINKING_ENABLED", "COMPLETION_TIMEOUT_MS", "SYSTEM_PROMPT_OVERRIDE", "SYSTEM_PROMPT_PATH", "BYOK1_ANTHROPIC_API_HOST", "BYOK1_ANTHROPIC_API_KEY", "BYOK1_ANTHROPIC_API_PATH", "BYOK1_OPENAI_API_HOST", "BYOK1_OPENAI_API_KEY", "BYOK1_OPENAI_API_PATH", "BYOK1_OPENAI_SERVICE_TIER", "BYOK1_MODEL", "BYOK1_THINKING_EFFORT", "BYOK2_ANTHROPIC_API_HOST", "BYOK2_ANTHROPIC_API_KEY", "BYOK2_ANTHROPIC_API_PATH", "BYOK2_OPENAI_API_HOST", "BYOK2_OPENAI_API_KEY", "BYOK2_OPENAI_API_PATH", "BYOK2_OPENAI_SERVICE_TIER", "BYOK2_MODEL", "BYOK2_THINKING_EFFORT", "BYOK3_ANTHROPIC_API_HOST", "BYOK3_ANTHROPIC_API_KEY", "BYOK3_ANTHROPIC_API_PATH", "BYOK3_OPENAI_API_HOST", "BYOK3_OPENAI_API_KEY", "BYOK3_OPENAI_API_PATH", "BYOK3_OPENAI_SERVICE_TIER", "BYOK3_MODEL", "BYOK3_THINKING_EFFORT", "BYOK4_ANTHROPIC_API_HOST", "BYOK4_ANTHROPIC_API_KEY", "BYOK4_ANTHROPIC_API_PATH", "BYOK4_OPENAI_API_HOST", "BYOK4_OPENAI_API_KEY", "BYOK4_OPENAI_API_PATH", "BYOK4_OPENAI_SERVICE_TIER", "BYOK4_MODEL", "BYOK4_THINKING_EFFORT", "BYOK1_CONTEXT_WINDOW", "BYOK2_CONTEXT_WINDOW", "BYOK3_CONTEXT_WINDOW", "BYOK4_CONTEXT_WINDOW"]);
+    const tmp3 = new Set(["ANTHROPIC_API_HOST", "ANTHROPIC_API_KEY", "ANTHROPIC_API_PATH", "OPENAI_API_HOST", "OPENAI_API_KEY", "OPENAI_API_PATH", "OPENAI_SERVICE_TIER", "HYBRID_PORT", "INFERENCE_PORT", "DEFAULT_MODEL", "MAX_TOKENS", "OPENAI_REASONING_EFFORT", "OPENAI_THINKING_ENABLED", "COMPLETION_TIMEOUT_MS", "SYSTEM_PROMPT_OVERRIDE", "SYSTEM_PROMPT_PATH", "BYOK1_ANTHROPIC_API_HOST", "BYOK1_ANTHROPIC_API_KEY", "BYOK1_ANTHROPIC_API_PATH", "BYOK1_OPENAI_API_HOST", "BYOK1_OPENAI_API_KEY", "BYOK1_OPENAI_API_PATH", "BYOK1_OPENAI_SERVICE_TIER", "BYOK1_MODEL", "BYOK1_THINKING_EFFORT", "BYOK2_ANTHROPIC_API_HOST", "BYOK2_ANTHROPIC_API_KEY", "BYOK2_ANTHROPIC_API_PATH", "BYOK2_OPENAI_API_HOST", "BYOK2_OPENAI_API_KEY", "BYOK2_OPENAI_API_PATH", "BYOK2_OPENAI_SERVICE_TIER", "BYOK2_MODEL", "BYOK2_THINKING_EFFORT", "BYOK3_ANTHROPIC_API_HOST", "BYOK3_ANTHROPIC_API_KEY", "BYOK3_ANTHROPIC_API_PATH", "BYOK3_OPENAI_API_HOST", "BYOK3_OPENAI_API_KEY", "BYOK3_OPENAI_API_PATH", "BYOK3_OPENAI_SERVICE_TIER", "BYOK3_MODEL", "BYOK3_THINKING_EFFORT", "BYOK4_ANTHROPIC_API_HOST", "BYOK4_ANTHROPIC_API_KEY", "BYOK4_ANTHROPIC_API_PATH", "BYOK4_OPENAI_API_HOST", "BYOK4_OPENAI_API_KEY", "BYOK4_OPENAI_API_PATH", "BYOK4_OPENAI_SERVICE_TIER", "BYOK4_MODEL", "BYOK4_THINKING_EFFORT", "BYOK1_CONTEXT_WINDOW", "BYOK2_CONTEXT_WINDOW", "BYOK3_CONTEXT_WINDOW", "BYOK4_CONTEXT_WINDOW", "LOG_ENABLED", "LOG_VERBOSE", "LOG_MAX_MB", "LOG_RETAIN_DAYS"]);
     const tmp4 = Object.entries(tmp2).filter(([tmp02]) => !tmp3.has(tmp02) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(tmp02)).map(([tmp02, tmp13]) => tmp02 + "=" + tmp13);
     const tmp5 = this.getSystemPromptConfigPath(tmp0);
     const tmp6 = ["# Devin BYOK Bridge 配置（由扩展管理）"];
@@ -573,6 +575,10 @@ class ProxyManager {
     tmp6.push("OPENAI_REASONING_EFFORT=" + (tmp12 || ""));
     tmp6.push("OPENAI_THINKING_ENABLED=" + (tmp0.OPENAI_THINKING_ENABLED === "true" || !!tmp11 ? "true" : "false"));
     tmp6.push("COMPLETION_TIMEOUT_MS=" + this.getCompletionTimeoutMs(tmp0).toString());
+    tmp6.push("LOG_ENABLED=" + (tmp0.LOG_ENABLED || "true"));
+    tmp6.push("LOG_VERBOSE=" + (tmp0.LOG_VERBOSE || "false"));
+    tmp6.push("LOG_MAX_MB=" + (tmp0.LOG_MAX_MB || "10"));
+    tmp6.push("LOG_RETAIN_DAYS=" + (tmp0.LOG_RETAIN_DAYS || "7"));
     if (tmp0.SYSTEM_PROMPT_OVERRIDE) {
       tmp6.push("SYSTEM_PROMPT_OVERRIDE=" + tmp0.SYSTEM_PROMPT_OVERRIDE);
       const tmp13 = this.usesPersistentUserConfig() ? this.getResolvedSystemPromptPath(tmp0) : tmp5;
@@ -637,7 +643,11 @@ class ProxyManager {
       OPENAI_SERVICE_TIER: tmp0.BYOK1_OPENAI_SERVICE_TIER || tmp0.OPENAI_SERVICE_TIER || "",
       OPENAI_REASONING_EFFORT: Object.prototype.hasOwnProperty.call(tmp0, "OPENAI_REASONING_EFFORT") ? tmp0.OPENAI_REASONING_EFFORT : tmp0.BYOK1_THINKING_EFFORT || "",
       OPENAI_THINKING_ENABLED: tmp0.OPENAI_THINKING_ENABLED === "true" || !!tmp0.BYOK1_THINKING_EFFORT,
-      COMPLETION_TIMEOUT_MS: this.getCompletionTimeoutMs(tmp0)
+      COMPLETION_TIMEOUT_MS: this.getCompletionTimeoutMs(tmp0),
+      LOG_ENABLED: tmp0.LOG_ENABLED || "true",
+      LOG_VERBOSE: tmp0.LOG_VERBOSE || "false",
+      LOG_MAX_MB: tmp0.LOG_MAX_MB || "10",
+      LOG_RETAIN_DAYS: tmp0.LOG_RETAIN_DAYS || "7"
     };
     const tmp2 = Number.parseInt(String(tmp0.MAX_TOKENS || ""), 10);
     if (Number.isInteger(tmp2) && tmp2 > 0) {
@@ -760,6 +770,10 @@ class ProxyManager {
     const tmp6 = !this.hybridProcess && !this.externalProxy || tmp5.hybrid;
     const tmp7 = !this.inferenceProcess || tmp5.inference;
     tmp5.ok = tmp6 && tmp7 && tmp5.errors.length === 0;
+    logWriter.logExtEvent({
+      event: "config_reload",
+      message: tmp5.ok ? "ok" : tmp5.errors.join("; ")
+    });
     return tmp5;
   }
   async ensureDependencies() {
@@ -951,6 +965,7 @@ class ProxyManager {
       this.log("hybrid-server 启动错误: " + arg0.message);
     });
     this.hybridProcess.on("exit", arg0 => {
+      logWriter.logExtEvent({ event: "hybrid_exit", exitCode: arg0 });
       this.log("hybrid-server 退出 (code: " + arg0 + ")");
       if (this.hybridProcess !== tmp8) {
         return;
@@ -982,6 +997,7 @@ class ProxyManager {
     this.startTime = Date.now();
     this.requestCount = 0;
     this.restartCount = 0;
+    logWriter.logExtEvent({ event: "hybrid_started", port: tmp5 });
     this.log("hybrid-server 已启动 (port " + tmp5 + ")");
     if (tmp5 !== 3006 || tmp0 === "both" && tmp6 !== 3001) {
       this.log("提示: 非默认端口；侧栏「保存配置」会按端口同步 Devin Desktop 补丁，修改后请重启 IDE。");
@@ -1006,6 +1022,7 @@ class ProxyManager {
           tmp6 = tmp23;
           tmp03 = tmp23;
           this.activeInferencePort = tmp23;
+          logWriter.logExtEvent({ event: "port_fallback", port: tmp23 });
           // 回退端口仅作用于本次运行态，不持久化写回 .env，
           // 否则下次启动会从让步后的端口继续递增（端口号单调爬升 bug）。
           this.setStartWarning("Inference 端口 " + tmp04 + " 已被占用" + (tmp13 ? "（" + tmp13 + "）" : "") + "，本次已自动切换到 " + tmp23 + "（基准端口配置保持不变）并继续启动内联补全代理");
@@ -1042,6 +1059,7 @@ class ProxyManager {
           this.log("inference-proxy 启动错误: " + arg0.message);
         });
         this.inferenceProcess.on("exit", arg0 => {
+          logWriter.logExtEvent({ event: "inference_exit", exitCode: arg0 });
           this.log("inference-proxy 退出 (code: " + arg0 + ")");
           if (this.inferenceProcess !== tmp22) {
             return;

@@ -63,6 +63,8 @@ import {
   isTimeoutError,
   serviceCircuitBreakers,
 } from '../retry-utils.js';
+import { createTurnLog } from '../logging/turn-log.js';
+import { Anomaly } from '../logging/anomaly.js';
 
 export {
   isResponsesApiPath,
@@ -587,6 +589,17 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
     console.log('  🔧 ToolChoice: ' + JSON.stringify(tmp6));
   }
   emitChatStart(tmp11, tmp4.length, tmp5 ? tmp5.length : 0, tmp19);
+  // 单轮日志上下文。只记录客观事实，不做任何业务判定（spec 6.3）。
+  const turnLog = createTurnLog({
+    turnId: tmp9,
+    target: tmp19,
+    meta: {
+      initiator: tmp8 || 'unknown',
+      promptLen: tmp3.length,
+      toolsOffered: tmp5 ? tmp5.map((arg02) => arg02.name).filter(Boolean) : [],
+      toolChoice: tmp6 ? JSON.stringify(tmp6) : undefined,
+    },
+  });
   if (tmp4.length > 0) {
     const tmp02 = tmp4.map((arg02) => arg02.role).join(',');
     console.log('  💬 Roles: ' + tmp02);
@@ -631,6 +644,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       monitorTargetId: tmp19,
       thinkingOptions: tmp13,
       byokSlot: effectiveSlot,
+      turnLog,
     };
     streamOpenAI(arg0, arg1, tmp02);
   } else {
@@ -645,6 +659,7 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       monitorTargetId: tmp19,
       thinkingOptions: tmp13,
       byokSlot: effectiveSlot,
+      turnLog,
     };
     streamAnthropic(arg0, arg1, tmp02);
   }
@@ -1082,6 +1097,7 @@ function attachOpenAISseStream(
     onDataReceived: onDataReceived = null,
     onSuccess: onSuccess = null,
     usageMeta: usageMeta = {},
+    turnLog: turnLog = null,
   }
 ) {
   const tmp1 = new StringDecoder('utf8');
@@ -1104,6 +1120,7 @@ function attachOpenAISseStream(
       console.error(
         '  ❌ OpenAI stream stalled after ' + OPENAI_SSE_IDLE_TIMEOUT_MS + 'ms without data'
       );
+      turnLog?.anomaly(Anomaly.STREAM_IDLE_TIMEOUT, 'idle ' + OPENAI_SSE_IDLE_TIMEOUT_MS + 'ms');
       fn('stream idle timeout ' + OPENAI_SSE_IDLE_TIMEOUT_MS + 'ms');
       tmp24.fail('[OpenAI Stream Timeout]');
       arg02.destroy();
@@ -1119,6 +1136,12 @@ function attachOpenAISseStream(
     tmp26 = true;
     fn2();
     logUpstreamUsage(tmp13, 'OpenAI', usageMeta);
+    // finish 幂等，与 streamFinished 双重保险
+    turnLog?.finish({
+      stopReason: tmp13.stopReason,
+      toolsCalled: tmp13.getToolsCalled(),
+      usage: tmp13.getUsage(),
+    });
     tmp24.finalize(message);
   };
   function processPart(arg03) {
@@ -1158,6 +1181,7 @@ function attachOpenAISseStream(
     }
     if (!tmp13.isDone && tmp11 && !tmp11.writableEnded) {
       console.log('  ⚠️  OpenAI stream ended without terminal event — forcing stop');
+      turnLog?.anomaly(Anomaly.FORCED_STOP, 'no terminal event');
       const tmp02 = tmp13.processEvent({
         done: true,
         type: 'done',
@@ -1179,7 +1203,13 @@ function attachOpenAISseStream(
       return;
     }
     console.error('  ❌ OpenAI stream aborted before completion');
+    turnLog?.anomaly(Anomaly.STREAM_ABORTED, 'aborted before completion');
     fn('stream aborted before completion');
+    turnLog?.finish({
+      stopReason: tmp13.stopReason,
+      toolsCalled: tmp13.getToolsCalled(),
+      usage: tmp13.getUsage(),
+    });
     tmp24.fail('[Stream Aborted]');
   });
   arg02.on('error', (arg03) => {
@@ -1189,7 +1219,13 @@ function attachOpenAISseStream(
       return;
     }
     console.error('  ❌ OpenAI stream error: ' + arg03.message);
+    turnLog?.anomaly(Anomaly.STREAM_ERROR, arg03.message);
     fn('stream error: ' + arg03.message);
+    turnLog?.finish({
+      stopReason: tmp13.stopReason,
+      toolsCalled: tmp13.getToolsCalled(),
+      usage: tmp13.getUsage(),
+    });
     tmp24.fail('[Stream Error]');
   });
 }
@@ -1293,10 +1329,17 @@ function streamAnthropic(
     monitorTargetId: tmp9,
     thinkingOptions: tmp10,
     byokSlot: tmp11 = null,
+    turnLog = null,
   },
   retryCount = 0
 ) {
   const tmp12 = getProviderConfig(tmp11).anthropic;
+  turnLog?.set({
+    route: 'anthropic',
+    model: tmp6,
+    byokSlot: tmp11,
+    retryCount,
+  });
   // prompt cache 配置与网关能力检查（网关不支持 cache_control 时自动降级）
   const promptCacheConfig = getPromptCacheConfig();
   const promptCacheKey = buildGatewayCapabilityKey({
@@ -1374,6 +1417,7 @@ function streamAnthropic(
     arg1.writeHead(200, streamHeaders());
   }
   const processor = new AnthropicStreamProcessor(tmp7, tmp6, tmp9);
+  processor.setTurnLog(turnLog);
   processor.setSoundEligible(
     isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
   );
@@ -1381,6 +1425,14 @@ function streamAnthropic(
   const tmp18 = createStreamLifecycle(arg1, () => tmp17, 'Anthropic', tmp7, tmp8, {
     suppressErrorBody: isAuxiliaryRequest(tmp2, tmp4),
   });
+  // finish 幂等，各收尾/断流路径都可安全调用（见 turn-log 的 finished 标志）
+  const finishTurnLog = () => {
+    turnLog?.finish({
+      stopReason: processor.stopReason,
+      toolsCalled: processor.getToolsCalled(),
+      usage: processor.getUsage(),
+    });
+  };
   const logAnthropicUsage = () => {
     logUpstreamUsage(processor, 'Anthropic', {
       mode: 'messages',
@@ -1448,6 +1500,7 @@ function streamAnthropic(
       let sseBuffer = '';
       if (arg02.statusCode !== 200) {
         console.error('  ❌ Anthropic API returned ' + arg02.statusCode);
+        turnLog?.anomaly(Anomaly.UPSTREAM_ERROR_STATUS, String(arg02.statusCode));
         let tmp02 = '';
         arg02.setEncoding('utf8');
         arg02.on('data', (arg03) => (tmp02 += arg03));
@@ -1482,6 +1535,7 @@ function streamAnthropic(
                 monitorTargetId: tmp9,
                 thinkingOptions: tmp10,
                 byokSlot: tmp11,
+                turnLog,
               },
               retryCount
             );
@@ -1504,12 +1558,15 @@ function streamAnthropic(
                 monitorTargetId: tmp9,
                 thinkingOptions: tmp10,
                 byokSlot: tmp11,
+                turnLog,
               },
               retryCount,
               arg02.statusCode,
               null
             );
           } else {
+            turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+            finishTurnLog();
             circuitBreaker.recordFailure();
             tmp18.fail(tmp03);
           }
@@ -1581,6 +1638,7 @@ function streamAnthropic(
         }
         if (!processor.isDone && !arg1.writableEnded) {
           console.log('  ⚠️  Anthropic stream ended without message_stop — forcing stop');
+          turnLog?.anomaly(Anomaly.FORCED_STOP, 'no message_stop');
           const tmp02 = processor.processEvent({
             event: 'message_stop',
             data: {},
@@ -1589,10 +1647,12 @@ function streamAnthropic(
             tmp18.safeWrite(wrapEnvelope(tmp03));
           }
           logAnthropicUsage();
+          finishTurnLog();
           tmp18.finalize('  ✅ Stream ended (forced stop)');
         } else if (processor.isDone) {
           circuitBreaker.recordSuccess(); // 成功请求，重置熔断器
           logAnthropicUsage();
+          finishTurnLog();
           tmp18.finalize('  ✅ Stream ended normally');
         }
       });
@@ -1603,6 +1663,8 @@ function streamAnthropic(
           return;
         }
         console.error('  ❌ Anthropic stream aborted before completion');
+        turnLog?.anomaly(Anomaly.STREAM_ABORTED, 'aborted before completion');
+        finishTurnLog();
         tmp18.fail('[Stream Aborted]');
       });
       arg02.on('error', (arg03) => {
@@ -1612,6 +1674,8 @@ function streamAnthropic(
           return;
         }
         console.error('  ❌ Anthropic stream error: ' + arg03.message);
+        turnLog?.anomaly(Anomaly.STREAM_ERROR, arg03.message);
+        finishTurnLog();
         tmp18.fail('[Stream Error]');
       });
     }
@@ -1640,12 +1704,16 @@ function streamAnthropic(
           monitorTargetId: tmp9,
           thinkingOptions: tmp10,
           byokSlot: tmp11,
+          turnLog,
         },
         retryCount,
         0,
         timeoutError
       );
     } else {
+      turnLog?.anomaly(Anomaly.REQUEST_TIMEOUT, String(ANTHROPIC_REQUEST_TIMEOUT_MS) + 'ms');
+      turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+      finishTurnLog();
       circuitBreaker.recordFailure();
       tmp18.fail('[Anthropic Request Timeout]');
       tmp17.destroy();
@@ -1677,12 +1745,16 @@ function streamAnthropic(
           monitorTargetId: tmp9,
           thinkingOptions: tmp10,
           byokSlot: tmp11,
+          turnLog,
         },
         retryCount,
         0,
         arg02
       );
     } else {
+      turnLog?.anomaly(Anomaly.STREAM_ERROR, tmp1);
+      turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+      finishTurnLog();
       circuitBreaker.recordFailure();
       tmp18.fail('[Anthropic Connection Error] ' + tmp1);
     }
@@ -1718,6 +1790,7 @@ function retryAnthropicRequest(arg0, arg1, options, currentRetryCount, statusCod
   const delay = calculateRetryDelay(currentRetryCount, statusCode, {}, isTimeout);
 
   const errorDesc = error?.code || error?.message || `HTTP ${statusCode}`;
+  options?.turnLog?.anomaly(Anomaly.RETRY, 'anthropic ' + nextRetryCount + ': ' + errorDesc);
   console.log(
     `  ↩️  [Anthropic] Retry ${nextRetryCount}/${process.env.MAX_RETRIES || 3} after ${delay}ms (${errorDesc})`
   );
@@ -1743,6 +1816,7 @@ function streamOpenAI(
     monitorTargetId: tmp11,
     thinkingOptions: tmp12,
     byokSlot: tmp13 = null,
+    turnLog = null,
   }
 ) {
   const tmp14 = getProviderConfig(tmp13).openai;
@@ -1917,6 +1991,14 @@ function streamOpenAI(
   const tmp24 = createStreamLifecycle(arg1, () => tmp23, 'OpenAI', tmp8, tmp10, {
     suppressErrorBody: isAuxiliaryRequest(tmp2, tmp4),
   });
+  // finish 幂等；processor 为外层 let，各失败路径共用
+  const finishTurnLog = () => {
+    turnLog?.finish({
+      stopReason: processor?.stopReason,
+      toolsCalled: processor?.getToolsCalled ? processor.getToolsCalled() : [],
+      usage: processor?.getUsage ? processor.getUsage() : null,
+    });
+  };
   let tmp25 = false;
   let tmp34 = 0;
   let tmp35 = '';
@@ -1938,6 +2020,7 @@ function streamOpenAI(
         const isTimeout = isTimeoutError(lastError);
         const delay = calculateRetryDelay(retryCount, 0, {}, isTimeout);
         const errorDesc = lastError.code || lastError.message || 'unknown';
+        turnLog?.anomaly(Anomaly.RETRY, 'openai ' + (retryCount + 1) + ': ' + errorDesc);
         console.log(
           `  ↩️  [OpenAI] Retry ${retryCount + 1}/${process.env.MAX_RETRIES || 3} after ${delay}ms (${errorDesc})`
         );
@@ -1962,6 +2045,13 @@ function streamOpenAI(
       tmp02.mode === 'chat'
         ? new ChatCompletionsStreamProcessor(tmp8, tmp6, tmp11)
         : new OpenAIStreamProcessor(tmp8, tmp6, tmp11);
+    turnLog?.set({
+      route: tmp02.mode === 'chat' ? 'chat-completions' : 'openai-responses',
+      model: tmp6,
+      byokSlot: tmp13,
+      retryCount,
+    });
+    processor.setTurnLog(turnLog);
     processor.setSoundEligible(
       isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
     );
@@ -2046,6 +2136,7 @@ function streamOpenAI(
         if (arg02.statusCode !== 200) {
           fn('HTTP ' + arg02.statusCode + ' before stream');
           console.error('  ❌ OpenAI API returned ' + arg02.statusCode + ' (' + tmp02.path + ')');
+          turnLog?.anomaly(Anomaly.UPSTREAM_ERROR_STATUS, String(arg02.statusCode));
           let tmp12 = '';
           arg02.setEncoding('utf8');
           arg02.on('data', (arg03) => (tmp12 += arg03));
@@ -2081,6 +2172,10 @@ function streamOpenAI(
             ) {
               const isTimeout = false;
               const delay = calculateRetryDelay(retryCount, arg02.statusCode, {}, isTimeout);
+              turnLog?.anomaly(
+                Anomaly.RETRY,
+                'openai ' + (retryCount + 1) + ': HTTP ' + arg02.statusCode
+              );
               console.log(
                 `  ↩️  [OpenAI] Retry ${retryCount + 1}/${process.env.MAX_RETRIES || 3} after ${delay}ms (HTTP ${arg02.statusCode})`
               );
@@ -2096,6 +2191,8 @@ function streamOpenAI(
               return;
             }
 
+            turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+            finishTurnLog();
             circuitBreaker.recordFailure();
             tmp24.fail(tmp35);
           });
@@ -2134,6 +2231,7 @@ function streamOpenAI(
         tmp23.destroy();
         const isTimeout = true;
         const delay = calculateRetryDelay(retryCount, 0, {}, isTimeout);
+        turnLog?.anomaly(Anomaly.RETRY, 'openai ' + (retryCount + 1) + ': timeout');
         console.log(
           `  ↩️  [OpenAI] Retry ${retryCount + 1}/${process.env.MAX_RETRIES || 3} after ${delay}ms (timeout)`
         );
@@ -2146,6 +2244,9 @@ function streamOpenAI(
         return;
       }
 
+      turnLog?.anomaly(Anomaly.REQUEST_TIMEOUT, 'openai request timeout');
+      turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+      finishTurnLog();
       circuitBreaker.recordFailure();
       tmp24.fail('[OpenAI Request Timeout]');
       tmp23.destroy();
@@ -2166,6 +2267,7 @@ function streamOpenAI(
         const isTimeout = isTimeoutError(arg03);
         const delay = calculateRetryDelay(retryCount, 0, {}, isTimeout);
         const errorDesc = arg03.code || arg03.message || 'unknown';
+        turnLog?.anomaly(Anomaly.RETRY, 'openai ' + (retryCount + 1) + ': ' + errorDesc);
         console.log(
           `  ↩️  [OpenAI] Retry ${retryCount + 1}/${process.env.MAX_RETRIES || 3} after ${delay}ms (${errorDesc})`
         );
@@ -2178,6 +2280,9 @@ function streamOpenAI(
         return;
       }
 
+      turnLog?.anomaly(Anomaly.STREAM_ERROR, tmp12);
+      turnLog?.anomaly(Anomaly.CIRCUIT_BREAKER, 'failure recorded');
+      finishTurnLog();
       circuitBreaker.recordFailure();
       tmp24.fail('[OpenAI Connection Error] ' + tmp12);
     });
