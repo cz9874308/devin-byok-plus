@@ -10,6 +10,7 @@ import {findToolCallStartIndex, MAX_TOOL_MARKER_LOOKBEHIND, parseTextToolCalls} 
 import {normalizeToolInvocation} from "./tool-normalization.js";
 import {emitAIText, emitChatEnd, emitToolCall} from "../ws-bridge.js";
 import {mergeUsage, extractAnthropicUsage} from "./usage-log.js";
+import {Anomaly} from "../logging/anomaly.js";
 
 export function parseSSEChunk(arg0) {
   const tmp1 = [];
@@ -77,10 +78,15 @@ export class AnthropicStreamProcessor {
         this._usage = null;
         this._soundEligible = true;
         this._toolsCalled = [];
+        this._turnLog = null;
     }
 
     setSoundEligible(v) {
         this._soundEligible = v !== false;
+    }
+
+    setTurnLog(ctx) {
+        this._turnLog = ctx || null;
     }
 
     getUsage() {
@@ -178,7 +184,11 @@ export class AnthropicStreamProcessor {
             this._flushBufferedText(tmp1, true);
         } else if (this._currentBlockType === "tool_use") {
             const tmp02 = normalizeToolInvocation(this._toolName ?? "", this._toolArgsBuffer);
+            if (tmp02.argsInvalid) {
+                this._turnLog?.anomaly(Anomaly.TOOL_ARGS_INVALID_JSON, this._toolName || "");
+            }
             if (!tmp02.toolName) {
+                this._turnLog?.anomaly(Anomaly.TOOLS_ALL_FILTERED, "normalize failed: " + (this._toolName || ""));
                 this._restoreInterceptedText(tmp1);
                 this._toolId = null;
                 this._toolName = null;
@@ -211,6 +221,7 @@ export class AnthropicStreamProcessor {
             const tmp12 = parseTextToolCalls(tmp02);
             if (tmp12.length > 0) {
                 console.log("  🔧 Recovered " + tmp12.length + " tool call(s) from Anthropic text: " + tmp12.map(arg0 => arg0.name).join(", "));
+                this._turnLog?.anomaly(Anomaly.TOOL_RECOVERED_FROM_TEXT, tmp12.map(arg0 => arg0.name).join(","));
                 const tmp03 = tmp12.map((arg0, arg1) => ({
                     id: "tc_recovered_" + arg1,
                     name: arg0.name,

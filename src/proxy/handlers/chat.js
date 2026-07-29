@@ -1417,6 +1417,7 @@ function streamAnthropic(
     arg1.writeHead(200, streamHeaders());
   }
   const processor = new AnthropicStreamProcessor(tmp7, tmp6, tmp9);
+  processor.setTurnLog(turnLog);
   processor.setSoundEligible(
     isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
   );
@@ -2050,6 +2051,7 @@ function streamOpenAI(
       byokSlot: tmp13,
       retryCount,
     });
+    processor.setTurnLog(turnLog);
     processor.setSoundEligible(
       isSoundEligibleRequest(tmp4 ? tmp4.map((arg02) => arg02.name) : [])
     );
