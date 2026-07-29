@@ -66,6 +66,7 @@ import {
 import { createTurnLog } from '../logging/turn-log.js';
 import { Anomaly } from '../logging/anomaly.js';
 import { createStreamLifecycle } from './stream-lifecycle.js';
+import { StreamEnd, classifyStreamEnd, shouldRetry } from './stream-end.js';
 
 export {
   isResponsesApiPath,
@@ -181,6 +182,12 @@ const ANTHROPIC_SSE_IDLE_TIMEOUT_MS = parseInt(
   process.env.ANTHROPIC_SSE_IDLE_TIMEOUT_MS || '180000',
   10
 );
+// 空流（上游回 200 但零内容写出）专用重试通道。与 HTTP 层的 MAX_RETRIES 完全独立，
+// 两者共用配额会挤掉 503 重试（实测 18/25 靠它自愈），见 spec 3.3。
+const EMPTY_STREAM_MAX_RETRIES = parseInt(process.env.EMPTY_STREAM_MAX_RETRIES || '2', 10);
+const EMPTY_STREAM_RETRY_DELAYS = [1000, 3000];
+// 一轮内用于空流重试的总时长预算，从本轮起始计量。
+const EMPTY_STREAM_BUDGET_MS = parseInt(process.env.EMPTY_STREAM_BUDGET_MS || '120000', 10);
 const OPENAI_REASONING_SUMMARY = process.env.OPENAI_REASONING_SUMMARY || 'auto';
 const OPENAI_ENABLE_REASONING = process.env.OPENAI_ENABLE_REASONING !== 'false';
 // 默认关闭：system prompt 末尾的动态 backend 行会破坏 OpenAI 前缀 cache（上游 2.3.0 行为）
@@ -1237,6 +1244,8 @@ function streamAnthropic(
     thinkingOptions: tmp10,
     byokSlot: tmp11 = null,
     turnLog = null,
+    emptyRetries = 0,
+    turnStartedAt = Date.now(),
   },
   retryCount = 0
 ) {
@@ -1246,6 +1255,8 @@ function streamAnthropic(
     model: tmp6,
     byokSlot: tmp11,
     retryCount,
+    emptyRetries,
+    upstreamHost: tmp12.host,
   });
   // prompt cache 配置与网关能力检查（网关不支持 cache_control 时自动降级）
   const promptCacheConfig = getPromptCacheConfig();
@@ -1350,6 +1361,23 @@ function streamAnthropic(
       fallback: promptCacheRejected ? 'no-cache-retry' : '',
     });
   };
+  // 重发用的选项快照。HTTP 重试与空流重试共用同一个构造点，
+  // 避免新增透传字段时漏改其中某一处（原来有 4 份重复的对象字面量）。
+  const retryOptions = () => ({
+    systemPrompt: tmp2,
+    messages: tmp3,
+    tools: tmp4,
+    toolChoice: tmp5,
+    resolvedModel: tmp6,
+    messageId: tmp7,
+    timing: tmp8,
+    monitorTargetId: tmp9,
+    thinkingOptions: tmp10,
+    byokSlot: tmp11,
+    turnLog,
+    emptyRetries,
+    turnStartedAt,
+  });
   const tmp19 = tmp12.useHttp ? http : https;
   const tmp20 = tmp12.parsed.port !== 443 ? tmp12.parsed.port : tmp12.useHttp ? 80 : 443;
   const retryPrefix = retryCount > 0 ? `[Retry ${retryCount}] ` : '';
@@ -1381,6 +1409,7 @@ function streamAnthropic(
   }
 
   let hasReceivedData = false; // 标记是否接收到任何数据
+  let sseBytes = 0; // 本次尝试收到的上游 SSE 字节数（空流判定与诊断用）
 
   tmp17 = tmp19.request(
     {
@@ -1432,19 +1461,7 @@ function streamAnthropic(
             streamAnthropic(
               arg0,
               arg1,
-              {
-                systemPrompt: tmp2,
-                messages: tmp3,
-                tools: tmp4,
-                toolChoice: tmp5,
-                resolvedModel: tmp6,
-                messageId: tmp7,
-                timing: tmp8,
-                monitorTargetId: tmp9,
-                thinkingOptions: tmp10,
-                byokSlot: tmp11,
-                turnLog,
-              },
+              retryOptions(),
               retryCount
             );
             return;
@@ -1455,19 +1472,7 @@ function streamAnthropic(
             retryAnthropicRequest(
               arg0,
               arg1,
-              {
-                systemPrompt: tmp2,
-                messages: tmp3,
-                tools: tmp4,
-                toolChoice: tmp5,
-                resolvedModel: tmp6,
-                messageId: tmp7,
-                timing: tmp8,
-                monitorTargetId: tmp9,
-                thinkingOptions: tmp10,
-                byokSlot: tmp11,
-                turnLog,
-              },
+              retryOptions(),
               retryCount,
               arg02.statusCode,
               null
@@ -1523,6 +1528,7 @@ function streamAnthropic(
       fn2();
       arg02.on('data', (arg03) => {
         hasReceivedData = true; // 标记已接收到数据
+        sseBytes += Buffer.byteLength(arg03);
         if (tmp8 && isFirstChunk) {
           tmp8.mark('first_upstream_chunk', 'bytes=' + Buffer.byteLength(arg03));
           isFirstChunk = false;
@@ -1537,6 +1543,70 @@ function streamAnthropic(
           }
         }
       });
+      const onNormalEnd = () => {
+        circuitBreaker.recordSuccess(); // 成功请求，重置熔断器
+        logAnthropicUsage();
+        finishTurnLog();
+        tmp18.finalize('  ✅ Stream ended normally');
+      };
+      const onPartialEnd = () => {
+        // 已有内容抵达客户端但没收到 message_stop：维持既有行为（补一个终止事件收尾），
+        // 绝不重试 —— 重发会导致文本重复。
+        console.log('  ⚠️  Anthropic stream ended without message_stop — forcing stop');
+        turnLog?.anomaly(
+          Anomaly.FORCED_STOP,
+          'no message_stop bytes=' + sseBytes + ' emittedContent=true'
+        );
+        const tmp02 = processor.processEvent({
+          event: 'message_stop',
+          data: {},
+        });
+        for (const tmp03 of tmp02) {
+          tmp18.safeWrite(wrapEnvelope(tmp03));
+        }
+        logAnthropicUsage();
+        finishTurnLog();
+        tmp18.finalize('  ✅ Stream ended (forced stop, partial content)');
+      };
+      const onEmptyEnd = () => {
+        const detail =
+          'attempt=' +
+          emptyRetries +
+          '/' +
+          EMPTY_STREAM_MAX_RETRIES +
+          ' host=' +
+          tmp12.host +
+          ' bytes=' +
+          sseBytes;
+        const elapsed = Date.now() - turnStartedAt;
+        const delay =
+          EMPTY_STREAM_RETRY_DELAYS[Math.min(emptyRetries, EMPTY_STREAM_RETRY_DELAYS.length - 1)];
+        const withinBudget = elapsed + delay <= EMPTY_STREAM_BUDGET_MS;
+        if (shouldRetry(StreamEnd.EMPTY, emptyRetries, EMPTY_STREAM_MAX_RETRIES) && withinBudget) {
+          console.log('  ⚠️  Anthropic returned an empty stream — retrying (' + detail + ')');
+          turnLog?.anomaly(Anomaly.EMPTY_STREAM, detail);
+          tmp18.detach(); // 必须：否则旧心跳与 close 监听会随重试叠加
+          retryAnthropicRequest(arg0, arg1, retryOptions(), retryCount, 0, null, {
+            reason: 'empty_stream',
+            delayMs: delay,
+          });
+          return;
+        }
+        console.error(
+          '  ❌ Anthropic empty stream, giving up (' + detail + ' elapsed=' + elapsed + 'ms)'
+        );
+        turnLog?.anomaly(Anomaly.EMPTY_STREAM_EXHAUSTED, detail + ' elapsed=' + elapsed + 'ms');
+        logAnthropicUsage();
+        finishTurnLog();
+        // 关键：不再伪造 message_stop，改走失败通道。
+        // 这样客户端拿到明确错误，emitChatEnd 也不会以自然结束语义触发完成声音。
+        tmp18.fail('[Anthropic Empty Stream] 上游返回空响应（无任何内容），请重试');
+      };
+      const onClosedByClient = () => {
+        // 用户点了停止：不是故障，不写错误块，只留一条低危记录与汇总
+        turnLog?.anomaly(Anomaly.CLIENT_CLOSED, 'client closed during stream');
+        finishTurnLog();
+      };
       arg02.on('end', () => {
         tmp22 = true;
         fn();
@@ -1544,24 +1614,25 @@ function streamAnthropic(
           processPart(sseBuffer);
           sseBuffer = '';
         }
-        if (!processor.isDone && !arg1.writableEnded) {
-          console.log('  ⚠️  Anthropic stream ended without message_stop — forcing stop');
-          turnLog?.anomaly(Anomaly.FORCED_STOP, 'no message_stop');
-          const tmp02 = processor.processEvent({
-            event: 'message_stop',
-            data: {},
-          });
-          for (const tmp03 of tmp02) {
-            tmp18.safeWrite(wrapEnvelope(tmp03));
-          }
-          logAnthropicUsage();
+        if (arg1.writableEnded) {
+          // 客户端响应已被更早的路径收尾（如 idle timeout 的 fail）：
+          // 原代码在这里什么都不做，正是孤儿轮的来源之一。只补一条汇总。
           finishTurnLog();
-          tmp18.finalize('  ✅ Stream ended (forced stop)');
-        } else if (processor.isDone) {
-          circuitBreaker.recordSuccess(); // 成功请求，重置熔断器
-          logAnthropicUsage();
-          finishTurnLog();
-          tmp18.finalize('  ✅ Stream ended normally');
+          return;
+        }
+        const kind = classifyStreamEnd({
+          isDone: processor.isDone,
+          emittedContent: processor.emittedContent,
+          closedByClient: tmp18.wasClosedByClient(),
+        });
+        if (kind === StreamEnd.CLOSED) {
+          onClosedByClient();
+        } else if (kind === StreamEnd.NORMAL) {
+          onNormalEnd();
+        } else if (kind === StreamEnd.EMPTY) {
+          onEmptyEnd();
+        } else {
+          onPartialEnd();
         }
       });
       arg02.on('aborted', () => {
@@ -1601,19 +1672,7 @@ function streamAnthropic(
       retryAnthropicRequest(
         arg0,
         arg1,
-        {
-          systemPrompt: tmp2,
-          messages: tmp3,
-          tools: tmp4,
-          toolChoice: tmp5,
-          resolvedModel: tmp6,
-          messageId: tmp7,
-          timing: tmp8,
-          monitorTargetId: tmp9,
-          thinkingOptions: tmp10,
-          byokSlot: tmp11,
-          turnLog,
-        },
+        retryOptions(),
         retryCount,
         0,
         timeoutError
@@ -1642,19 +1701,7 @@ function streamAnthropic(
       retryAnthropicRequest(
         arg0,
         arg1,
-        {
-          systemPrompt: tmp2,
-          messages: tmp3,
-          tools: tmp4,
-          toolChoice: tmp5,
-          resolvedModel: tmp6,
-          messageId: tmp7,
-          timing: tmp8,
-          monitorTargetId: tmp9,
-          thinkingOptions: tmp10,
-          byokSlot: tmp11,
-          turnLog,
-        },
+        retryOptions(),
         retryCount,
         0,
         arg02
@@ -1691,21 +1738,41 @@ function shouldRetryAnthropicRequest(statusCode, error, retryCount, hasReceivedD
   return isRetriableError(error, statusCode);
 }
 
-// 重试 Anthropic 请求
-function retryAnthropicRequest(arg0, arg1, options, currentRetryCount, statusCode, error) {
-  const nextRetryCount = currentRetryCount + 1;
-  const isTimeout = isTimeoutError(error);
-  const delay = calculateRetryDelay(currentRetryCount, statusCode, {}, isTimeout);
-
-  const errorDesc = error?.code || error?.message || `HTTP ${statusCode}`;
-  options?.turnLog?.anomaly(Anomaly.RETRY, 'anthropic ' + nextRetryCount + ': ' + errorDesc);
-  console.log(
-    `  ↩️  [Anthropic] Retry ${nextRetryCount}/${process.env.MAX_RETRIES || 3} after ${delay}ms (${errorDesc})`
-  );
-  emitStreamStatus('retry', `Anthropic retry ${nextRetryCount} after ${delay}ms (${errorDesc})`);
+// 唯一的 Anthropic 重发调度入口。两类重试共用它：
+//   HTTP 层（503 / 超时 / 网络错误）→ 递增 retryCount，打 RETRY
+//   空流（200 但零内容写出）        → 递增 options.emptyRetries，anomaly 由调用点负责
+//     （调用点才拿得到 host 与已收字节数这些细节）
+function retryAnthropicRequest(
+  arg0,
+  arg1,
+  options,
+  currentRetryCount,
+  statusCode,
+  error,
+  extra = {}
+) {
+  const isEmptyStream = extra.reason === 'empty_stream';
+  const delay = Number.isFinite(extra.delayMs)
+    ? extra.delayMs
+    : calculateRetryDelay(currentRetryCount, statusCode, {}, isTimeoutError(error));
+  const nextRetryCount = isEmptyStream ? currentRetryCount : currentRetryCount + 1;
+  const nextOptions = isEmptyStream
+    ? { ...options, emptyRetries: (options?.emptyRetries || 0) + 1 }
+    : options;
+  const attemptLabel = isEmptyStream
+    ? nextOptions.emptyRetries + '/' + EMPTY_STREAM_MAX_RETRIES
+    : nextRetryCount + '/' + (process.env.MAX_RETRIES || 3);
+  const errorDesc = isEmptyStream
+    ? 'empty stream'
+    : error?.code || error?.message || `HTTP ${statusCode}`;
+  if (!isEmptyStream) {
+    options?.turnLog?.anomaly(Anomaly.RETRY, 'anthropic ' + nextRetryCount + ': ' + errorDesc);
+  }
+  console.log(`  ↩️  [Anthropic] Retry ${attemptLabel} after ${delay}ms (${errorDesc})`);
+  emitStreamStatus('retry', `Anthropic retry ${attemptLabel} after ${delay}ms (${errorDesc})`);
 
   setTimeout(() => {
-    streamAnthropic(arg0, arg1, options, nextRetryCount);
+    streamAnthropic(arg0, arg1, nextOptions, nextRetryCount);
   }, delay);
 }
 function streamOpenAI(
