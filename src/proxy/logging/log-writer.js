@@ -43,6 +43,10 @@ const ALLOWED_FIELDS = new Set([
   "soundEligible",
   "durationMs",
   "anomalies",
+  "emittedContent",
+  "emptyRetries",
+  "upstreamHost",
+  "sseBytes",
   // anomaly
   "code",
   "severity",

@@ -65,6 +65,7 @@ import {
 } from '../retry-utils.js';
 import { createTurnLog } from '../logging/turn-log.js';
 import { Anomaly } from '../logging/anomaly.js';
+import { logEvent } from '../logging/log-writer.js';
 import { createStreamLifecycle } from './stream-lifecycle.js';
 import { StreamEnd, classifyStreamEnd, shouldRetry } from './stream-end.js';
 
@@ -607,6 +608,17 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       toolsOffered: tmp5 ? tmp5.map((arg02) => arg02.name).filter(Boolean) : [],
       toolChoice: tmp6 ? JSON.stringify(tmp6) : undefined,
     },
+  });
+  // 一轮的起始记录。没有它，中途死掉的轮次只剩若干 anomaly（实测 4 个孤儿轮），
+  // 也算不出「发起数 vs 完成数」。route 与 upstreamHost 此刻尚未确定，由 chat_turn 承载。
+  logEvent({
+    type: 'turn_start',
+    turnId: tmp9,
+    target: tmp19,
+    initiator: tmp8 || 'unknown',
+    promptLen: tmp3.length,
+    model: tmp11,
+    byokSlot: effectiveSlot,
   });
   if (tmp4.length > 0) {
     const tmp02 = tmp4.map((arg02) => arg02.role).join(',');
@@ -1349,6 +1361,8 @@ function streamAnthropic(
       stopReason: processor.stopReason,
       toolsCalled: processor.getToolsCalled(),
       usage: processor.getUsage(),
+      emittedContent: processor.emittedContent,
+      sseBytes,
     });
   };
   const logAnthropicUsage = () => {
@@ -1436,12 +1450,24 @@ function streamAnthropic(
       let sseBuffer = '';
       if (arg02.statusCode !== 200) {
         console.error('  ❌ Anthropic API returned ' + arg02.statusCode);
-        turnLog?.anomaly(Anomaly.UPSTREAM_ERROR_STATUS, String(arg02.statusCode));
         let tmp02 = '';
         arg02.setEncoding('utf8');
         arg02.on('data', (arg03) => (tmp02 += arg03));
         arg02.on('end', () => {
-          console.error('  ❌ Body: ' + sanitizeLogBody(tmp02));
+          const bodyText = sanitizeLogBody(tmp02);
+          console.error('  ❌ Body: ' + bodyText);
+          // 在读完响应体后打标：只有这时才拿得到网关为何报错。
+          turnLog?.anomaly(
+            Anomaly.UPSTREAM_ERROR_STATUS,
+            'status=' +
+              arg02.statusCode +
+              ' host=' +
+              tmp12.host +
+              ' attempt=' +
+              retryCount +
+              ' body=' +
+              String(bodyText).slice(0, 512)
+          );
           const tmp03 = buildProviderErrorMessage('Anthropic', arg02.statusCode, tmp02);
 
           // 网关不支持 cache_control：标记能力后立即无缓存重试（不计入重试次数/熔断）
@@ -1508,6 +1534,12 @@ function streamAnthropic(
               ANTHROPIC_SSE_IDLE_TIMEOUT_MS +
               'ms without data'
           );
+          // 这一类失败原本既不打标也不 finish，在日志里完全不可见（OpenAI 路有）。
+          turnLog?.anomaly(
+            Anomaly.STREAM_IDLE_TIMEOUT,
+            'idle ' + ANTHROPIC_SSE_IDLE_TIMEOUT_MS + 'ms bytes=' + sseBytes
+          );
+          finishTurnLog();
           tmp18.fail('[Anthropic Stream Timeout]');
           arg02.destroy();
         }, ANTHROPIC_SSE_IDLE_TIMEOUT_MS);
@@ -1639,6 +1671,8 @@ function streamAnthropic(
         tmp22 = true;
         fn();
         if (tmp18.wasClosedByClient()) {
+          turnLog?.anomaly(Anomaly.CLIENT_CLOSED, 'client closed (aborted)');
+          finishTurnLog();
           return;
         }
         console.error('  ❌ Anthropic stream aborted before completion');
@@ -1650,6 +1684,8 @@ function streamAnthropic(
         tmp22 = true;
         fn();
         if (tmp18.wasClosedByClient()) {
+          turnLog?.anomaly(Anomaly.CLIENT_CLOSED, 'client closed (stream error)');
+          finishTurnLog();
           return;
         }
         console.error('  ❌ Anthropic stream error: ' + arg03.message);
@@ -1661,6 +1697,8 @@ function streamAnthropic(
   );
   tmp17.setTimeout(ANTHROPIC_REQUEST_TIMEOUT_MS, () => {
     if (tmp18.wasClosedByClient()) {
+      turnLog?.anomaly(Anomaly.CLIENT_CLOSED, 'client closed (request timeout)');
+      finishTurnLog();
       return;
     }
     console.error('  ❌ Anthropic request timeout after ' + ANTHROPIC_REQUEST_TIMEOUT_MS + 'ms');
@@ -1691,6 +1729,8 @@ function streamAnthropic(
       tmp18.wasClosedByClient() &&
       (arg02.code === 'ECONNRESET' || arg02.code === 'ECONNABORTED')
     ) {
+      turnLog?.anomaly(Anomaly.CLIENT_CLOSED, 'client closed (' + arg02.code + ')');
+      finishTurnLog();
       return;
     }
     const tmp1 = describeNetworkError(arg02, tmp12.host, tmp12.parsed.port);
