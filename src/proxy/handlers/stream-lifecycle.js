@@ -1,6 +1,5 @@
-// 客户端响应的写入与资源生命周期：心跳、幂等收尾、失败收尾、客户端断开侦测。
-// 从 chat.js 原样搬迁（见 docs/superpowers/specs/2026-07-30-empty-stream-and-log-diagnostics-design.md 3.5），
-// 本次搬迁不改任何逻辑，便于 diff 逐行核对。
+// 客户端响应的写入与资源生命周期：心跳、幂等收尾、失败收尾、客户端断开侦测、detach 回收。
+// 从 chat.js 原样搬迁（见 docs/superpowers/specs/2026-07-30-empty-stream-and-log-diagnostics-design.md 3.5）。
 import { buildErrorChunk, buildStopChunk, buildTextDelta, STOP_REASON } from './build-response.js';
 import { endOfStreamEnvelope, wrapEnvelope } from '../connect.js';
 
@@ -73,7 +72,7 @@ export function createStreamLifecycle(arg0, fn, arg2, arg3, arg4, tmp0 = {}) {
     }
     return fn4(arg1);
   };
-  arg0.on('close', () => {
+  const onClientClose = () => {
     if (arg0.writableEnded || tmp5) {
       return;
     }
@@ -88,12 +87,20 @@ export function createStreamLifecycle(arg0, fn, arg2, arg3, arg4, tmp0 = {}) {
       }
       tmp02.destroy();
     }
-  });
+  };
+  arg0.on('close', onClientClose);
+  // 重试路径既不 finalize 也不 fail，必须由调用方显式回收资源：
+  // 心跳定时器不停就会持续向客户端写空 delta，close 监听不摘就会随重试累积。
+  const detach = () => {
+    fn2();
+    arg0.removeListener('close', onClientClose);
+  };
   const tmp15 = {
     safeWrite: fn3,
     finalize: fn4,
     fail: tmp14,
     startHeartbeat: tmp10,
+    detach,
     wasClosedByClient: () => tmp5,
   };
   return tmp15;

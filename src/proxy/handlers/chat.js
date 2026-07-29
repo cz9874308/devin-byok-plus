@@ -1428,6 +1428,7 @@ function streamAnthropic(
               'retry',
               'Anthropic prompt cache unsupported — retrying without cache_control'
             );
+            tmp18.detach();
             streamAnthropic(
               arg0,
               arg1,
