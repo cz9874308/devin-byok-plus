@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "test": "node --test test/**/*.test.mjs",
+    "logs:report": "node scripts/analyze-logs.mjs",
     "build": "node scripts/build.js",
     "package": "node scripts/package.js",
     "release": "node scripts/release.js",
