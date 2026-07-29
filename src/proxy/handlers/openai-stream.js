@@ -49,9 +49,13 @@ export class OpenAIStreamProcessor {
     this._allowedTools = null;
     this._usage = null;
     this._soundEligible = true;
+    this._toolsCalled = [];
   }
   getUsage() {
     return this._usage;
+  }
+  getToolsCalled() {
+    return this._toolsCalled.slice();
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
@@ -248,6 +252,7 @@ export class OpenAIStreamProcessor {
       this._stopReason = "stop";
     }
     const tmp3 = tmp1.map(arg0 => arg0.name).filter(Boolean);
+    this._toolsCalled = tmp3.slice();
     if (tmp3.length > 0) {
       console.log("  🔧 Tools called: [" + tmp3.join(", ") + "]");
     } else if (this._stopReason === "stop") {
@@ -349,9 +354,13 @@ export class ChatCompletionsStreamProcessor {
     this._allowedTools = null;
     this._usage = null;
     this._soundEligible = true;
+    this._toolsCalled = [];
   }
   getUsage() {
     return this._usage;
+  }
+  getToolsCalled() {
+    return this._toolsCalled.slice();
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
@@ -473,6 +482,7 @@ export class ChatCompletionsStreamProcessor {
       this._stopReason = "stop";
     }
     const tmp3 = tmp1.map(arg0 => arg0.name).filter(Boolean);
+    this._toolsCalled = tmp3.slice();
     const tmp4 = this._mapStopReason(this._stopReason);
     tmp0.push(buildStopChunk(this._messageId, tmp4, this._modelUid));
     this._done = true;

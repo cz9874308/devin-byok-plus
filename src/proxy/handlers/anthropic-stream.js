@@ -76,6 +76,7 @@ export class AnthropicStreamProcessor {
         this._emittedToolCall = false;
         this._usage = null;
         this._soundEligible = true;
+        this._toolsCalled = [];
     }
 
     setSoundEligible(v) {
@@ -84,6 +85,10 @@ export class AnthropicStreamProcessor {
 
     getUsage() {
         return this._usage;
+    }
+
+    getToolsCalled() {
+        return this._toolsCalled.slice();
     }
 
     processEvent(tmp0) {
@@ -187,6 +192,7 @@ export class AnthropicStreamProcessor {
             };
             tmp1.push(buildToolCallDelta(this._messageId, [tmp12]));
             emitToolCall(tmp12.name, tmp12.arguments_json, tmp12.id, this._targetId);
+            this._toolsCalled.push(tmp12.name);
             this._emittedToolCall = true;
             this._toolId = null;
             this._toolName = null;
@@ -213,6 +219,7 @@ export class AnthropicStreamProcessor {
                 tmp0.push(buildToolCallDelta(this._messageId, tmp03));
                 for (const tmp04 of tmp03) {
                     emitToolCall(tmp04.name, tmp04.arguments_json, tmp04.id, this._targetId);
+                    this._toolsCalled.push(tmp04.name);
                 }
                 this._stopReason = "tool_use";
             } else {
