@@ -104,14 +104,25 @@
 - `anthropic-stream.js`：新增私有 `_emittedContent`，在 `_emitTextChunk`（文本落给客户端处）与 tool_use 块写出处置为 `true`；暴露 `get emittedContent()`。
 - 该标记只增不减，语义是「本轮是否已有任何内容抵达客户端」。
 
-### 3.2 新模块 `src/proxy/handlers/empty-stream.js`
+### 3.2 新模块 `src/proxy/handlers/stream-end.js`
 
-纯函数，不 import 任何业务模块，可独立单测：
+模块名取 `stream-end` 而不是 `empty-stream`：它的职责是「判定流是怎么结束的」，空流只是四种结果之一。用 `empty-stream` 会让 `partial`/`normal` 的逻辑放进来时名不副实。
+
+纯函数，不 import 任何业务模块，可独立单测。对外三个导出：
 
 ```js
-classifyStreamEnd({ isDone, emittedContent, closedByClient }); // 'closed' | 'normal' | 'empty' | 'partial'
-shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
+export const StreamEnd = Object.freeze({
+  CLOSED: 'closed',   // 客户端主动关闭
+  NORMAL: 'normal',   // 收到终止事件
+  EMPTY: 'empty',     // 无终止事件且零内容写出
+  PARTIAL: 'partial', // 无终止事件但已写出内容
+});
+
+classifyStreamEnd({ isDone, emittedContent, closedByClient }); // → StreamEnd.*
+shouldRetry(kind, attempt, max);                               // → boolean
 ```
+
+返回值用冻结常量而非裸字符串，与既有 `anomaly.js` 的 `Severity` 保持同一风格；`shouldRetry` 不叫 `shouldRetryEmptyStream`，模块名已提供上下文，函数名里再重复一次是冗余。
 
 分类语义：
 
@@ -129,10 +140,13 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 - 触发点：`chat.js:1632-1658` 的 `res.on('end')` 分支，按 `classifyStreamEnd` 结果分流。
 - 次数：默认最多 2 次，由 `EMPTY_STREAM_MAX_RETRIES` 控制。
 - 延迟：固定 `1s / 3s`，不引入新的可配置延迟表。
-- **独立计数器** `emptyStreamRetryCount`，与 HTTP 层的 `retryCount` 分开累计。理由：两者共用配额会让空流重试挤掉 503 重试，而 503 重试的 18/25 恢复率是现在唯一有效的自愈机制，不能被削弱。
-- 复用既有的 `streamAnthropic(..., retryCount)` 递归入口重发，请求体不变（因此 prompt cache 更可能命中，重发成本低于首次）。
+- **独立计数器** `emptyRetries`，与 HTTP 层的 `retryCount` 分开累计。理由：两者共用配额会让空流重试挤掉 503 重试，而 503 重试的 18/25 恢复率是现在唯一有效的自愈机制，不能被削弱。
+- **重试入口只有一个**：扩展既有 `retryAnthropicRequest(req, res, options, count, statusCode, error)` 为接受 `{ reason, delayMs }` 可选项，空流复用它，不新写第二套 `setTimeout` + 递归代码。两套重试代码是这类模块最常见的腐化来源。
+- 请求体不变（因此 prompt cache 更可能命中，重发成本低于首次）。
 - 每次触发落一条 `empty_stream`（high），detail 含 `attempt=N/M`、上游主机、已收字节数。
-- `shouldRetryAnthropicRequest` 的 `hasReceivedData` 判定**不改动**，避免影响现有 HTTP 层重试行为。
+- `shouldRetryAnthropicRequest` 的 `hasReceivedData` 判定**不改动**。这里有个必须写明的因果：空流时 `hasReceivedData` 为 `true`（确实收到过 SSE 字节），所以 HTTP 层重试天然不会介入 —— 这正是空流需要独立通道的原因，而不是可以顺手复用 HTTP 层判定。
+- **重试预算**：重发前检查客户端是否仍连接（`wasClosedByClient()` 为真则不重试）。两次重试的额外延迟为 1s + 3s，加上上游重新处理时间，须落在客户端 `COMPLETION_TIMEOUT_MS`（当前 180000）之内；实现时把已耗时纳入判断，避免重试把一轮拖过客户端超时 —— 那会用一种更差的失败替换原来的失败。
+- **状态隔离**：递归重发会新建 `processor`（`chat.js:1419`），`_emittedContent` 随之重置，不会被上一次尝试污染；`turnLog` 透传复用同一个（`finish` 幂等），因此一轮多次尝试仍只产出一条 `chat_turn`。`emitChatStart` 在 `handleGetChatMessage` 里，不在重发路径上，不会重复触发。
 
 ### 3.4 重试耗尽
 
@@ -142,7 +156,20 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 - `emitChatEnd` 不再以自然结束语义触发，完成声音不再误响。
 - 落 `empty_stream_exhausted`（high）并 `finishTurnLog`。
 
-### 3.5 OpenAI 路
+### 3.5 lifecycle 资源清理（前置条件）
+
+**这是空流重试的硬前置，漏了就会破功能。** `createStreamLifecycle`（`chat.js:698-790`）目前对外只有 `safeWrite / finalize / fail / startHeartbeat / wasClosedByClient`，没有停止心跳的出口。心跳 `setInterval` 仅在自己的回调里自检 `finalized || writableEnded || closedByClient` 才 `clearInterval`，而空流重试既不 `finalize` 也不 `fail`，三个条件都不成立：
+
+- 旧 lifecycle 的心跳会持续每 3 秒向客户端写空 text delta，重试两次即三个心跳并存。
+- 每次重建 lifecycle 都会给同一个客户端响应对象追加一个 `close` 监听，监听数随重试累积。
+
+现有的 prompt cache 重试（`chat.js:1512-1542`）没暴露这个问题，只是因为它发生在 `startHeartbeat()` 之前的非 200 分支；空流重试发生在 200 之后，必然踩中。
+
+方案：给 lifecycle 增加 `detach()`，做两件事 —— `clearInterval` 心跳、`removeListener` 掉自己注册的 `close` 监听。空流重试与 prompt cache 重试在递归前都必须先调 `detach()`。资源由 lifecycle 自己回收，调用方不需要知道内部有几个定时器，这也是它本该有的对称接口（有 `startHeartbeat` 却没有对应的停止方法本身就是缺陷）。
+
+同时把 `createStreamLifecycle` 从 `chat.js` 搬到独立模块 `src/proxy/handlers/stream-lifecycle.js` 并导出：它是一个自洽的资源与写入生命周期管理者，与聊天转发逻辑无关，留在 2394 行的 `chat.js` 里既无法单测也让文件继续膨胀。**纯搬迁，除新增 `detach()` 外不改任何逻辑**，diff 可逐行核对。
+
+### 3.6 OpenAI 路
 
 `classifyStreamEnd` 是纯函数，接到 OpenAI 路（`chat.js:1182-1200` 的 `forcing stop` 分支）几乎零成本。**决定一并接入**，理由是留一条未修的同类路径将来必然复现同一个 bug。当前样本里 OpenAI 路占比为 0，所以它排在实施阶段 2，anthropic 路先落地验证。若不认可可以砍掉，不影响阶段 1。
 
@@ -167,7 +194,7 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 | 字段 | 说明 |
 | --- | --- |
 | `emittedContent` | 本轮是否有内容抵达客户端 |
-| `emptyStreamRetryCount` | 空流重试次数（与 `retryCount` 分列） |
+| `emptyRetries` | 空流重试次数（与 `retryCount` 分列） |
 | `upstreamHost` | 生效的上游主机（`host:port`），排查多槽位/多网关时必需 |
 | `sseBytes` | 本轮收到的上游 SSE 字节数，空流时为区分「完全没数据」与「只有 message_start」的关键 |
 
@@ -199,8 +226,10 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 
 ### 5.3 实现约束
 
-- 核心 `aggregate(lines)` 是纯函数（输入字符串数组，输出统计对象），单测直接喂假数据，不碰文件系统。脚本本体只做「读文件 → 调 aggregate → 打印」。
+- **一个函数只算一件事**：拆成 `summarize(events)`、`groupAnomalies(events)`、`listBrokenTurns(events)`、`recoveryRate(events)` 四个纯函数，`aggregate(lines)` 只做「解析 + 组合」。四个子函数各自可单测，不用通过一个大对象间接断言。
+- 全部为纯函数（输入事件数组，输出统计对象），不碰文件系统；脚本本体只做「读文件 → 调 aggregate → 打印」。
 - 单行 `JSON.parse` 失败必须跳过并计入 `malformed` 计数，不能让一行坏数据搞挂整个报告。
+- **不做旧格式兼容**：脚本只识本次定义的新 schema（结构化 detail、`turn_start`、新字段）。旧日志里缺字段的行按「无此数据」处理，不为它写双分支估算逻辑。日志只保留 7 天，兼容代码的寿命比数据本身还长，不值得。
 - 日志文件名用 UTC 日期（`src/proxy/logging/log-file.js:24-29`），UTC+8 下看起来差一天。**不改命名**（会让历史文件断档），改为在脚本里做时区换算：`--date` 按本地日期解释，内部映射到可能涉及的 UTC 文件（跨界时读两个文件）。
 
 ## 6. 配置
@@ -218,22 +247,31 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 1. **HTTP 层重试行为不变**：`shouldRetryAnthropicRequest`、`isRetriableError`、`calculateRetryDelay`、熔断阈值一律不动。503 的 18/25 自愈率是回归基线。
 2. **`partial` 路径行为不变**：已写出内容的轮次仍旧伪造 `message_stop` 收尾，绝不重试。
 3. **客户端主动关闭不产生错误**：`wasClosedByClient()` 为真时只记录，不写错误块、不报 fail。
-4. **日志调用不得抛错**：新增的 anomaly/字段调用沿用 `turn-log.js` 的全裹 `try/catch` 语义；`empty-stream.js` 是纯函数，对畸形入参返回 `partial`（最保守的分类）而不是抛异常。
-5. **`empty-stream.js` 不 import 业务模块**，保持可单测与无循环依赖。
+4. **日志调用不得抛错**：新增的 anomaly/字段调用沿用 `turn-log.js` 的全裹 `try/catch` 语义；`stream-end.js` 是纯函数，对畸形入参返回 `StreamEnd.PARTIAL`（最保守的分类）而不是抛异常。
+5. **`stream-end.js` 不 import 业务模块**，保持可单测与无循环依赖。
 6. **分析脚本只读**：不写、不删、不改任何日志文件。
+7. **心跳与监听不得叠加**：任何时刻一个客户端响应上只能有一个活跃心跳定时器与一个 `close` 监听（见 3.5）。这是重试类改动最容易造成隐性功能破坏的地方。
+8. **`stream-lifecycle.js` 是纯搬迁**：除 `detach()` 外不得附带任何行为修改，搬迁与修复分两步提交，便于出问题时二分。
+9. **不为旧日志格式写兼容分支**（见 5.3）。
 
 ## 8. 测试
 
 沿用现有 `.mjs` + node 内建 runner 风格，置于 `test/unit/`。
 
-**`empty-stream.test.mjs`**（新）
-- 四种分类的判定：`closed` / `normal` / `empty` / `partial`
+**`stream-end.test.mjs`**（新）
+- 四种分类的判定：`CLOSED` / `NORMAL` / `EMPTY` / `PARTIAL`
 - `closedByClient` 优先于其它条件
-- `shouldRetryEmptyStream`：`empty` 且未达上限为真；`partial`、`normal` 恒为假；`maxRetries=0` 恒为假
-- 畸形入参（`undefined`、非对象）返回 `partial` 且不抛
+- `shouldRetry`：`EMPTY` 且未达上限为真；`PARTIAL`、`NORMAL`、`CLOSED` 恒为假；`max=0` 恒为假
+- 畸形入参（`undefined`、非对象）返回 `PARTIAL` 且不抛
+
+**`stream-lifecycle.test.mjs`**（新，搬迁后才能写）
+- `detach()` 后心跳不再向假响应写入（用假定时器/推进时间验证）
+- `detach()` 后 `close` 监听数归零，重复调用幂等不抛
+- `finalize` / `fail` 幂等（第二次调用返回 false、不重复写入）
 
 **`analyze-logs.test.mjs`**（新）
-- `aggregate` 对构造的 JSONL 行产出正确的计数与清单
+- `summarize` / `groupAnomalies` / `listBrokenTurns` / `recoveryRate` 各自单测
+- `aggregate` 对构造的 JSONL 行产出正确的组合结果
 - 坏行计入 `malformed` 且不影响其余统计
 - 孤儿轮识别：有 `turn_start` 无 `chat_turn`
 
@@ -250,30 +288,34 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 | --- | --- |
 | 空流重试重复消耗 prompt cache 写入（实测 19K-122K token/次） | 上限 2 次；仅零内容写出时触发；重发请求体不变，cache 命中率更高，实际成本低于首次 |
 | 空流重试与 HTTP 重试互相耗尽配额 | 两个计数器完全分离（3.3） |
-| `emittedContent` 标记漏置导致误重试、产生重复文本 | 标记点集中在 `_emitTextChunk` 与 tool_use 写出两处；`partial` 是默认保守分类；单测覆盖 |
+| `emittedContent` 标记漏置导致误重试、产生重复文本 | 标记点集中在 `_emitTextChunk` 与 tool_use 写出两处；`StreamEnd.PARTIAL` 是默认保守分类；单测覆盖 |
 | 报错替代静默成功后，用户感知到的失败变多 | 这是预期效果：原本的「静默成功」才是更坏的失败。日志能证明这些轮次本来就没有产出 |
 | 新字段被白名单静默丢弃 | 4.2 明确要求同步 `ALLOWED_FIELDS`，并由 `log-writer.test.mjs` 断言新字段可落盘 |
 | 改动集中在 2394 行的 `chat.js`，回归面大 | 判定逻辑全部外移到纯函数模块；`chat.js` 内只做分流与调用，diff 保持小而集中 |
 
 ## 10. 实施阶段
 
+**阶段 0（前置，无行为变更）**
+1. `createStreamLifecycle` 纯搬迁到 `stream-lifecycle.js`（单独一个提交，便于二分）
+2. 新增 `detach()` + `stream-lifecycle.test.mjs`；现有 prompt cache 重试路径递归前调用 `detach()`
+
 **阶段 1（核心，anthropic 路）**
-1. `empty-stream.js` + 单测
-2. `anthropic-stream.js` 的 `emittedContent`
-3. `chat.js` anthropic `end` 分支分流 + 空流重试 + 耗尽报错
-4. `anomaly.js` 三个新 code + 单测
+3. `stream-end.js` + 单测
+4. `anthropic-stream.js` 的 `emittedContent`
+5. `anomaly.js` 三个新 code + 单测
+6. `chat.js` anthropic `end` 分支分流 + 空流重试（走 `retryAnthropicRequest` 单入口）+ 耗尽报错
 
 **阶段 2（可观测与 openai 路）**
-5. 503 响应体、`forced_stop` 上下文、Anthropic idle timeout 打标、`client_closed`、`turn_start`、新字段 + `ALLOWED_FIELDS`
-6. OpenAI 路接入 `classifyStreamEnd`
+7. 503 响应体、`forced_stop` 上下文、Anthropic idle timeout 打标、`client_closed`、`turn_start`、新字段 + `ALLOWED_FIELDS`
+8. OpenAI 路接入 `classifyStreamEnd`
 
 **阶段 3（工具）**
-7. `scripts/analyze-logs.mjs` + `aggregate` 单测 + `package.json` 脚本入口
+9. `scripts/analyze-logs.mjs`（四个纯函数 + `aggregate` 组合）+ 单测 + `package.json` 脚本入口
 
 **阶段 4（验证与交付）**
-8. 全量单测回归；假上游实机验证
-9. 同步到运行副本 `~/.windsurf/extensions/jornlin.devin-byok-plus-2.4.6/proxy-scripts/src/`（目录结构与 `src/proxy/` 一一对应），完全重启客户端验证
-10. 用 `npm run logs:report` 对比修复前后的断开分布
+10. 全量单测回归；假上游实机验证
+11. 同步到运行副本 `~/.windsurf/extensions/jornlin.devin-byok-plus-2.4.6/proxy-scripts/src/`（目录结构与 `src/proxy/` 一一对应），完全重启客户端验证
+12. 用 `npm run logs:report` 对比修复前后的断开分布
 
 ## 11. 决策记录
 
@@ -285,3 +327,19 @@ shouldRetryEmptyStream(kind, retryCount, maxRetries);          // boolean
 | 分析手段 | 加只读脚本 | 本次分析靠一次性手写命令，不可复用 |
 | 日志文件命名 | 保持 UTC 不改 | 改名会让历史文件断档，时区换算放到脚本侧 |
 | OpenAI 路 | 一并接入，排在阶段 2 | 纯函数已具备，留同类未修路径将来必复现 |
+
+## 12. 评审记录（review-spec）
+
+按「不影响功能 / 单一职责 / 命名简洁 / 方法短小 / 对外 API 简洁 / 不考虑向后兼容」逐项过一遍后产生的修订：
+
+| 评审发现 | 修订 |
+| --- | --- |
+| 空流重试会遗留旧 lifecycle 的心跳与 `close` 监听（真实功能破坏，原设计遗漏） | 新增 3.5：`detach()` + 阶段 0 前置，列为不变量第 7 条 |
+| 重试可能把一轮拖过客户端超时，用更差的失败换掉原失败 | 3.3 新增重试预算与客户端连接检查 |
+| 模块名 `empty-stream` 与职责（分类四种结束）不符 | 改名 `stream-end.js` |
+| 返回裸字符串、函数名重复模块语义 | 改为冻结常量 `StreamEnd`；`shouldRetryEmptyStream` → `shouldRetry` |
+| 可能出现第二套重试调度代码 | 明确只扩展 `retryAnthropicRequest` 单入口 |
+| `aggregate` 一个函数算四类统计 | 拆为四个纯函数 + 组合 |
+| 字段名 `emptyStreamRetryCount` 过长 | → `emptyRetries` |
+| 旧日志格式兼容意图不明 | 明确不做兼容（5.3 / 不变量第 9 条） |
+| `chat.js` 收尾逻辑混乱（四路各写一遍） | 本次只做 lifecycle 搬迁这一步可控重构；`end` 回调内只做分流，四个处理函数各 ≤ 20 行。更大范围的 anthropic/openai 收尾统一另开 spec，不在本次扰动 |
