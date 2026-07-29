@@ -5,7 +5,7 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [2.5.0] - 2026-07-29
 
 ### Added
 - **结构化日志文件落盘**：新增 JSONL 日志能力，用于定位「agent 意外断开」与「未按规则调用工具」两类难复现问题。日志位于 `~/.devin-byok-plus/logs/`（`proxy-<日期>.jsonl` + `blobs/` 子目录），按日轮转、超限切分、按天清理。

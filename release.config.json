@@ -1,10 +1,14 @@
 {
-  "version": "2.4.6",
-  "releaseDate": "2026-07-26",
-  "changeType": "Fixed",
+  "version": "2.5.0",
+  "releaseDate": "2026-07-29",
+  "changeType": "Added",
   "changes": [
-    "修复 BYOK 上下文压缩阈值未随窗口配置生效：同时改写 GetUserStatus 的 field18(UI显示) 和 field23.field4(客户端压缩阈值)，解决 UI 显示 1M 但 ~150K 就自动压缩的问题",
-    "修复 context-window-rewrite 单元测试 fixtures 使用旧版 proto 结构导致 5 个测试失败"
+    "新增结构化 JSONL 日志落盘：日志位于 ~/.devin-byok-plus/logs/，按日轮转、超限切分、按天清理，用于定位 agent 意外断开与未按规则调用工具两类难复现问题",
+    "每轮对话落一条 chat_turn，记录 initiator/route/model/byokSlot/toolsOffered/toolChoice/stopReason/toolsCalled/usage/retryCount/anomalies，可按 turnId 跨进程串联",
+    "新增 14 个 anomaly 代码分三档 severity，全部挂在既有代码分支旁，不新增任何业务判定逻辑；此前这些降级路径仅打印到 stdout，进程重启即丢失",
+    "写入全异步不参与请求响应链路：常规事件攒批，severity=high 立即调度，仅在进程退出路径同步兜干以保住崩溃尾部日志",
+    "新增 4 个配置项 LOG_ENABLED/LOG_VERBOSE/LOG_MAX_MB/LOG_RETAIN_DAYS，经 /api/config 热更新，改 LOG_VERBOSE 无需重启代理",
+    "修复流式工具参数非法时无迹可查：normalizeToolInvocation 遇到被截断的 JSON arguments 时新增 argsInvalid 诊断标记并记录 tool_args_invalid_json，既有调用方行为不变"
   ],
   "breaking": false,
   "autoPackage": true,
