@@ -1940,7 +1940,7 @@ Expected: 输出 `BYOK4_ANTHROPIC_API_HOST=127.0.0.1:9099`，且备份文件存�
 
 Run（PowerShell，先备份再覆盖）：
 ```powershell
-$dst = "$env:USERPROFILE\.windsurf\extensions\jornlin.devin-byok-plus-2.4.6\proxy-scripts\src"
+$dst = "$env:USERPROFILE\.windsurf\extensions\jornlin.devin-byok-plus-2.5.0\proxy-scripts\src"
 Copy-Item $dst "$dst.emptystream-bak" -Recurse
 Copy-Item "d:\repository\devin-byok-plus\src\proxy\handlers\stream-lifecycle.js" "$dst\handlers\"
 Copy-Item "d:\repository\devin-byok-plus\src\proxy\handlers\stream-end.js" "$dst\handlers\"

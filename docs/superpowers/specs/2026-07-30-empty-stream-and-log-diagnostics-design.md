@@ -319,7 +319,7 @@ OpenAI 路只做一件事：给两个 processor 加上 `emittedContent`，并把
 
 **阶段 4（验证与交付）**
 10. 全量单测回归；假上游实机验证
-11. 同步到运行副本 `~/.windsurf/extensions/jornlin.devin-byok-plus-2.4.6/proxy-scripts/src/`（目录结构与 `src/proxy/` 一一对应），完全重启客户端验证
+11. 同步到运行副本 `~/.windsurf/extensions/jornlin.devin-byok-plus-2.5.0/proxy-scripts/src/`（目录结构与 `src/proxy/` 一一对应），完全重启客户端验证
 12. 用 `npm run logs:report` 对比修复前后的断开分布
 
 ## 11. 决策记录
