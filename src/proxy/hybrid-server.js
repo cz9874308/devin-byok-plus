@@ -15,6 +15,10 @@ import { getSlotContextWindow } from "./handlers/models.js";
 import crypto from "node:crypto";
 import { startWSBridge, getChatQueue, ackChatQueue, pushChatQueue, setActiveMonitorTarget } from "./ws-bridge.js";
 import { getLoopbackListenHosts, loopbackApiUrl } from "./net-utils.js";
+import { initLogWriter } from "./logging/log-writer.js";
+// 日志写入器在模块加载时初始化，顺带注册退出兜干（见 log-writer 的 exit/SIGINT 处理）。
+const logWriter = initLogWriter("hybrid");
+logWriter.logEvent({ type: "lifecycle", event: "proxy_start" });
 const _DEVICE_ID = process.env.PROXY_DEVICE_ID || "";
 const _SESSION_SECRET = process.env.PROXY_SESSION_SECRET || "";
 function signUpstreamRequest(arg0, arg1, arg2) {
@@ -478,6 +482,7 @@ function serveModelUI(arg0) {
 startWSBridge(server);
 function printHybridReady() {
   const tmp02 = getLoopbackListenHosts(BIND_HOST);
+  logWriter.logEvent({ type: "lifecycle", event: "port_bound", port: PORT });
   console.log("\n⚡ Devin BYOK Bridge hybrid on " + loopbackApiUrl(PORT));
   console.log("   Bind hosts: " + tmp02.join(", "));
   console.log("\n   MODE: MITM CONNECT (normal Devin Desktop, full features)");

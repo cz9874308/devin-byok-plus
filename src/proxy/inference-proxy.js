@@ -4,6 +4,10 @@ import { handleGetChatMessage } from "./handlers/chat.js";
 import { handleGetCompletions } from "./handlers/completions.js";
 import { getProviderConfig, getRuntimeConfig, setRuntimeConfig } from "./handlers/models.js";
 import { getLoopbackListenHosts, loopbackApiUrl } from "./net-utils.js";
+import { initLogWriter } from "./logging/log-writer.js";
+// 日志写入器在模块加载时初始化，顺带注册退出兜干（见 log-writer 的 exit/SIGINT 处理）。
+const logWriter = initLogWriter("inference");
+logWriter.logEvent({ type: "lifecycle", event: "proxy_start" });
 function parsePortEnv(arg0, arg1) {
   const tmp2 = process.env[arg0];
   const tmp3 = parseInt(String(tmp2 ?? ""), 10);
@@ -327,6 +331,7 @@ function onInferenceError(arg0) {
 }
 function printInferenceReady() {
   const tmp02 = getLoopbackListenHosts(BIND_HOST);
+  logWriter.logEvent({ type: "lifecycle", event: "port_bound", port: PORT });
   console.log("\n⚡ Devin BYOK Bridge inference on " + loopbackApiUrl(PORT));
   console.log("   Bind hosts: " + tmp02.join(", "));
   console.log("\n   GetChatMessage  → Anthropic API (inline AI edit)");
