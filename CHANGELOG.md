@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.6.0] - 2026-07-31
+
+### Added
+- **补回服务端下架的 BYOK 模型条目**：2026-07-31 起服务端模型目录改版，四条 BYOK 条目（`Claude Opus 4 BYOK` 等）从 `GetUserStatus` 响应中消失，下拉列表连 `Pro` 灰显都没有。载荷比对确认：当前 193 条中 BYOK 为 0，2026-07-09 为 151 条中含 4 条，同期移除 27 条（含 GPT-5 Codex 全家、`MODEL_SWE_1_5`）、新增 69 条（`claude-opus-5-*`、`gpt-5-6-*`、`adaptive` 等）。现在代理层回放 2026-07-09 抓包字节补回条目，使其恢复可选并经既有槽位路由走用户自己的网关。
+  - 注入按 `model_uid` 逐条去重：仅补服务端未下发的 uid，服务端恢复下发后自动让路，天然幂等。
+  - 四条 payload 在模块加载期自检 `model_uid` 与键名一致性，解析失败者剔除并记一次日志，不影响代理启动。
+  - 注入条目保留 `max_tokens=200000`，随后由既有上下文窗口改写逻辑处理，`BYOK{N}_CONTEXT_WINDOW` 配置自动生效。
+  - `GetUserStatus` 分支串联「①注入 → ②改窗口」，两者各自打印命中条数，失败模式可分别诊断。
+
+### Changed
+- **`GetUserStatus` 报文形状知识抽为共享模块**：新增 `userstatus-shape.js`，收敛嵌套路径 `[1,33]`、`ClientModelConfig` 字段号与无损遍历逻辑。此前这份知识 private 于 `context-window-rewrite.js`，注入功能需要同一份知识。模块以 `mapEntry`（逐条改写）/ `appendEntries`（数组级补齐）两种 handler 语义对外，两键同传直接抛错以避免隐式顺序依赖。`context-window-rewrite.js` 随之删除约 124 行私有解析器，对外签名不变。
+
 ## [2.5.0] - 2026-07-29
 
 ### Added

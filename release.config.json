@@ -1,14 +1,13 @@
 {
-  "version": "2.5.0",
-  "releaseDate": "2026-07-29",
+  "version": "2.6.0",
+  "releaseDate": "2026-07-31",
   "changeType": "Added",
   "changes": [
-    "新增结构化 JSONL 日志落盘：日志位于 ~/.devin-byok-plus/logs/，按日轮转、超限切分、按天清理，用于定位 agent 意外断开与未按规则调用工具两类难复现问题",
-    "每轮对话落一条 chat_turn，记录 initiator/route/model/byokSlot/toolsOffered/toolChoice/stopReason/toolsCalled/usage/retryCount/anomalies，可按 turnId 跨进程串联",
-    "新增 14 个 anomaly 代码分三档 severity，全部挂在既有代码分支旁，不新增任何业务判定逻辑；此前这些降级路径仅打印到 stdout，进程重启即丢失",
-    "写入全异步不参与请求响应链路：常规事件攒批，severity=high 立即调度，仅在进程退出路径同步兜干以保住崩溃尾部日志",
-    "新增 4 个配置项 LOG_ENABLED/LOG_VERBOSE/LOG_MAX_MB/LOG_RETAIN_DAYS，经 /api/config 热更新，改 LOG_VERBOSE 无需重启代理",
-    "修复流式工具参数非法时无迹可查：normalizeToolInvocation 遇到被截断的 JSON arguments 时新增 argsInvalid 诊断标记并记录 tool_args_invalid_json，既有调用方行为不变"
+    "新增 BYOK 模型条目注入：服务端于 2026-07-31 模型目录改版后不再下发四条 BYOK 条目（载荷比对：当前 193 条中 BYOK 为 0，2026-07-09 为 151 条中含 4 条），代理在 GetUserStatus 响应中回放抓包字节补回条目，使下拉列表恢复可选",
+    "注入按 model_uid 逐条去重，服务端恢复下发后自动让路；四条 payload 在模块加载期自检，解析失败者剔除且不影响代理启动",
+    "注入条目原样携带 f24=4 访问途径门控（193 样本证实：有 f24 可选、无 f24 显示为 Pro 灰显）与 max_tokens=200000，随后交由既有上下文窗口改写按 BYOK{N}_CONTEXT_WINDOW 配置调整",
+    "新增 userstatus-shape 模块统一 GetUserStatus 报文形状知识（嵌套路径、字段号、无损遍历），以 mapEntry / appendEntries 两种 handler 语义对外，两键同传直接抛错避免隐式顺序依赖",
+    "context-window-rewrite 改用共享形状模块，删除私有解析器约 100 行，对外签名不变，既有 15 个单测全绿"
   ],
   "breaking": false,
   "autoPackage": true,

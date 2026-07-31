@@ -10,6 +10,7 @@ import { handleModelsRequest, handleConfigRequest } from "./handlers/models.js";
 import { parseFields, writeStringField, writeBytesField, writeVarintField, writeFixed64Field, writeFixed32Field } from "./proto.js";
 import { tryGunzip, gzipSync } from "./connect.js";
 import { rewriteUserStatusContextWindow } from "./handlers/context-window-rewrite.js";
+import { injectMissingByokEntries } from "./handlers/byok-entry-inject.js";
 import { getByokSlot } from "./handlers/byok-slots.js";
 import { getSlotContextWindow } from "./handlers/models.js";
 import crypto from "node:crypto";
@@ -206,10 +207,18 @@ function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
           try {
             const tmp04 = tryGunzip(tmp03);
             if (tmp04) {
-              const tmp14 = rewriteUserStatusContextWindow(tmp04, resolveContextWindowByModelUid);
+              // ① 补回服务端已下架的 BYOK 条目(存在性)
+              const injected = injectMissingByokEntries(tmp04);
+              if (injected.changed) {
+                console.log("  [#" + arg3 + "] 🔄 GetUserStatus BYOK entries injected (x" + injected.count + ")");
+              }
+              // ② 改写上下文窗口(数值) —— 注入条目在此一并被处理
+              const tmp14 = rewriteUserStatusContextWindow(injected.buffer, resolveContextWindowByModelUid);
               if (tmp14.changed) {
-                tmp03 = gzipSync(tmp14.buffer);
                 console.log("  [#" + arg3 + "] 🔄 GetUserStatus contextWindow rewritten (x" + tmp14.count + ")");
+              }
+              if (injected.changed || tmp14.changed) {
+                tmp03 = gzipSync(tmp14.buffer);
               }
             }
           } catch (tmp04) {
