@@ -17,11 +17,13 @@ test("high 集合与 spec 第 6 节一致", () => {
     Anomaly.REQUEST_TIMEOUT,
     Anomaly.FORCED_STOP,
     Anomaly.UPSTREAM_ERROR_STATUS,
+    Anomaly.EMPTY_STREAM,
+    Anomaly.EMPTY_STREAM_EXHAUSTED,
   ];
   for (const code of high) {
     assert.equal(severityOf(code), Severity.HIGH, code + " 应为 high");
   }
-  assert.equal(high.length, 6);
+  assert.equal(high.length, 8);
 });
 
 test("medium 集合正确", () => {
@@ -41,10 +43,11 @@ test("medium 集合正确", () => {
 test("low 集合正确", () => {
   assert.equal(severityOf(Anomaly.TOOL_NAME_AUTOCORRECTED), Severity.LOW);
   assert.equal(severityOf(Anomaly.TOOL_UNKNOWN_PASSTHROUGH), Severity.LOW);
+  assert.equal(severityOf(Anomaly.CLIENT_CLOSED), Severity.LOW);
 });
 
-test("共 14 个 anomaly 代码", () => {
-  assert.equal(Object.keys(Anomaly).length, 14);
+test("共 17 个 anomaly 代码", () => {
+  assert.equal(Object.keys(Anomaly).length, 17);
 });
 
 test("未知 code 归为 low, 不抛异常", () => {

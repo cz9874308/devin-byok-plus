@@ -78,6 +78,7 @@ export class AnthropicStreamProcessor {
         this._usage = null;
         this._soundEligible = true;
         this._toolsCalled = [];
+        this._emittedContent = false;
         this._turnLog = null;
     }
 
@@ -95,6 +96,12 @@ export class AnthropicStreamProcessor {
 
     getToolsCalled() {
         return this._toolsCalled.slice();
+    }
+
+    // 是否已有任何正文/工具调用抵达客户端。只增不减。
+    // 空流重试的安全前提就是它为 false（见 spec 3.1）。
+    get emittedContent() {
+        return this._emittedContent;
     }
 
     processEvent(tmp0) {
@@ -204,6 +211,7 @@ export class AnthropicStreamProcessor {
             emitToolCall(tmp12.name, tmp12.arguments_json, tmp12.id, this._targetId);
             this._toolsCalled.push(tmp12.name);
             this._emittedToolCall = true;
+            this._emittedContent = true;
             this._toolId = null;
             this._toolName = null;
             this._toolArgsBuffer = "";
@@ -232,6 +240,7 @@ export class AnthropicStreamProcessor {
                     emitToolCall(tmp04.name, tmp04.arguments_json, tmp04.id, this._targetId);
                     this._toolsCalled.push(tmp04.name);
                 }
+                this._emittedContent = true;
                 this._stopReason = "tool_use";
             } else {
                 this._restoreInterceptedText(tmp0);
@@ -280,6 +289,7 @@ export class AnthropicStreamProcessor {
             return;
         }
         this._tokenCount++;
+        this._emittedContent = true;
         tmp1.push(buildTextDelta(this._messageId, tmp0, this._tokenCount));
         emitAIText(tmp0, true, this._targetId);
     }

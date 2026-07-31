@@ -51,12 +51,18 @@ export class OpenAIStreamProcessor {
     this._usage = null;
     this._soundEligible = true;
     this._toolsCalled = [];
+    this._emittedContent = false;
   }
   getUsage() {
     return this._usage;
   }
   getToolsCalled() {
     return this._toolsCalled.slice();
+  }
+  // 是否已有任何正文/工具调用抵达客户端。只增不减。
+  // 本路不做空流重试，标记仅用于让 forced_stop 在日志里可区分空流与半截内容。
+  get emittedContent() {
+    return this._emittedContent;
   }
   setAllowedTools(tmp0) {
     this._allowedTools = new Set(tmp0);
@@ -223,6 +229,7 @@ export class OpenAIStreamProcessor {
       if (tmp02.length > 0) {
         tmp1.push(...tmp02);
         tmp0.push(buildToolCallDelta(this._messageId, tmp02));
+        this._emittedContent = true;
         this._stopReason = "tool_calls";
       } else {
         console.log("  ⚠️  All tool calls filtered out — falling back to text output");
@@ -247,6 +254,7 @@ export class OpenAIStreamProcessor {
         });
         tmp1.push(...tmp03);
         tmp0.push(buildToolCallDelta(this._messageId, tmp03));
+        this._emittedContent = true;
         this._stopReason = "tool_calls";
       } else {
         this._restoreInterceptedText(tmp0);
@@ -311,6 +319,7 @@ export class OpenAIStreamProcessor {
       return;
     }
     this._tokenCount++;
+    this._emittedContent = true;
     tmp1.push(buildTextDelta(this._messageId, tmp0, this._tokenCount));
     emitAIText(tmp0, true, this._targetId);
   }
@@ -364,6 +373,7 @@ export class ChatCompletionsStreamProcessor {
     this._usage = null;
     this._soundEligible = true;
     this._toolsCalled = [];
+    this._emittedContent = false;
     this._turnLog = null;
   }
   getUsage() {
@@ -371,6 +381,10 @@ export class ChatCompletionsStreamProcessor {
   }
   getToolsCalled() {
     return this._toolsCalled.slice();
+  }
+  // 含义同 OpenAIStreamProcessor：是否已有内容抵达客户端。
+  get emittedContent() {
+    return this._emittedContent;
   }
   setTurnLog(ctx) {
     this._turnLog = ctx || null;
@@ -471,6 +485,7 @@ export class ChatCompletionsStreamProcessor {
       if (tmp02.length > 0) {
         tmp1.push(...tmp02);
         tmp0.push(buildToolCallDelta(this._messageId, tmp02));
+        this._emittedContent = true;
         this._stopReason = "tool_calls";
       } else {
         this._turnLog?.anomaly(Anomaly.TOOLS_ALL_FILTERED, "fallback to text");
@@ -488,6 +503,7 @@ export class ChatCompletionsStreamProcessor {
         }));
         tmp1.push(...tmp03);
         tmp0.push(buildToolCallDelta(this._messageId, tmp03));
+        this._emittedContent = true;
         this._stopReason = "tool_calls";
       } else {
         this._restoreInterceptedText(tmp0);
@@ -545,6 +561,7 @@ export class ChatCompletionsStreamProcessor {
       return;
     }
     this._tokenCount++;
+    this._emittedContent = true;
     tmp1.push(buildTextDelta(this._messageId, tmp0, this._tokenCount));
     emitAIText(tmp0, true, this._targetId);
   }

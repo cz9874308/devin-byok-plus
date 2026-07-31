@@ -15,6 +15,8 @@ export const Anomaly = Object.freeze({
   REQUEST_TIMEOUT: "request_timeout",
   FORCED_STOP: "forced_stop",
   UPSTREAM_ERROR_STATUS: "upstream_error_status",
+  EMPTY_STREAM: "empty_stream",
+  EMPTY_STREAM_EXHAUSTED: "empty_stream_exhausted",
   // medium — 重试/熔断/工具降级
   RETRY: "retry",
   CIRCUIT_BREAKER: "circuit_breaker",
@@ -22,9 +24,10 @@ export const Anomaly = Object.freeze({
   TOOLS_ALL_FILTERED: "tools_all_filtered",
   TOOL_RECOVERED_FROM_TEXT: "tool_recovered_from_text",
   TOOL_ARGS_INVALID_JSON: "tool_args_invalid_json",
-  // low — 名称纠正/透传
+  // low — 名称纠正/透传/客户端主动关闭
   TOOL_NAME_AUTOCORRECTED: "tool_name_autocorrected",
   TOOL_UNKNOWN_PASSTHROUGH: "tool_unknown_passthrough",
+  CLIENT_CLOSED: "client_closed",
 });
 
 const SEVERITY_BY_CODE = Object.freeze({
@@ -34,6 +37,8 @@ const SEVERITY_BY_CODE = Object.freeze({
   [Anomaly.REQUEST_TIMEOUT]: Severity.HIGH,
   [Anomaly.FORCED_STOP]: Severity.HIGH,
   [Anomaly.UPSTREAM_ERROR_STATUS]: Severity.HIGH,
+  [Anomaly.EMPTY_STREAM]: Severity.HIGH,
+  [Anomaly.EMPTY_STREAM_EXHAUSTED]: Severity.HIGH,
   [Anomaly.RETRY]: Severity.MEDIUM,
   [Anomaly.CIRCUIT_BREAKER]: Severity.MEDIUM,
   [Anomaly.TOOL_CALLS_DOWNGRADED]: Severity.MEDIUM,
@@ -42,6 +47,7 @@ const SEVERITY_BY_CODE = Object.freeze({
   [Anomaly.TOOL_ARGS_INVALID_JSON]: Severity.MEDIUM,
   [Anomaly.TOOL_NAME_AUTOCORRECTED]: Severity.LOW,
   [Anomaly.TOOL_UNKNOWN_PASSTHROUGH]: Severity.LOW,
+  [Anomaly.CLIENT_CLOSED]: Severity.LOW,
 });
 
 // 未知 code 一律归 low，绝不抛异常（日志代码不得打断业务）。
