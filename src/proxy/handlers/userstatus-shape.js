@@ -24,7 +24,7 @@ export function parseWithRaw(buf) {
     if (field === 0) {
       break;
     }
-    let value = null;
+    let value;
     switch (wireType) {
       case 0: {
         const dec = decodeVarint(buf, pos);
