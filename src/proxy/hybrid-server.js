@@ -351,7 +351,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp03 = JSON.parse(tmp02.toString());
         pushChatQueue(tmp03.text || "", !!tmp03.hasImage, tmp03.targetId || null);
-      } catch { }
+      } catch {}
       arg1.writeHead(200, {
         "content-type": "application/json",
         "access-control-allow-origin": "*"
@@ -364,7 +364,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.targetId || null;
-      } catch { }
+      } catch {}
       const tmp1 = setActiveMonitorTarget(tmp03);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -384,7 +384,7 @@ function handleRequest(arg0, arg1) {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.id || null;
         tmp1 = tmp04.targetId || null;
-      } catch { }
+      } catch {}
       ackChatQueue(tmp03, tmp1);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -524,7 +524,7 @@ if (tmp0.length === 1) {
   server.listen(PORT, tmp0[0], printHybridReady);
   server.on("error", onHybridError);
 } else {
-  server.listen(PORT, tmp0[0], () => { });
+  server.listen(PORT, tmp0[0], () => {});
   server.on("error", onHybridError);
   serverV6 = http.createServer(handleRequest);
   serverV6.on("connection", arg0 => {
@@ -543,14 +543,14 @@ function shutdown(arg0) {
   console.log("[" + now() + "] hybrid-server 收到 " + arg0 + "，正在关闭...");
   try {
     server.close();
-  } catch { }
+  } catch {}
   try {
     mitmServer.close();
-  } catch { }
+  } catch {}
   if (serverV6) {
     try {
       serverV6.close();
-    } catch { }
+    } catch {}
   }
   const tmp1 = setTimeout(() => process.exit(0), 1500);
   tmp1.unref?.();
