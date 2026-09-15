@@ -10,7 +10,7 @@ import { handleModelsRequest, handleConfigRequest } from "./handlers/models.js";
 import { parseFields, writeStringField, writeBytesField, writeVarintField, writeFixed64Field, writeFixed32Field } from "./proto.js";
 import { tryGunzip, gzipSync } from "./connect.js";
 import { rewriteUserStatusContextWindow } from "./handlers/context-window-rewrite.js";
-import { injectMissingByokEntries } from "./handlers/byok-entry-inject.js";
+import { injectMissingByokEntries, upsertByokSortGroup } from "./handlers/byok-entry-inject.js";
 import { getByokSlot } from "./handlers/byok-slots.js";
 import { getSlotContextWindow } from "./handlers/models.js";
 import crypto from "node:crypto";
@@ -217,8 +217,13 @@ function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
               if (tmp14.changed) {
                 console.log("  [#" + arg3 + "] 🔄 GetUserStatus contextWindow rewritten (x" + tmp14.count + ")");
               }
-              if (injected.changed || tmp14.changed) {
-                tmp03 = gzipSync(tmp14.buffer);
+              // ③ sorts 白名单补 BYOK 分组 —— 新版 UI 按 client_model_sorts 渲染, 缺组则条目不显示
+              const sorted = upsertByokSortGroup(tmp14.buffer);
+              if (sorted.changed) {
+                console.log("  [#" + arg3 + "] 🔄 GetUserStatus BYOK sort group upserted (x" + sorted.count + ")");
+              }
+              if (injected.changed || tmp14.changed || sorted.changed) {
+                tmp03 = gzipSync(sorted.buffer);
               }
             }
           } catch (tmp04) {
@@ -346,7 +351,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp03 = JSON.parse(tmp02.toString());
         pushChatQueue(tmp03.text || "", !!tmp03.hasImage, tmp03.targetId || null);
-      } catch {}
+      } catch { }
       arg1.writeHead(200, {
         "content-type": "application/json",
         "access-control-allow-origin": "*"
@@ -359,7 +364,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.targetId || null;
-      } catch {}
+      } catch { }
       const tmp1 = setActiveMonitorTarget(tmp03);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -379,7 +384,7 @@ function handleRequest(arg0, arg1) {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.id || null;
         tmp1 = tmp04.targetId || null;
-      } catch {}
+      } catch { }
       ackChatQueue(tmp03, tmp1);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -519,7 +524,7 @@ if (tmp0.length === 1) {
   server.listen(PORT, tmp0[0], printHybridReady);
   server.on("error", onHybridError);
 } else {
-  server.listen(PORT, tmp0[0], () => {});
+  server.listen(PORT, tmp0[0], () => { });
   server.on("error", onHybridError);
   serverV6 = http.createServer(handleRequest);
   serverV6.on("connection", arg0 => {
@@ -538,14 +543,14 @@ function shutdown(arg0) {
   console.log("[" + now() + "] hybrid-server 收到 " + arg0 + "，正在关闭...");
   try {
     server.close();
-  } catch {}
+  } catch { }
   try {
     mitmServer.close();
-  } catch {}
+  } catch { }
   if (serverV6) {
     try {
       serverV6.close();
-    } catch {}
+    } catch { }
   }
   const tmp1 = setTimeout(() => process.exit(0), 1500);
   tmp1.unref?.();
