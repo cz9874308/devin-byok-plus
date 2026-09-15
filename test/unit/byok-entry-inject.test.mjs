@@ -1,8 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { injectMissingByokEntries, getVerifiedByokUids } from "../../src/proxy/handlers/byok-entry-inject.js";
+import {
+  injectMissingByokEntries,
+  getVerifiedByokUids,
+  upsertByokSortGroup,
+  BYOK_MODEL_LABELS,
+} from "../../src/proxy/handlers/byok-entry-inject.js";
 import { rewriteUserStatusContextWindow } from "../../src/proxy/handlers/context-window-rewrite.js";
-import { parseWithRaw, readModelUid } from "../../src/proxy/handlers/userstatus-shape.js";
+import { parseWithRaw, readModelUid, transformModelArray, transformModelSorts } from "../../src/proxy/handlers/userstatus-shape.js";
 import { writeVarintField, writeBytesField, writeStringField } from "../../src/proxy/proto.js";
 
 const OPUS = "MODEL_CLAUDE_4_OPUS_BYOK";
@@ -17,8 +22,12 @@ function buildEntry(uid, maxTokens) {
   return Buffer.concat([writeStringField(22, uid), writeVarintField(18, maxTokens)]);
 }
 
-function buildUserStatus(entries) {
-  return writeBytesField(1, writeBytesField(33, Buffer.concat(entries.map((e) => writeBytesField(1, e)))));
+function buildUserStatus(entries, sorts = []) {
+  const inner = Buffer.concat([
+    ...entries.map((e) => writeBytesField(1, e)),
+    ...sorts.map((s) => writeBytesField(2, s)),
+  ]);
+  return writeBytesField(1, writeBytesField(33, inner));
 }
 
 // 下探到模型数组层, 取出所有条目
@@ -105,4 +114,88 @@ test("串联 ①注入 → ②改窗口: 注入条目的 f18 升到 1M", () => {
   assert.equal(rewritten.changed, true);
   assert.equal(fieldOf(rewritten.buffer, OPUS, 18), 1000000);
   assert.equal(fieldOf(rewritten.buffer, ALL[1], 18), 200000, "未配置槽位不应被改");
+});
+
+function buildSort(name, groupNames) {
+  return Buffer.concat([
+    writeStringField(1, name),
+    ...groupNames.map((g) => writeBytesField(2, writeBytesField(1, writeStringField(1, g)))),
+  ]);
+}
+
+function listSortNames(buf) {
+  const names = [];
+  transformModelSorts(buf, { mapSort: (sortBuf, name) => { names.push(name); return null; } });
+  return names.filter(Boolean);
+}
+
+test("BYOK_MODEL_LABELS 与模板 f1 逐字节一致(4 条)", () => {
+  assert.equal(BYOK_MODEL_LABELS.length, 4);
+  assert.deepEqual(BYOK_MODEL_LABELS, [
+    "Claude Opus 4 BYOK",
+    "Claude Opus 4 Thinking BYOK",
+    "Claude Sonnet 4 BYOK",
+    "Claude Sonnet 4 Thinking BYOK",
+  ]);
+});
+
+test("upsert sorts 为空: 新建 All sort + BYOK 组", () => {
+  const input = buildUserStatus([]);
+  const { buffer, changed } = upsertByokSortGroup(input);
+  assert.equal(changed, true);
+  assert.deepEqual(listSortNames(buffer), ["All"]);
+  assert.ok(buffer.includes(Buffer.from("BYOK", "utf8")));
+  for (const label of BYOK_MODEL_LABELS) {
+    assert.ok(buffer.includes(Buffer.from(label, "utf8")));
+  }
+});
+
+test("upsert 已有 All sort: 组内追加 BYOK 组", () => {
+  const input = buildUserStatus([], [buildSort("All", ["Recommended"])]);
+  const { buffer, changed } = upsertByokSortGroup(input);
+  assert.equal(changed, true);
+  assert.ok(buffer.includes(Buffer.from("Recommended", "utf8")));
+  assert.ok(buffer.includes(Buffer.from("BYOK", "utf8")));
+  assert.ok(buffer.includes(Buffer.from("Claude Opus 4 BYOK", "utf8")));
+});
+
+test("upsert 已有 All + BYOK 组: 幂等字节不变", () => {
+  const once = upsertByokSortGroup(buildUserStatus([], [buildSort("All", ["Recommended"])]));
+  const twice = upsertByokSortGroup(once.buffer);
+  assert.equal(twice.changed, false);
+  assert.deepEqual(twice.buffer, once.buffer);
+});
+
+test("upsert 无 All sort 但有其他 sort: 追加新 All sort, 原有保留", () => {
+  const input = buildUserStatus([], [buildSort("Custom", [])]);
+  const { buffer, changed } = upsertByokSortGroup(input);
+  assert.equal(changed, true);
+  const names = listSortNames(buffer);
+  assert.ok(names.includes("All"));
+  assert.ok(names.includes("Custom"));
+});
+
+test("upsert 畸形输入: 不抛异常且原样透传", () => {
+  const garbage = Buffer.from([0x08, 0xff, 0xff, 0xff]);
+  let r;
+  assert.doesNotThrow(() => {
+    r = upsertByokSortGroup(garbage);
+  });
+  assert.equal(r.changed, false);
+  assert.deepEqual(r.buffer, garbage);
+});
+
+test("组合 ①③: 注入数组条目 + sorts 分组同步生效", () => {
+  const input = buildUserStatus([]);
+  const pass1 = injectMissingByokEntries(input);
+  assert.equal(pass1.count, 4);
+  const pass2 = upsertByokSortGroup(pass1.buffer);
+  assert.equal(pass2.changed, true);
+  const uids = [];
+  transformModelArray(pass2.buffer, { mapEntry: (buf) => { uids.push(readModelUid(buf)); return null; } });
+  for (const uid of getVerifiedByokUids()) {
+    assert.ok(uids.includes(uid));
+  }
+  assert.ok(pass2.buffer.includes(Buffer.from("All", "utf8")));
+  assert.ok(pass2.buffer.includes(Buffer.from("BYOK", "utf8")));
 });

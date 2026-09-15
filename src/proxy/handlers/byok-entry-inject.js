@@ -1,4 +1,15 @@
-import { transformModelArray, readModelUid } from "./userstatus-shape.js";
+import {
+  transformModelArray,
+  transformModelSorts,
+  readModelUid,
+  parseWithRaw,
+  CMC_LABEL_FIELD,
+  SORT_NAME_FIELD,
+  SORT_GROUPS_FIELD,
+  GROUP_NAME_FIELD,
+  GROUP_LABELS_FIELD,
+} from "./userstatus-shape.js";
+import { writeStringField, writeBytesField } from "../proto.js";
 
 // 2026-07-09 抓包的四条 BYOK 条目 payload(base64, 不含外层 tag+len)。
 // 服务端于 2026-07-31 模型目录改版时下架这些条目(载荷比对: 193 条中 BYOK 为 0),
@@ -39,6 +50,21 @@ const VERIFIED_ENTRIES = (() => {
   return out;
 })();
 
+// ③ sorts 注入与 ① 模型数组注入共用的 label 单一来源:
+// 从 VERIFIED_ENTRIES payload 的 f1(label) 解析, 保证 sorts.modelLabels 与数组条目 f1 逐字节一致。
+export const BYOK_MODEL_LABELS = VERIFIED_ENTRIES.map((e) => {
+  const parsed = parseWithRaw(e.payload);
+  if (!parsed.ok) {
+    return null;
+  }
+  for (const f of parsed.fields) {
+    if (f.field === CMC_LABEL_FIELD && f.wireType === 2 && f.value) {
+      return f.value.toString("utf8");
+    }
+  }
+  return null;
+}).filter(Boolean);
+
 export function getVerifiedByokUids() {
   return VERIFIED_ENTRIES.map((e) => e.uid);
 }
@@ -51,4 +77,73 @@ export function injectMissingByokEntries(decoded) {
     appendEntries: (existingUids) =>
       VERIFIED_ENTRIES.filter((e) => !existingUids.has(e.uid)).map((e) => e.payload),
   });
+}
+
+const BYOK_GROUP_NAME = "BYOK";
+const DEFAULT_SORT_NAME = "All";
+
+function buildByokGroup() {
+  return Buffer.concat([
+    writeStringField(GROUP_NAME_FIELD, BYOK_GROUP_NAME),
+    ...BYOK_MODEL_LABELS.map((l) => writeStringField(GROUP_LABELS_FIELD, l)),
+  ]);
+}
+
+function buildByokSort() {
+  return Buffer.concat([
+    writeStringField(SORT_NAME_FIELD, DEFAULT_SORT_NAME),
+    writeBytesField(SORT_GROUPS_FIELD, buildByokGroup()),
+  ]);
+}
+
+function hasByokGroup(sortBuf) {
+  const parsed = parseWithRaw(sortBuf);
+  if (!parsed.ok) {
+    return false;
+  }
+  for (const f of parsed.fields) {
+    if (f.field === SORT_GROUPS_FIELD && f.wireType === 2) {
+      const gp = parseWithRaw(f.value);
+      if (!gp.ok) {
+        continue;
+      }
+      for (const g of gp.fields) {
+        if (g.field === GROUP_NAME_FIELD && g.wireType === 2 && g.value && g.value.toString("utf8") === BYOK_GROUP_NAME) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function appendByokGroup(sortBuf) {
+  const parsed = parseWithRaw(sortBuf);
+  if (!parsed.ok) {
+    return null;
+  }
+  return Buffer.concat([...parsed.fields.map((f) => f.raw), writeBytesField(SORT_GROUPS_FIELD, buildByokGroup())]);
+}
+
+// 向 GetUserStatus 已解压 payload 的 sorts 白名单补入 BYOK 分组。
+// 两趟组合(handler 契约二选一, 无法单趟同时改写与追加; RPC 低频, 两趟代价可忽略):
+//   趟1 appendSorts  无 name="All" 的 sort 时追加完整 {name:"All", groups:[BYOK组]}
+//   趟2 mapSort      向 name="All" 的 sort 追加 groupName="BYOK" 组(已有则幂等跳过)
+// 返回 { buffer, changed, count }; 任何异常退化为原样透传。
+export function upsertByokSortGroup(decoded) {
+  try {
+    const pass1 = transformModelSorts(decoded, {
+      appendSorts: (names) => (names.has(DEFAULT_SORT_NAME) ? [] : [buildByokSort()]),
+    });
+    const pass2 = transformModelSorts(pass1.buffer, {
+      mapSort: (buf, name) => (name === DEFAULT_SORT_NAME && !hasByokGroup(buf) ? appendByokGroup(buf) : null),
+    });
+    return {
+      buffer: pass2.buffer,
+      changed: pass1.changed || pass2.changed,
+      count: pass1.count + pass2.count,
+    };
+  } catch {
+    return { buffer: decoded, changed: false, count: 0 };
+  }
 }
