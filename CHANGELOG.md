@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.7.0] - 2026-09-15
+
+### Added
+- **新增 BYOK sorts 白名单注入**：2026-09-15 Devin Desktop 更新后，模型下拉列表改为按 `client_model_sorts[].groups[].modelLabels` 白名单渲染（`name=All/Recommended` 的 sort 为默认视图，label 查字典失败即丢弃、空组被过滤），此前仅注入模型数组条目的方式失效——条目在但 UI 不渲染。现在代理在 `GetUserStatus` 响应中新增第 ③ 趟 `upsertByokSortGroup`，向 sorts 白名单补 `groupName=BYOK` 分组，四条 BYOK 条目在默认视图以独立分组恢复可选。
+  - 两趟组合策略：无 `name=All` 的 sort 时追加完整 `{name:"All", groups:[BYOK组]}`；已有则向其 groups 追加 BYOK 组；组已存在时幂等跳过，服务端恢复下发后自动让路。
+  - `BYOK_MODEL_LABELS` 从四条注入模板 payload 的 f1(label) 运行时解析，单一来源保证 `sorts.modelLabels` 与模型数组条目逐字节一致；解析失败者记日志并从 sorts 注入剔除。
+  - `userstatus-shape.js` 新增 sorts 维度形状知识：`CMCD_SORTS_FIELD` 等 5 个常量、`readSortName`、`transformModelSorts`（`mapSort`/`appendSorts` 二选一契约，与 `transformModelArray` 平行，异常降级原样透传）。
+  - `GetUserStatus` 处理链串联「①注入条目 → ②改窗口 → ③sorts 白名单」，三趟各自打印命中数（`🔄 BYOK sort group upserted`），失败模式分别可诊断。
+  - 新增 31 个单测（含三趟串联用例：f18 窗口改写在 ③ 之后仍生效），既有测试零回归。
+
 ## [2.6.0] - 2026-07-31
 
 ### Added
