@@ -236,12 +236,12 @@ function logNoToolsCalled(arg0, arg1, arg2) {
   const tmp4 = tmp3.length ? '; enabled=' + tmp3.length + ' [' + tmp3.join(', ') + ']' : '';
   console.log(
     '  🔧 No tools called (' +
-      arg0 +
-      ' ' +
-      arg1 +
-      '; model output did not reach tool-call stage' +
-      tmp4 +
-      ')'
+    arg0 +
+    ' ' +
+    arg1 +
+    '; model output did not reach tool-call stage' +
+    tmp4 +
+    ')'
   );
   emitStreamStatus('error', arg0 + ' ' + arg1 + '; no tool calls emitted');
   emitChatEnd('error', []);
@@ -473,10 +473,10 @@ function buildThinkingOptions(arg0, arg1, tmp2 = null) {
     reasoningEffort: tmp10,
     thinkingBudget: tmp9
       ? (tmp7
-          ? usesGeminiThinkingLevel(arg0)
-            ? 0
-            : thinkingEffortToGeminiBudget(tmp10)
-          : thinkingEffortToAnthropicBudget(tmp10)) || (tmp7 ? 8192 : 10000)
+        ? usesGeminiThinkingLevel(arg0)
+          ? 0
+          : thinkingEffortToGeminiBudget(tmp10)
+        : thinkingEffortToAnthropicBudget(tmp10)) || (tmp7 ? 8192 : 10000)
       : 0,
     provider,
   };
@@ -581,13 +581,13 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
   console.log('  � Monitor target: ' + tmp19);
   console.log(
     '  �🧠 Model: ' +
-      tmp7 +
-      ' → ' +
-      tmp11 +
-      ' (' +
-      tmp17 +
-      ')' +
-      (tmp16 ? ' [tier: ' + tmp16 + ']' : '')
+    tmp7 +
+    ' → ' +
+    tmp11 +
+    ' (' +
+    tmp17 +
+    ')' +
+    (tmp16 ? ' [tier: ' + tmp16 + ']' : '')
   );
   console.log('  📝 System prompt: ' + tmp3.length + ' chars');
   console.log('  💬 Messages: ' + tmp4.length);
@@ -627,12 +627,12 @@ export function handleGetChatMessage(arg0, arg1, arg2) {
       if (tmp4[tmp03].role === tmp4[tmp03 - 1].role) {
         console.warn(
           '  ⚠️  Consecutive ' +
-            tmp4[tmp03].role +
-            ' at index ' +
-            (tmp03 - 1) +
-            ',' +
-            tmp03 +
-            ' — merge failed?'
+          tmp4[tmp03].role +
+          ' at index ' +
+          (tmp03 - 1) +
+          ',' +
+          tmp03 +
+          ' — merge failed?'
         );
       }
     }
@@ -733,10 +733,10 @@ function getForwardedToolChoice(arg0, arg1, arg2) {
   }
   console.log(
     '  ⚠️  Ignoring ' +
-      arg2 +
-      ' named tool_choice "' +
-      arg1.name +
-      '" because the tool definition is unavailable'
+    arg2 +
+    ' named tool_choice "' +
+    arg1.name +
+    '" because the tool definition is unavailable'
   );
   return undefined;
 }
@@ -829,10 +829,10 @@ function logUpstreamUsage(processor, provider, meta = {}) {
   }
   console.log(
     '  ' +
-      formatUsageLog(usage, provider, {
-        ...meta,
-        cacheStatus: toUsageCacheStatus(provider, usage, meta),
-      })
+    formatUsageLog(usage, provider, {
+      ...meta,
+      cacheStatus: toUsageCacheStatus(provider, usage, meta),
+    })
   );
 }
 function mapChatCompletionsToolChoice(arg0) {
@@ -1208,10 +1208,10 @@ function synthesizeToolsFromMessages(messages, existingTools) {
   }
   console.warn(
     '  ⚠️  Synthesized ' +
-      synthesized.length +
-      ' tool definition(s) from history for Bedrock toolConfig compatibility: [' +
-      names.join(', ') +
-      ']'
+    synthesized.length +
+    ' tool definition(s) from history for Bedrock toolConfig compatibility: [' +
+    names.join(', ') +
+    ']'
   );
   return synthesized;
 }
@@ -1238,8 +1238,8 @@ function ensureNamedToolChoiceTool(tools, toolChoice) {
   };
   console.warn(
     '  ⚠️  Synthesized tool definition for forced tool_choice "' +
-      toolChoice.name +
-      '" (not in request/history) so the model can call it'
+    toolChoice.name +
+    '" (not in request/history) so the model can call it'
   );
   return { tools: [...list, synthesized], allowToolChoice: true };
 }
@@ -1334,16 +1334,16 @@ function streamAnthropic(
     ? tmp14.thinking.type === 'adaptive'
       ? 'adaptive effort=' + (tmp14.output_config?.effort || tmp10?.reasoningEffort || 'medium')
       : 'enabled budget=' +
-        (tmp14.thinking.budget_tokens || '?') +
-        (tmp10?.reasoningEffort ? ' effort=' + tmp10.reasoningEffort : '')
+      (tmp14.thinking.budget_tokens || '?') +
+      (tmp10?.reasoningEffort ? ' effort=' + tmp10.reasoningEffort : '')
     : 'off';
   console.log('  🧩 Anthropic/Sub2API thinking: ' + tmp15);
   // 启用时对 system/tools/messages 稳定前缀打 cache_control（注入消息作为易变尾部排除）
   const outboundPayload = promptCacheEnabled
     ? applyAnthropicPromptCache(tmp14, {
-        ...promptCacheConfig,
-        additionalTailMessages: countInjectedTailMessages(tmp3),
-      })
+      ...promptCacheConfig,
+      additionalTailMessages: countInjectedTailMessages(tmp3),
+    })
     : tmp14;
   const tmp16 = JSON.stringify(outboundPayload);
   if (!arg1.headersSent) {
@@ -1400,15 +1400,15 @@ function streamAnthropic(
   const retryPrefix = retryCount > 0 ? `[Retry ${retryCount}] ` : '';
   console.log(
     '  → ' +
-      retryPrefix +
-      'Anthropic ' +
-      tmp12.host +
-      tmp12.apiPath +
-      ' model=' +
-      tmp6 +
-      ' key=' +
-      (tmp12.apiKey ? 'set' : 'empty') +
-      (promptCacheEnabled ? ' cache=on' : ' cache=off')
+    retryPrefix +
+    'Anthropic ' +
+    tmp12.host +
+    tmp12.apiPath +
+    ' model=' +
+    tmp6 +
+    ' key=' +
+    (tmp12.apiKey ? 'set' : 'empty') +
+    (promptCacheEnabled ? ' cache=on' : ' cache=off')
   );
   if (tmp8) {
     tmp8.mark(
@@ -1440,7 +1440,10 @@ function streamAnthropic(
         'content-type': 'application/json',
         accept: 'text/event-stream',
         'anthropic-version': '2023-06-01',
-        ...(promptCacheEnabled ? { 'anthropic-beta': 'prompt-caching-2024-07-31' } : {}),
+        'user-agent': 'claude-cli/1.0.0 (external, cli)',
+        'anthropic-beta':
+          'claude-code-20250219,fine-grained-tool-streaming-2025-05-14,interleaved-thinking-2025-05-14' +
+          (promptCacheEnabled ? ',prompt-caching-2024-07-31' : ''),
         'x-api-key': tmp12.apiKey,
         'content-length': Buffer.byteLength(tmp16),
         ...proxyHeaders(tmp6, Buffer.byteLength(tmp16)),
@@ -1463,13 +1466,13 @@ function streamAnthropic(
           turnLog?.anomaly(
             Anomaly.UPSTREAM_ERROR_STATUS,
             'status=' +
-              arg02.statusCode +
-              ' host=' +
-              tmp12.host +
-              ' attempt=' +
-              retryCount +
-              ' body=' +
-              String(bodyText).slice(0, 512)
+            arg02.statusCode +
+            ' host=' +
+            tmp12.host +
+            ' attempt=' +
+            retryCount +
+            ' body=' +
+            String(bodyText).slice(0, 512)
           );
           const tmp03 = buildProviderErrorMessage('Anthropic', arg02.statusCode, tmp02);
 
@@ -1534,8 +1537,8 @@ function streamAnthropic(
           }
           console.error(
             '  ❌ Anthropic stream stalled after ' +
-              ANTHROPIC_SSE_IDLE_TIMEOUT_MS +
-              'ms without data'
+            ANTHROPIC_SSE_IDLE_TIMEOUT_MS +
+            'ms without data'
           );
           // 这一类失败原本既不打标也不 finish，在日志里完全不可见（OpenAI 路有）。
           turnLog?.anomaly(
@@ -1856,31 +1859,31 @@ function streamOpenAI(
   const tmp36 =
     isGeminiRoute && tmp12?.thinkingEnabled === true
       ? buildOpenAIChatCompletionsBody({
-          ...tmp30,
-          omitGeminiThinking: true,
-        })
+        ...tmp30,
+        omitGeminiThinking: true,
+      })
       : null;
   console.log(
     '  🧩 OpenAI/Sub2API reasoning: ' +
-      (isGeminiRoute
-        ? tmp31.thinking_config
-          ? usesGeminiThinkingLevel(tmp6)
-            ? 'gemini level=' + (tmp31.thinking_config.thinking_level || '?')
-            : 'gemini budget=' + (tmp31.thinking_config.thinking_budget || '?')
-          : 'off'
-        : tmp31.reasoning
-          ? tmp31.reasoning.effort || 'default'
-          : tmp32.reasoning_effort || 'off')
+    (isGeminiRoute
+      ? tmp31.thinking_config
+        ? usesGeminiThinkingLevel(tmp6)
+          ? 'gemini level=' + (tmp31.thinking_config.thinking_level || '?')
+          : 'gemini budget=' + (tmp31.thinking_config.thinking_budget || '?')
+        : 'off'
+      : tmp31.reasoning
+        ? tmp31.reasoning.effort || 'default'
+        : tmp32.reasoning_effort || 'off')
   );
   if (tmp16 && tmp4 && tmp4.length > 0) {
     console.log(
       '  🔧 OpenAI tools enabled: ' +
-        tmp4.length +
-        ' (initiator=' +
-        (tmp9 || 'unknown') +
-        ')\n    → [' +
-        tmp4.map((arg02) => arg02.name).join(', ') +
-        ']'
+      tmp4.length +
+      ' (initiator=' +
+      (tmp9 || 'unknown') +
+      ')\n    → [' +
+      tmp4.map((arg02) => arg02.name).join(', ') +
+      ']'
     );
   } else if (tmp4 && tmp4.length > 0) {
     console.log(
@@ -1913,10 +1916,10 @@ function streamOpenAI(
   if (isResponsesApiPath(tmp14.apiPath) && tmp40?.preferChatCompletions) {
     console.log(
       '  ↩️  using cached chat-completions for ' +
-        tmp14.parsed.hostname +
-        ' (' +
-        (tmp40.reason || 'responses unsupported') +
-        ')'
+      tmp14.parsed.hostname +
+      ' (' +
+      (tmp40.reason || 'responses unsupported') +
+      ')'
     );
     tmp33.push({
       path: toChatCompletionsPath(tmp14.apiPath),
@@ -2081,22 +2084,22 @@ function streamOpenAI(
     const retryPrefix = retryCount > 0 ? `[Retry ${retryCount}] ` : '';
     console.log(
       '  → ' +
-        retryPrefix +
-        'OpenAI ' +
-        (tmp14.useHttp ? 'http' : 'https') +
-        '://' +
-        tmp14.parsed.hostname +
-        ':' +
-        tmp28 +
-        tmp02.path +
-        ' model=' +
-        tmp6 +
-        ' key=' +
-        tmp29 +
-        ' cache=' +
-        attemptUsageMeta.cacheStatus +
-        ' mode=' +
-        attemptUsageMeta.mode
+      retryPrefix +
+      'OpenAI ' +
+      (tmp14.useHttp ? 'http' : 'https') +
+      '://' +
+      tmp14.parsed.hostname +
+      ':' +
+      tmp28 +
+      tmp02.path +
+      ' model=' +
+      tmp6 +
+      ' key=' +
+      tmp29 +
+      ' cache=' +
+      attemptUsageMeta.cacheStatus +
+      ' mode=' +
+      attemptUsageMeta.mode
     );
     if (tmp10) {
       const markName =
@@ -2108,13 +2111,13 @@ function streamOpenAI(
       tmp10.mark(
         markName,
         'bytes=' +
-          Buffer.byteLength(tmp03) +
-          ' tools=' +
-          (tmp16 && tmp4 ? tmp4.length : 0) +
-          ' cache=' +
-          attemptUsageMeta.cacheStatus +
-          ' mode=' +
-          attemptUsageMeta.mode
+        Buffer.byteLength(tmp03) +
+        ' tools=' +
+        (tmp16 && tmp4 ? tmp4.length : 0) +
+        ' cache=' +
+        attemptUsageMeta.cacheStatus +
+        ' mode=' +
+        attemptUsageMeta.mode
       );
     }
 
@@ -2392,9 +2395,9 @@ function toOpenAIMessages(arg0, arg1) {
             content: tmp03.map((arg02) =>
               typeof arg02 === 'string'
                 ? {
-                    type: 'input_text',
-                    text: arg02,
-                  }
+                  type: 'input_text',
+                  text: arg02,
+                }
                 : arg02
             ),
           });

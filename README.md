@@ -27,7 +27,7 @@ Devin Desktop BYOK 增强版 — 多模型路由、4 个 BYOK 槽位、手动协
 - 插件 ID：`devin-byok-plus`
 - 显示名：Devin BYOK Plus
 - 维护者 / Publisher：`jornlin`
-- 版本：2.7.0
+- 版本：2.7.1
 - 仓库：https://github.com/jornlin/devin-byok-plus
 
 ## 安装

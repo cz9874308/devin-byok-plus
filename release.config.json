@@ -1,13 +1,15 @@
 {
-  "version": "2.7.0",
-  "releaseDate": "2026-09-15",
-  "changeType": "Added",
+  "version": "2.7.1",
+  "releaseDate": "2026-09-16",
+  "changeType": "Fixed",
   "changes": [
-    "新增 BYOK sorts 白名单注入：2026-09-15 Devin Desktop 更新后模型下拉列表改为按 client_model_sorts[].groups[].modelLabels 白名单渲染（name=All/Recommended 为默认视图，label 查不到即丢弃），仅注入模型数组条目不再显示。代理在 GetUserStatus 响应中新增第 ③ 趟 upsertByokSortGroup，向 sorts 白名单补 groupName=BYOK 分组，四条 BYOK 条目在默认视图以独立分组恢复可选",
-    "注入策略为两趟组合：无 name=All 的 sort 时追加完整 {name:All, groups:[BYOK组]}（All 为 UI 默认视图）；已有则向其 groups 追加 BYOK 组，组已存在时幂等跳过，服务端恢复下发后自动让路",
-    "BYOK_MODEL_LABELS 从四条注入模板 payload 的 f1(label) 运行时解析，单一来源保证 sorts.modelLabels 与模型数组条目逐字节一致（UI 按 label 查字典，错一字即丢弃）；解析失败者记日志并剔除",
-    "userstatus-shape 新增 sorts 维度形状知识：CMCD_SORTS_FIELD 等 5 常量、readSortName、transformModelSorts（mapSort/appendSorts 二选一契约，与 transformModelArray 平行，异常降级原样透传）",
-    "GetUserStatus 处理链串联 ①注入条目 → ②改窗口 → ③sorts 白名单，三趟各自打印命中数（🔄 BYOK sort group upserted），失败模式分别可诊断；新增 31 个单测（含三趟串联用例），既有测试零回归"
+    "修复 Devin 2026-09-16 更新后对话报 Connection error：新版 chisel（Rust connect 客户端）未协商压缩即拒收 gzip envelope（server sent compressed envelope, but compression is not supported），代理流式/一元响应全部 identity 化（wrapEnvelope 默认不压缩、endOfStreamEnvelope flags=2、响应头不再声明 connect-content-encoding/content-encoding: gzip），未压缩为 Connect 协议 baseline，LS/chisel 均合法",
+    "上游转发请求头补 user-agent（claude-cli/1.0.0 (external, cli)）与 anthropic-beta（claude-code-20250219,fine-grained-tool-streaming-2025-05-14,interleaved-thinking-2025-05-14，prompt cache 开启时追加 prompt-caching-2024-07-31），兼容强制校验客户端特征头的中转站（缺失时 401 unauthorized client detected）",
+    "新增 devin acp 模型链路伪造：GetCliTeamSettings 返回 default_model_uid(f26)+allowed_model_uids(f7) 指向四条 BYOK 枚举模型，GetCliModelConfigs 返回四条 BYOK 枚举条目（label/uid 与 GetUserStatus 注入条目一致）+ default_override，chisel 会话 requestedModel 使用枚举名经 getByokSlot 命中槽位 1-4，实现 UI 选择哪个 BYOK 模型就走对应槽位配置",
+    "GetUserStatus 注入链新增第 ④ 趟：改写 cascade_model_config_data.default_override_model_config.model_uid（f33.f3）→ MODEL_CLAUDE_4_OPUS_BYOK，UI 模型选择器 defaultModelUid 数据源即此字段，新会话默认选中 BYOK 模型而非官方默认（此前一直显示官方 Claude Fable 5 High/SWE 系列）",
+    "GetUserStatus 上游 401/403 时回放最近一次注入成功的缓存响应（~/.devin-byok-plus/userstatus-gzip-cache.bin，由 200 趟写入），上游凭证失效不再导致 UI 模型目录清空",
+    "patchManager 新增 P4/P5 补丁规则（随 Devin 更新自动重打）：P4 将 devin acp authenticate 的 _meta.api_server_url 重定向至本地代理（新版 ACP 忽略进程参数硬编码直连官方导致 agent 激活失败）；P5 在设置代理环境变量时 NO_PROXY 强制包含 localhost,127.0.0.1，确保子进程访问本地代理不走系统代理",
+    "新增 15 个单元测试（connect envelope identity 化 7 例、P4/P5 补丁规则 8 例），既有测试零回归（20 个失败为 log-writer/profileStore/sidebarTemplate 存量债务）"
   ],
   "breaking": false,
   "autoPackage": true,

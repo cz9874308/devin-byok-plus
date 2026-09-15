@@ -12,7 +12,7 @@ export function tryGunzip(arg0) {
     return null;
   }
 }
-export function wrapEnvelope(arg0, tmp1 = true) {
+export function wrapEnvelope(arg0, tmp1 = false) {
   if (tmp1) {
     const tmp02 = gzipSync(arg0);
     const tmp12 = Buffer.alloc(5);
@@ -26,9 +26,9 @@ export function wrapEnvelope(arg0, tmp1 = true) {
   return Buffer.concat([tmp2, arg0]);
 }
 export function endOfStreamEnvelope() {
-  const tmp02 = gzipSync(Buffer.from("{}"));
+  const tmp02 = Buffer.from("{}");
   const tmp1 = Buffer.alloc(5);
-  tmp1[0] = 3;
+  tmp1[0] = 2;
   tmp1.writeUInt32BE(tmp02.length, 1);
   return Buffer.concat([tmp1, tmp02]);
 }
@@ -59,21 +59,19 @@ export function unwrapRequest(arg0, arg1) {
   return tmp4;
 }
 export function emptyResponse() {
-  return gzipSync(Buffer.alloc(0));
+  return Buffer.alloc(0);
 }
 export function wrapUnary(arg0) {
-  return gzipSync(arg0);
+  return arg0;
 }
 export function unaryHeaders() {
   return {
-    "content-type": "application/proto",
-    "content-encoding": "gzip"
+    "content-type": "application/proto"
   };
 }
 export function streamHeaders() {
   return {
     "content-type": "application/connect+proto",
-    "connect-content-encoding": "gzip",
     "transfer-encoding": "chunked"
   };
 }

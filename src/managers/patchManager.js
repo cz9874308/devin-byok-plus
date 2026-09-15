@@ -41,6 +41,20 @@ const PATCH_RULES = [{
   "patched": "const i=\"http://localhost:3001\"",
   "originalRegex": "const ([A-Za-z_$][\\w$]*)=\\(0,([A-Za-z_$][\\w$]*)\\.getConfig\\)\\(\\2\\.Config\\.INFERENCE_API_SERVER_URL\\)",
   "patchedRegex": "const ([A-Za-z_$][\\w$]*)=\"http:\\/\\/localhost:3001\""
+}, {
+  "name": "P4: authenticate API Server URL",
+  "description": "devin acp authenticate 的 api_server_url 指向本地代理",
+  "original": "api_server_url:(0,d.getConfig)(d.Config.API_SERVER_URL)",
+  "patched": "api_server_url:\"http://localhost:3006\"",
+  "originalRegex": "api_server_url:\\(0,([A-Za-z_$][\\w$]*)\\.getConfig\\)\\(\\1\\.Config\\.API_SERVER_URL\\)",
+  "patchedRegex": "api_server_url:\"https?:\\/\\/(?:127\\.0\\.0\\.1|localhost):\\d+\""
+}, {
+  "name": "P5: NO_PROXY 豁免 localhost",
+  "description": "设置代理环境时 NO_PROXY 强制包含 localhost/127.0.0.1，确保 devin acp 访问本地代理不走系统代理",
+  "original": "get(\"http.noProxy\");return t&&Array.isArray(t)&&t.length>0&&(A.NO_PROXY=t.map(A=>A.trim()).join(\",\")),A}",
+  "patched": "get(\"http.noProxy\");A.NO_PROXY=\"localhost,127.0.0.1\"+(t&&Array.isArray(t)&&t.length>0?\",\"+t.map(A=>A.trim()).join(\",\"):\"\");return A}",
+  "originalRegex": "get\\(\"http\\.noProxy\"\\);return ([A-Za-z_$][\\w$]*)&&Array\\.isArray\\(\\1\\)&&\\1\\.length>0&&\\(([A-Za-z_$][\\w$]*)\\.NO_PROXY=\\1\\.map\\(([A-Za-z_$][\\w$]*)=>\\3\\.trim\\(\\)\\)\\.join\\(\",\"\\)\\),\\2\\}",
+  "patchedRegex": "NO_PROXY=\"localhost,127\\.0\\.0\\.1\"\\+"
 }];
 let patchCache;
 function getPatches() {
@@ -88,6 +102,12 @@ class PatchManager {
     if (tmp1.name.startsWith("P3:")) {
       return PatchManager.patchUrlCandidates(tmp3).some(arg0 => new RegExp("const\\s+[A-Za-z_$][\\w$]*=\"" + PatchManager.escapeRegExp(arg0) + "\"", "m").test(tmp0));
     }
+    if (tmp1.name.startsWith("P4:")) {
+      return PatchManager.patchUrlCandidates(tmp2).some(arg0 => new RegExp("api_server_url:\"" + PatchManager.escapeRegExp(arg0) + "\"", "m").test(tmp0));
+    }
+    if (tmp1.name.startsWith("P5:")) {
+      return tmp0.includes("NO_PROXY=\"localhost,127.0.0.1\"+");
+    }
     return tmp0.includes(tmp1.patched) || tmp1.patchedRegex.test(tmp0);
   }
   static isAvailable(tmp0, tmp1) {
@@ -120,6 +140,29 @@ class PatchManager {
       let tmp12 = tmp0.replace(tmp1.originalRegex, tmp02);
       if (tmp12 === tmp0) {
         tmp12 = tmp0.replace(/const ([A-Za-z_$][\w$]*)="https?:\/\/(?:127\.0\.0\.1|localhost):\d+"/m, tmp02);
+      }
+      return {
+        content: tmp12,
+        changed: tmp12 !== tmp0
+      };
+    }
+    if (tmp1.name.startsWith("P4:")) {
+      const tmp02 = "api_server_url:\"" + tmp2 + "\"";
+      let tmp12 = tmp0.replace(tmp1.originalRegex, tmp02);
+      if (tmp12 === tmp0) {
+        tmp12 = tmp0.replace(/api_server_url:"https?:\/\/(?:127\.0\.0\.1|localhost):\d+"/m, tmp02);
+      }
+      return {
+        content: tmp12,
+        changed: tmp12 !== tmp0
+      };
+    }
+    if (tmp1.name.startsWith("P5:")) {
+      const tmp02 = "get(\"http.noProxy\");$2.NO_PROXY=\"localhost,127.0.0.1\"+($1&&Array.isArray($1)&&$1.length>0?\",\"+$1.map($3=>$3.trim()).join(\",\"):\"\");return $2}";
+      const tmp5 = new RegExp(tmp1.originalRegex.source, "g");
+      let tmp12 = tmp0.replace(tmp5, tmp02);
+      if (tmp12 === tmp0) {
+        tmp12 = tmp0.replace(/NO_PROXY="localhost,127\.0\.0\.1"\+\(([A-Za-z_$][\w$]*)&&Array\.isArray\(\1\)&&\1\.length>0\?","\+\1\.map\(([A-Za-z_$][\w$]*)=>\2\.trim\(\)\)\.join\(","\):""\)/g, "NO_PROXY=\"localhost,127.0.0.1\"+($1&&Array.isArray($1)&&$1.length>0?\",\"+$1.map($2=>$2.trim()).join(\",\"):\"\")");
       }
       return {
         content: tmp12,
@@ -198,7 +241,7 @@ class PatchManager {
         for (const tmp04 of tmp03.split(/\r?\n/).map(arg0 => arg0.trim()).filter(Boolean)) {
           PatchManager.addInstallRootCandidates(tmp0, path.dirname(tmp04));
         }
-      } catch {}
+      } catch { }
     }
   }
   static addWindowsShortcutCandidates(tmp0) {
@@ -222,7 +265,7 @@ class PatchManager {
         for (const tmp04 of tmp03.split(/\r?\n/).map(arg0 => arg0.trim()).filter(Boolean)) {
           PatchManager.addInstallRootCandidates(tmp0, path.dirname(tmp04));
         }
-      } catch {}
+      } catch { }
     }
   }
   static addDirectorySearchCandidates(tmp0, tmp1, tmp2 = 4) {
@@ -289,7 +332,7 @@ class PatchManager {
                   PatchManager.addCandidate(tmp0, path.join(tmp04, tmp05, "dist", "extension.js"));
                 }
               }
-            } catch {}
+            } catch { }
           }
         }
       }
@@ -329,7 +372,7 @@ class PatchManager {
               for (const tmp05 of fs.readdirSync(tmp04)) {
                 PatchManager.addCandidate(tmp0, path.join(tmp04, tmp05, "extensions", "windsurf", "dist", "extension.js"));
               }
-            } catch {}
+            } catch { }
           }
         }
       }
@@ -407,7 +450,7 @@ class PatchManager {
           fs.writeFileSync(tmp1, JSON.stringify(tmp4, null, "\t"), "utf-8");
         }
       }
-    } catch {}
+    } catch { }
   }
   static applyWithCustomUrls(tmp0, tmp1, tmp2) {
     const tmp3 = PatchManager.resolveExtensionJsPath(tmp2);
@@ -660,7 +703,7 @@ class PatchManager {
       let tmp02 = "";
       try {
         tmp02 = PatchManager.readLabelText(fs.readFileSync(arg0, "utf-8")) || "";
-      } catch {}
+      } catch { }
       const tmp03 = PatchManager.isBundleChecksumSynced(arg0);
       return {
         path: arg0,
