@@ -62,6 +62,7 @@ export const BYOK_MODEL_LABELS = VERIFIED_ENTRIES.map((e) => {
       return f.value.toString("utf8");
     }
   }
+  console.error("[byok-inject] 模板 label 缺失, 已从 sorts 注入剔除: " + e.uid);
   return null;
 }).filter(Boolean);
 

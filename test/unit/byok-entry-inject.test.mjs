@@ -199,3 +199,19 @@ test("组合 ①③: 注入数组条目 + sorts 分组同步生效", () => {
   assert.ok(pass2.buffer.includes(Buffer.from("All", "utf8")));
   assert.ok(pass2.buffer.includes(Buffer.from("BYOK", "utf8")));
 });
+
+test("组合 ①②③: 三趟串联后注入/窗口改写/sorts分组同时生效", () => {
+  const pass1 = injectMissingByokEntries(buildUserStatus([], [buildSort("All", ["Recommended"])]));
+  assert.equal(pass1.count, 4);
+  assert.equal(pass1.changed, true);
+  const resolveWindow = (uid) => (uid === OPUS ? 1000000 : 0);
+  const pass2 = rewriteUserStatusContextWindow(pass1.buffer, resolveWindow);
+  assert.equal(pass2.changed, true);
+  const pass3 = upsertByokSortGroup(pass2.buffer);
+  assert.equal(pass3.changed, true);
+  assert.equal(pass3.count, 1, "趟1 因已有 All 不追加, 趟2 追加一个 BYOK 组");
+  assert.equal(fieldOf(pass3.buffer, OPUS, 18), 1000000, "趟2 的 f18 改写在趟3 后仍生效");
+  for (const label of BYOK_MODEL_LABELS) {
+    assert.ok(pass3.buffer.includes(Buffer.from(label, "utf8")), "缺 label: " + label);
+  }
+});
