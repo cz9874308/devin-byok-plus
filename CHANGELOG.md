@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.7.1] - 2026-09-16
+
+### Fixed
+- **修复对话报 Connection error**：2026-09-16 Devin 更新后新版 chisel（Rust connect 客户端）未协商压缩即拒收 gzip envelope（`server sent compressed envelope, but compression is not supported`），3 次重试全失败。代理流式/一元响应全部 identity 化：`wrapEnvelope` 默认不压缩（flags=0）、`endOfStreamEnvelope` flags=2 且明文 `{}`、`unaryHeaders`/`streamHeaders` 不再声明 `content-encoding`/`connect-content-encoding: gzip`、`wrapUnary`/`emptyResponse` 原样返回。未压缩是 Connect 协议 baseline，LS/chisel 两侧均合法。
+- **上游转发请求头补客户端特征**：`user-agent: claude-cli/1.0.0 (external, cli)` 与 `anthropic-beta: claude-code-20250219,fine-grained-tool-streaming-2025-05-14,interleaved-thinking-2025-05-14`（prompt cache 开启时追加 `prompt-caching-2024-07-31`），兼容强制校验客户端特征头的中转站（缺失时 401 `unauthorized client detected`）。无缓存重试走递归重跑，headers 随之重算。
+
+### Added
+- **devin acp 模型链路伪造**：`GetCliTeamSettings` 返回 `default_model_uid`(f26) + `allowed_model_uids`(f7) 指向四条 BYOK 枚举模型；`GetCliModelConfigs` 返回四条 BYOK 枚举条目（label/uid 与 GetUserStatus 注入条目一致）+ `default_override`。chisel 会话 requestedModel 使用枚举名，经 `getByokSlot` 命中槽位 1-4——UI 选择哪个 BYOK 模型就走对应槽位配置。此前空应答导致 chisel 回退官方内置默认模型。
+- **GetUserStatus 默认模型改写（第 ④ 趟）**：改写 `cascade_model_config_data.default_override_model_config.model_uid`（f33.f3）→ `MODEL_CLAUDE_4_OPUS_BYOK`。UI 模型选择器 defaultModelUid 数据源即此字段，新会话默认选中 BYOK 模型而非官方默认（此前始终显示官方 Claude Fable 5 High / SWE 系列）。
+- **GetUserStatus 凭证失效兜底**：上游 401/403 时回放最近一次注入成功的缓存响应（`~/.devin-byok-plus/userstatus-gzip-cache.bin`，由 200 趟写入），上游 key 失效不再导致 UI 模型目录清空。
+- **patchManager 新增 P4/P5 补丁规则**（Devin 更新后随既有 P1-P3 自动重打）：
+  - P4：devin acp `authenticate` 的 `_meta.api_server_url` 重定向至本地代理——新版 ACP 忽略进程命令行参数、硬编码直连官方，导致 agent 激活失败（Disconnected/模型无法加载）。
+  - P5：设置代理环境变量时 `NO_PROXY` 强制包含 `localhost,127.0.0.1`，确保子进程访问本地代理不走系统代理（此前走死代理导致 agent 激活超时）。
+- 新增 15 个单元测试（connect envelope identity 化 7 例、P4/P5 补丁规则 8 例含全局双模块替换与幂等性），既有测试零回归（20 个失败为 log-writer/profileStore/sidebarTemplate 存量债务）。
+
+## [2.7.0] - 2026-09-15
+
+### Added
+- **新增 BYOK sorts 白名单注入**：2026-09-15 Devin Desktop 更新后，模型下拉列表改为按 `client_model_sorts[].groups[].modelLabels` 白名单渲染（`name=All/Recommended` 的 sort 为默认视图，label 查字典失败即丢弃、空组被过滤），此前仅注入模型数组条目的方式失效——条目在但 UI 不渲染。现在代理在 `GetUserStatus` 响应中新增第 ③ 趟 `upsertByokSortGroup`，向 sorts 白名单补 `groupName=BYOK` 分组，四条 BYOK 条目在默认视图以独立分组恢复可选。
+  - 两趟组合策略：无 `name=All` 的 sort 时追加完整 `{name:"All", groups:[BYOK组]}`；已有则向其 groups 追加 BYOK 组；组已存在时幂等跳过，服务端恢复下发后自动让路。
+  - `BYOK_MODEL_LABELS` 从四条注入模板 payload 的 f1(label) 运行时解析，单一来源保证 `sorts.modelLabels` 与模型数组条目逐字节一致；解析失败者记日志并从 sorts 注入剔除。
+  - `userstatus-shape.js` 新增 sorts 维度形状知识：`CMCD_SORTS_FIELD` 等 5 个常量、`readSortName`、`transformModelSorts`（`mapSort`/`appendSorts` 二选一契约，与 `transformModelArray` 平行，异常降级原样透传）。
+  - `GetUserStatus` 处理链串联「①注入条目 → ②改窗口 → ③sorts 白名单」，三趟各自打印命中数（`🔄 BYOK sort group upserted`），失败模式分别可诊断。
+  - 新增 31 个单测（含三趟串联用例：f18 窗口改写在 ③ 之后仍生效），既有测试零回归。
+
 ## [2.6.0] - 2026-07-31
 
 ### Added

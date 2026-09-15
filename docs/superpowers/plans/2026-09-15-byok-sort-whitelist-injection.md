@@ -301,17 +301,51 @@ git commit -m "✨ v0.0.23 形状模块新增sorts白名单变换"
 
 - [ ] **Step 1: 写失败测试**
 
-在 `test/unit/byok-entry-inject.test.mjs` 顶部 import 改为（保留该文件既有 import，合并进去）：
+该文件**已有** `buildEntry` / `buildUserStatus` / `entriesOf` / `listUids` / `fieldOf` helper 及 import（`injectMissingByokEntries, getVerifiedByokUids` / `rewriteUserStatusContextWindow` / `parseWithRaw, readModelUid` / proto writer 三件套）——**勿重复定义或重复 import**，按下述方式合并：
+
+1. import 行合并去重后为：
 
 ```js
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import {
-  upsertByokSortGroup,
   injectMissingByokEntries,
-  BYOK_MODEL_LABELS,
   getVerifiedByokUids,
+  upsertByokSortGroup,
+  BYOK_MODEL_LABELS,
 } from "../../src/proxy/handlers/byok-entry-inject.js";
-import { transformModelArray, transformModelSorts, readModelUid } from "../../src/proxy/handlers/userstatus-shape.js";
+import { rewriteUserStatusContextWindow } from "../../src/proxy/handlers/context-window-rewrite.js";
+import { parseWithRaw, readModelUid, transformModelArray, transformModelSorts } from "../../src/proxy/handlers/userstatus-shape.js";
 import { writeVarintField, writeBytesField, writeStringField } from "../../src/proxy/proto.js";
+```
+
+2. 将既有 `buildUserStatus` **改造**为带 sorts 参数的版本（默认空数组，向后兼容既有调用）：
+
+```js
+function buildUserStatus(entries, sorts = []) {
+  const inner = Buffer.concat([
+    ...entries.map((e) => writeBytesField(1, e)),
+    ...sorts.map((s) => writeBytesField(2, s)),
+  ]);
+  return writeBytesField(1, writeBytesField(33, inner));
+}
+```
+
+3. 新增两个 helper（`buildEntry` 复用既有，勿重定义）：
+
+```js
+function buildSort(name, groupNames) {
+  return Buffer.concat([
+    writeStringField(1, name),
+    ...groupNames.map((g) => writeBytesField(2, writeBytesField(1, writeStringField(1, g)))),
+  ]);
+}
+
+function listSortNames(buf) {
+  const names = [];
+  transformModelSorts(buf, { mapSort: (sortBuf, name) => { names.push(name); return null; } });
+  return names.filter(Boolean);
+}
 ```
 
 文件末尾追加：
@@ -653,12 +687,9 @@ grep -c "sort group upserted" proxy-scripts/src/hybrid-server.js
 
 Expected: 各输出 ≥ 1
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: 不提交构建产物（2026-09-15 用户裁决）**
 
-```bash
-git add proxy-scripts/src/
-git commit -m "🔨 v0.0.26 构建同步sorts注入运行时产物"
-```
+`proxy-scripts/src/` 被 `.gitignore:13` 忽略是项目既有约定（README 标注"[构建产物] 从 src/proxy/ 自动复制"，7/31 注入功能亦未提交产物）。**勿 `git add` 该目录**（尤其勿用 `-f` 强制入库）。构建产物仅保留在工作区供本地 `pnpm run package` 打 VSIX；克隆者执行 `pnpm run build` 再生成。
 
 - [ ] **Step 5: 实机验收（人工步骤，不在本计划自动执行）**
 

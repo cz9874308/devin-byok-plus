@@ -10,6 +10,17 @@ export const CMC_MODEL_INFO_FIELD = 23;
 export const CMC_ACCESS_FIELD = 24;
 export const MI_CONTEXT_WINDOW_FIELD = 4;
 
+// ── sorts 白名单（2026-09-15 新版 UI 渲染机制）──────────────────────────
+// CascadeModelConfigData: f1=client_model_configs(repeated), f2=client_model_sorts(repeated)
+// ClientModelSort: f1=name(string), f2=groups(repeated ClientModelGroup)
+// ClientModelGroup: f1=groupName(string), f2=modelLabels(repeated string)
+// UI 按 sorts[].groups[].modelLabels 白名单渲染模型; name 为 "All"/"Recommended" 的 sort 为默认视图。
+export const CMCD_SORTS_FIELD = 2;
+export const SORT_NAME_FIELD = 1;
+export const SORT_GROUPS_FIELD = 2;
+export const GROUP_NAME_FIELD = 1;
+export const GROUP_LABELS_FIELD = 2;
+
 // 带偏移的 protobuf 解析: 为每个字段保留其完整原始字节(tag+value),
 // 便于未改动字段原样重编, 保证无损 round-trip。
 export function parseWithRaw(buf) {
@@ -72,6 +83,20 @@ export function readModelUid(entryBuf) {
   return null;
 }
 
+// 读取 ClientModelSort 条目的 name(field1)。
+export function readSortName(sortBuf) {
+  const parsed = parseWithRaw(sortBuf);
+  if (!parsed.ok) {
+    return null;
+  }
+  for (const f of parsed.fields) {
+    if (f.field === SORT_NAME_FIELD && f.wireType === 2 && f.value) {
+      return f.value.toString("utf8");
+    }
+  }
+  return null;
+}
+
 function descend(buf, path, handler, state) {
   const parsed = parseWithRaw(buf);
   if (!parsed.ok) {
@@ -126,6 +151,86 @@ export function transformModelArray(decoded, handler) {
   const state = { count: 0, existingUids: [] };
   try {
     const buffer = descend(decoded, MODEL_ARRAY_PATH, handler, state);
+    return { buffer, changed: state.count > 0, count: state.count };
+  } catch {
+    return { buffer: decoded, changed: false, count: 0 };
+  }
+}
+function descendSortsTop(buf, handler, state) {
+  const parsed = parseWithRaw(buf);
+  if (!parsed.ok) {
+    return buf;
+  }
+  const parts = [];
+  for (const f of parsed.fields) {
+    if (f.field === MODEL_ARRAY_PATH[0] && f.wireType === 2) {
+      parts.push(writeBytesField(f.field, descendSortsMid(f.value, handler, state)));
+    } else {
+      parts.push(f.raw);
+    }
+  }
+  return Buffer.concat(parts);
+}
+
+function descendSortsMid(buf, handler, state) {
+  const parsed = parseWithRaw(buf);
+  if (!parsed.ok) {
+    return buf;
+  }
+  const parts = [];
+  for (const f of parsed.fields) {
+    if (f.field === MODEL_ARRAY_PATH[1] && f.wireType === 2) {
+      parts.push(writeBytesField(f.field, transformSortsLevel(f.value, handler, state)));
+    } else {
+      parts.push(f.raw);
+    }
+  }
+  return Buffer.concat(parts);
+}
+
+function transformSortsLevel(buf, handler, state) {
+  const parsed = parseWithRaw(buf);
+  if (!parsed.ok) {
+    return buf;
+  }
+  const parts = [];
+  for (const f of parsed.fields) {
+    if (f.field === CMCD_SORTS_FIELD && f.wireType === 2) {
+      const name = readSortName(f.value);
+      state.existingNames.push(name);
+      if (handler.mapSort) {
+        const rebuilt = handler.mapSort(f.value, name);
+        if (rebuilt !== null && rebuilt !== undefined) {
+          parts.push(writeBytesField(CMCD_SORTS_FIELD, rebuilt));
+          state.count++;
+          continue;
+        }
+      }
+      parts.push(f.raw);
+      continue;
+    }
+    parts.push(f.raw);
+  }
+  if (handler.appendSorts) {
+    const names = state.existingNames.filter(Boolean);
+    for (const payload of handler.appendSorts(new Set(names))) {
+      parts.push(writeBytesField(CMCD_SORTS_FIELD, payload));
+      state.count++;
+    }
+  }
+  return Buffer.concat(parts);
+}
+
+// 沿 MODEL_ARRAY_PATH 下探到 CascadeModelConfigData 层, 按 handler 语义变换 sorts 数组。
+// handler 契约与 transformModelArray 一致: mapSort / appendSorts 二选一, 同传抛错。
+// 任何异常退化为原样透传。
+export function transformModelSorts(decoded, handler) {
+  if (handler.mapSort && handler.appendSorts) {
+    throw new Error("transformModelSorts: mapSort 与 appendSorts 只能提供其一");
+  }
+  const state = { count: 0, existingNames: [] };
+  try {
+    const buffer = descendSortsTop(decoded, handler, state);
     return { buffer, changed: state.count > 0, count: state.count };
   } catch {
     return { buffer: decoded, changed: false, count: 0 };

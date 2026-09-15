@@ -10,7 +10,8 @@ import { handleModelsRequest, handleConfigRequest } from "./handlers/models.js";
 import { parseFields, writeStringField, writeBytesField, writeVarintField, writeFixed64Field, writeFixed32Field } from "./proto.js";
 import { tryGunzip, gzipSync } from "./connect.js";
 import { rewriteUserStatusContextWindow } from "./handlers/context-window-rewrite.js";
-import { injectMissingByokEntries } from "./handlers/byok-entry-inject.js";
+import { parseWithRaw } from "./handlers/userstatus-shape.js";
+import { injectMissingByokEntries, upsertByokSortGroup } from "./handlers/byok-entry-inject.js";
 import { getByokSlot } from "./handlers/byok-slots.js";
 import { getSlotContextWindow } from "./handlers/models.js";
 import crypto from "node:crypto";
@@ -20,6 +21,34 @@ import { initLogWriter } from "./logging/log-writer.js";
 // 日志写入器在模块加载时初始化，顺带注册退出兜干（见 log-writer 的 exit/SIGINT 处理）。
 const logWriter = initLogWriter("hybrid");
 logWriter.logEvent({ type: "lifecycle", event: "proxy_start" });
+// BYOK 模型枚举（与 byok-slots.js BYOK_SLOT_BY_REQUEST 对应，槽位 1-4；
+// label 必须与 GetUserStatus 注入条目/byok-entry-inject.js 模板完全一致，UI 按 label 匹配）
+const BYOK_MODEL_ENTRIES = [
+  { uid: "MODEL_CLAUDE_4_OPUS_BYOK", label: "Claude Opus 4 BYOK" },
+  { uid: "MODEL_CLAUDE_4_OPUS_THINKING_BYOK", label: "Claude Opus 4 Thinking BYOK" },
+  { uid: "MODEL_CLAUDE_4_SONNET_BYOK", label: "Claude Sonnet 4 BYOK" },
+  { uid: "MODEL_CLAUDE_4_SONNET_THINKING_BYOK", label: "Claude Sonnet 4 Thinking BYOK" }
+];
+const BYOK_DEFAULT_UID = "MODEL_CLAUDE_4_OPUS_BYOK";
+const DATA_DIR = (process.env.USERPROFILE || process.env.HOME || ".") + "/.devin-byok-plus";
+function rewriteDefaultOverride(arg0, arg1) {
+  const tmp1 = parseWithRaw(arg0);
+  const tmp2 = tmp1.fields.find(f => f.field === 1 && f.wireType === 2);
+  if (!tmp2) {
+    return { buffer: arg0, changed: false };
+  }
+  const tmp3 = parseWithRaw(tmp2.value);
+  const tmp4 = tmp3.fields.find(f => f.field === 33 && f.wireType === 2);
+  if (!tmp4) {
+    return { buffer: arg0, changed: false };
+  }
+  const tmp5 = parseWithRaw(tmp4.value);
+  const tmp6 = writeStringField(3, arg1);
+  const tmp7 = Buffer.concat([...tmp5.fields.filter(f => !(f.field === 3 && f.wireType === 2)).map(f => f.raw), tmp6]);
+  const tmp8 = Buffer.concat([...tmp3.fields.filter(f => !(f.field === 33 && f.wireType === 2)).map(f => f.raw), writeBytesField(33, tmp7)]);
+  const tmp9 = Buffer.concat([...tmp1.fields.filter(f => !(f.field === 1 && f.wireType === 2)).map(f => f.raw), writeBytesField(1, tmp8)]);
+  return { buffer: tmp9, changed: true };
+}
 const _DEVICE_ID = process.env.PROXY_DEVICE_ID || "";
 const _SESSION_SECRET = process.env.PROXY_SESSION_SECRET || "";
 function signUpstreamRequest(arg0, arg1, arg2) {
@@ -179,6 +208,22 @@ function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
       arg02.on("end", () => {
         let tmp03 = Buffer.concat(tmp02);
         console.log("  [#" + arg3 + "] ← " + arg02.statusCode + " (" + tmp03.length + "b)");
+        if (tmp5 === "GetUserStatus" && (arg02.statusCode === 401 || arg02.statusCode === 403)) {
+          // 上游拒绝 BYOK 凭证时回放最近一次注入成功的响应，保住 UI 模型目录
+          try {
+            const cached = fs.readFileSync(DATA_DIR + "/userstatus-gzip-cache.bin");
+            console.log("  [#" + arg3 + "] 🛡️ GetUserStatus " + arg02.statusCode + " → cached injected response (" + cached.length + "b)");
+            arg1.writeHead(200, {
+              "content-type": "application/proto",
+              "content-encoding": "gzip",
+              "content-length": cached.length
+            });
+            arg1.end(cached);
+            return;
+          } catch (tmpE) {
+            console.error("  [#" + arg3 + "] GetUserStatus " + arg02.statusCode + " fallback failed (no cache?): " + tmpE.message);
+          }
+        }
         if (!tmp4.skipRewrite && tmp5 === "RegisterUser" && arg02.statusCode === 200 && tmp03.length > 5) {
           try {
             const tmp04 = tmp03[0];
@@ -217,8 +262,22 @@ function proxyToCodeium(arg0, arg1, arg2, arg3, tmp4 = {}) {
               if (tmp14.changed) {
                 console.log("  [#" + arg3 + "] 🔄 GetUserStatus contextWindow rewritten (x" + tmp14.count + ")");
               }
-              if (injected.changed || tmp14.changed) {
-                tmp03 = gzipSync(tmp14.buffer);
+              // ③ sorts 白名单补 BYOK 分组 —— 新版 UI 按 client_model_sorts 渲染, 缺组则条目不显示
+              const sorted = upsertByokSortGroup(tmp14.buffer);
+              if (sorted.changed) {
+                console.log("  [#" + arg3 + "] 🔄 GetUserStatus BYOK sort group upserted (x" + sorted.count + ")");
+              }
+              // ④ 改写默认模型覆盖: f33.f3 DefaultOverrideModelConfig.model_uid → BYOK 枚举名
+              //    UI defaultModelUid 数据源: cascadeModelConfigData.defaultOverrideModelConfig?.modelUid
+              const defOv = rewriteDefaultOverride(sorted.buffer, BYOK_DEFAULT_UID);
+              if (defOv.changed) {
+                console.log("  [#" + arg3 + "] 🔄 GetUserStatus defaultOverride → " + BYOK_DEFAULT_UID);
+              }
+              if (injected.changed || tmp14.changed || sorted.changed || defOv.changed) {
+                tmp03 = gzipSync(defOv.buffer);
+                try {
+                  fs.writeFileSync(DATA_DIR + "/userstatus-gzip-cache.bin", tmp03);
+                } catch { }
               }
             }
           } catch (tmp04) {
@@ -276,6 +335,43 @@ function routeRequest(arg0, arg1, arg2, arg3, tmp4 = "") {
   if (tmp5 === "GetEmbeddings") {
     console.log("[" + now() + "] #" + arg3 + " 🧮 " + tmp4 + "GetEmbeddings (" + arg2.length + "b)");
     safeHandle(() => handleGetEmbeddings(arg0, arg1, arg2), arg0, arg1, arg3, "Embeddings");
+    return true;
+  }
+  if (tmp5 === "GetCliTeamSettings") {
+    // 伪造非空 team settings：default_model_uid(f26) + allowed_model_uids(f7) 指向 BYOK 枚举模型，
+    // 避免空应答导致 chisel/UI 回退到官方内置默认模型
+    const resp = Buffer.concat([
+      ...BYOK_MODEL_ENTRIES.map(e => writeStringField(7, e.uid)),
+      writeStringField(26, BYOK_DEFAULT_UID),
+    ]);
+    console.log("[" + now() + "] #" + arg3 + " 🛡️ " + tmp4 + "GetCliTeamSettings → synthetic team settings (" + resp.length + "b, default=" + BYOK_DEFAULT_UID + ")");
+    arg1.writeHead(200, {
+      "content-type": "application/proto",
+      "content-length": resp.length
+    });
+    arg1.end(resp);
+    return true;
+  }
+  if (tmp5 === "GetCliModelConfigs") {
+    // 构造非空模型列表（chisel/devin acp）：4 条 BYOK 枚举条目 + default_override，
+    // chisel 会话 requestedModel 使用枚举名 → getByokSlot 命中槽位 1-4 → 对应 BYOK 配置
+    const cmcs = BYOK_MODEL_ENTRIES.map(e => Buffer.concat([
+      writeStringField(1, e.label),
+      writeBytesField(2, writeStringField(3, e.uid)),
+      writeVarintField(5, 1),
+      writeVarintField(18, 64000),
+      writeStringField(22, e.uid),
+    ]));
+    const resp = Buffer.concat([
+      ...cmcs.map(c => writeBytesField(1, c)),
+      writeBytesField(3, writeStringField(3, BYOK_DEFAULT_UID)),
+    ]);
+    console.log("[" + now() + "] #" + arg3 + " 🛡️ " + tmp4 + "GetCliModelConfigs → synthetic model list (" + resp.length + "b, x" + cmcs.length + ", default=" + BYOK_DEFAULT_UID + ")");
+    arg1.writeHead(200, {
+      "content-type": "application/proto",
+      "content-length": resp.length
+    });
+    arg1.end(resp);
     return true;
   }
   return false;
@@ -346,7 +442,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp03 = JSON.parse(tmp02.toString());
         pushChatQueue(tmp03.text || "", !!tmp03.hasImage, tmp03.targetId || null);
-      } catch {}
+      } catch { }
       arg1.writeHead(200, {
         "content-type": "application/json",
         "access-control-allow-origin": "*"
@@ -359,7 +455,7 @@ function handleRequest(arg0, arg1) {
       try {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.targetId || null;
-      } catch {}
+      } catch { }
       const tmp1 = setActiveMonitorTarget(tmp03);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -379,7 +475,7 @@ function handleRequest(arg0, arg1) {
         const tmp04 = JSON.parse(tmp02.toString());
         tmp03 = tmp04.id || null;
         tmp1 = tmp04.targetId || null;
-      } catch {}
+      } catch { }
       ackChatQueue(tmp03, tmp1);
       arg1.writeHead(200, {
         "content-type": "application/json",
@@ -519,7 +615,7 @@ if (tmp0.length === 1) {
   server.listen(PORT, tmp0[0], printHybridReady);
   server.on("error", onHybridError);
 } else {
-  server.listen(PORT, tmp0[0], () => {});
+  server.listen(PORT, tmp0[0], () => { });
   server.on("error", onHybridError);
   serverV6 = http.createServer(handleRequest);
   serverV6.on("connection", arg0 => {
@@ -538,14 +634,14 @@ function shutdown(arg0) {
   console.log("[" + now() + "] hybrid-server 收到 " + arg0 + "，正在关闭...");
   try {
     server.close();
-  } catch {}
+  } catch { }
   try {
     mitmServer.close();
-  } catch {}
+  } catch { }
   if (serverV6) {
     try {
       serverV6.close();
-    } catch {}
+    } catch { }
   }
   const tmp1 = setTimeout(() => process.exit(0), 1500);
   tmp1.unref?.();
