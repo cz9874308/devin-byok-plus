@@ -355,13 +355,17 @@ function routeRequest(arg0, arg1, arg2, arg3, tmp4 = "") {
   if (tmp5 === "GetCliModelConfigs") {
     // 构造非空模型列表（chisel/devin acp）：4 条 BYOK 枚举条目 + default_override，
     // chisel 会话 requestedModel 使用枚举名 → getByokSlot 命中槽位 1-4 → 对应 BYOK 配置
-    const cmcs = BYOK_MODEL_ENTRIES.map(e => Buffer.concat([
-      writeStringField(1, e.label),
-      writeBytesField(2, writeStringField(3, e.uid)),
-      writeVarintField(5, 1),
-      writeVarintField(18, 64000),
-      writeStringField(22, e.uid),
-    ]));
+    const cmcs = BYOK_MODEL_ENTRIES.map(e => {
+      const slot = getByokSlot(e.uid);
+      const cw = getSlotContextWindow(slot);
+      return Buffer.concat([
+        writeStringField(1, e.label),
+        writeBytesField(2, writeStringField(3, e.uid)),
+        writeVarintField(5, 1),
+        writeVarintField(18, cw > 0 ? cw : 200000),
+        writeStringField(22, e.uid),
+      ]);
+    });
     const resp = Buffer.concat([
       ...cmcs.map(c => writeBytesField(1, c)),
       writeBytesField(3, writeStringField(3, BYOK_DEFAULT_UID)),

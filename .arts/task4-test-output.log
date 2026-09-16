@@ -1,0 +1,811 @@
+
+> devin-byok-plus@2.6.0 test D:\repository\devin-byok-plus
+> node --test test/**/*.test.mjs
+
+▶ 构建产物完整性
+  ✔ dist/extension.js 应该存在 (2.3322ms)
+  ✔ 构建的 CSS 应该包含 Tailwind (0.4715ms)
+✔ 构建产物完整性 (4.7303ms)
+▶ 源文件结构
+  ✔ 关键源文件应该存在 (0.7845ms)
+  ✔ 备份文件应该不存在 (0.5304ms)
+✔ 源文件结构 (2.3306ms)
+▶ 代码质量
+  ✔ sidebarTemplate.js 不应该有语法错误 (4.5287ms)
+  ✔ sidebar.css 不应该有明显的语法错误 (0.5696ms)
+✔ 代码质量 (5.6711ms)
+▶ 向后兼容性
+  ✔ sidebarProvider.js 应该能正常 require sidebarTemplate (1.6095ms)
+  ✔ 所有原有的 DOM id 应该保留 (3.076ms)
+✔ 向后兼容性 (5.2418ms)
+▶ 功能完整性验证
+  ✔ 所有新增功能的 action 应该定义 (0.6005ms)
+  ✔ 日志暂停功能应该正确实现 (0.6852ms)
+✔ 功能完整性验证 (1.7012ms)
+▶ 模块化模板结构
+  ✔ templates 主文件与加载器应该存在 (0.3448ms)
+  ✔ 所有 partials 片段应该存在 (0.507ms)
+✔ 模块化模板结构 (1.3174ms)
+▶ CSS 文件完整性
+  ✔ sidebar.css 应该存在 (3.2381ms)
+  ✔ 应该包含关键 CSS 类 (0.6219ms)
+  ✔ 应该包含 Tailwind 指令 (0.6242ms)
+✔ CSS 文件完整性 (6.5016ms)
+▶ Tailwind 配置
+  ✔ tailwind.config.js 应该存在 (0.3868ms)
+  ✔ 应该配置正确的内容路径 (0.3205ms)
+✔ Tailwind 配置 (1.2093ms)
+▶ sidebarTemplate.js 模块导出
+  ✔ 应该导出 renderSidebarHtml 函数 (0.3999ms)
+  ✔ 应该引入必要的依赖 (1.5585ms)
+✔ sidebarTemplate.js 模块导出 (2.5505ms)
+▶ sidebar.js 事件处理
+  ✔ 应该包含 saveConfig 处理 (0.4716ms)
+  ✔ 应该包含 clearLogs 处理 (0.3928ms)
+  ✔ 应该包含 toggleLogPause 处理 (0.4336ms)
+  ✔ 应该检查日志暂停状态 (0.3839ms)
+✔ sidebar.js 事件处理 (2.2177ms)
+▶ Tab 顺序配置
+  ✔ 默认 tab 应该是 tab-config (0.4055ms)
+  ✔ 快捷键应该映射到正确的 tab (0.705ms)
+✔ Tab 顺序配置 (1.6106ms)
+▶ HTML 模板标签顺序
+  ✔ 配置连接应该是第一个 tab (0.305ms)
+  ✔ 配置连接 tab 应该有 active 类 (0.2956ms)
+✔ HTML 模板标签顺序 (9.9026ms)
+▶ 使用教程默认折叠
+  ✔ 使用教程应该有图标 (0.1915ms)
+  ✔ 使用教程应该有 collapsed 类（默认折叠） (0.1696ms)
+  ✔ tutorialBody 应该有 hidden 类（默认折叠） (0.1304ms)
+✔ 使用教程默认折叠 (2.3184ms)
+▶ 高级路由配置可见性
+  ✔ 应该有高级路由配置折叠区域 (0.2058ms)
+  ✔ 应该有 4 个配置项 (0.1254ms)
+  ✔ 配置项应该是 input 而不是 hidden (0.1665ms)
+✔ 高级路由配置可见性 (2.8567ms)
+▶ 日志功能完整性
+  ✔ 日志应该在控制状态 tab (0.1761ms)
+  ✔ 日志高度应该是 300px (0.1778ms)
+  ✔ 应该有日志控制按钮 (0.1534ms)
+✔ 日志功能完整性 (2.1715ms)
+(node:59740) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/chat.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ requiresConfiguredDefaultModel with fallbackSlot uses slot model (1.7694ms)
+✔ requiresConfiguredDefaultModel with fallbackSlot blocks unconfigured slot (0.3797ms)
+✔ setActiveByokSlot / getActiveByokSlot 状态管理 (0.4075ms)
+✔ requiresConfiguredDefaultModel + activeByokSlot 继承验证 (0.3904ms)
+✔ 直接 BYOK 匹配优先于继承槽位 (0.3274ms)
+✔ 用户切换槽位更新 _activeByokSlot (0.2354ms)
+✔ 未设置 _activeByokSlot 时向后兼容 (0.3537ms)
+✔ parseLines 跳过坏行并计数 (2.9336ms)
+✔ summarize 给出发起数/完成数/完成率/孤儿数 (0.6156ms)
+✔ groupAnomalies 按 code 计数并保留 severity (0.5569ms)
+✔ listBrokenTurns 列出断开轮与孤儿轮 (1.5633ms)
+✔ recoveryRate 统计重试后是否恢复 (0.4956ms)
+✔ aggregate 组合四部分且带 malformed (0.5338ms)
+✔ 空输入不抛且返回零值 (0.2508ms)
+(node:65460) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/anomaly.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Severity 是冻结常量 (1.3122ms)
+✔ high 集合与 spec 第 6 节一致 (1.0717ms)
+✔ medium 集合正确 (0.2232ms)
+✔ low 集合正确 (0.1528ms)
+✔ 共 17 个 anomaly 代码 (0.2072ms)
+✔ 未知 code 归为 low, 不抛异常 (0.1753ms)
+✔ Anomaly 值与键一一对应且为 snake_case (0.3463ms)
+✔ isHigh 只对 high 返回 true (0.2451ms)
+✔ Anomaly 表本身被冻结, 防止运行时篡改 (0.4138ms)
+(node:32268) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/openai-request.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 503 + responses-api-not-supported triggers chat/completions fallback (2.0443ms)
+✔ 503 without responses-api keywords does NOT fallback (真过载/无可用账户) (0.229ms)
+✔ 既有状态码仍按关键词回退 (0.158ms)
+✔ 无 tools + 短 system prompt 判定为辅助请求 (0.2084ms)
+✔ 携带 tools 一律不是辅助请求（即使 prompt 短） (0.2769ms)
+✔ 超长 system prompt 不是辅助请求（主 agent 聊天） (0.2423ms)
+(node:63016) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/byok-entry-inject.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 四条模板均通过加载期自检 (3.8206ms)
+✔ 服务端零 BYOK: 补齐四条 (3.1263ms)
+✔ 注入条目携带正确的 f24 门控与 max_tokens (0.8518ms)
+✔ 已有两条: 只补缺的两条 (0.6259ms)
+✔ 四条齐全: 幂等, 字节完全不变 (2.0166ms)
+✔ 连续两次注入结果一致(幂等) (0.4203ms)
+✔ 畸形 buffer: 不抛异常 (0.4201ms)
+✔ 串联 ①注入 → ②改窗口: 注入条目的 f18 升到 1M (0.9646ms)
+✔ BYOK_MODEL_LABELS 与模板 f1 逐字节一致(4 条) (0.2439ms)
+✔ upsert sorts 为空: 新建 All sort + BYOK 组 (1.4507ms)
+✔ upsert 已有 All sort: 组内追加 BYOK 组 (0.7236ms)
+✔ upsert 已有 All + BYOK 组: 幂等字节不变 (0.8481ms)
+✔ upsert 无 All sort 但有其他 sort: 追加新 All sort, 原有保留 (0.6062ms)
+✔ upsert 畸形输入: 不抛异常且原样透传 (0.3037ms)
+✔ 组合 ①③: 注入数组条目 + sorts 分组同步生效 (1.1405ms)
+(node:11224) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/completion-signal.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ shouldSignalCompletion
+  ✔ natural end with no tools → true (5.1494ms)
+  ✔ error → true (0.4449ms)
+  ✔ tool_use stopReason (anthropic) → false (0.372ms)
+  ✔ non-empty toolsCalled (openai) → false (0.2577ms)
+  ✔ unknown stopReason with no tools → true (0.2633ms)
+  ✔ soundEligible=false → 一律不触发 (辅助子 agent) (0.492ms)
+  ✔ soundEligible=true (默认) → 维持原判定 (0.2413ms)
+✔ shouldSignalCompletion (9.4593ms)
+▶ isSoundEligibleRequest
+  ✔ 无工具 / 空数组 / 非数组 → false (0.4243ms)
+  ✔ 仅 do_not_call 哨兵 → false (辅助子 agent) (0.3094ms)
+  ✔ 含至少一个真实工具 → true (主对话) (0.3925ms)
+  ✔ 全空串工具名 → false (0.3573ms)
+✔ isSoundEligibleRequest (2.0141ms)
+(node:35064) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/models.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ⚙️  Config updated: model=claude-sonnet-4-6, maxTokens=32768
+  ⚙️  Config updated: model=gpt-4o, maxTokens=32768
+✔ handleConfigRequest applies POST body when hybrid passes buffered body (5.8187ms)
+✔ handleConfigRequest handles streaming body when no buffered body provided (101.1568ms)
+✔ handleConfigRequest rejects oversized POST body (0.808ms)
+(node:57792) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/byok-slots.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sanitizeContextWindow: 合法档位原样返回 (1.8114ms)
+✔ sanitizeContextWindow: 非法值归 0 (0.3722ms)
+✔ getSlotContextWindow: 热更新后按槽位返回 (1.3719ms)
+✔ getSlotContextWindow: 再次热更新可切回原始档(0) (0.4351ms)
+(node:60536) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/context-window-rewrite.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 改写命中条目的 field18 到 1M, 其余条目字节不变 (5.7795ms)
+✔ 500K 档位正确写入 (0.6498ms)
+✔ 原始档(resolver 返回 0): 不改写, 输出与输入完全一致 (1.6403ms)
+✔ 多个条目分别配 500K / 1M, 各自正确且互不干扰 (0.7228ms)
+✔ 未改动的 buffer 经解析重建后与输入完全一致(无损) (0.645ms)
+✔ 变长 varint(2M, 4字节): 父级 length 正确增长且整体可解析 (2.0007ms)
+✔ 模型 UID 未登记(resolver 全返回 0): 不改 (0.4985ms)
+✔ 畸形/截断 buffer: 不抛异常, changed=false (0.3003ms)
+✔ 空 buffer: 不抛异常, changed=false (0.2619ms)
+✔ 幂等性: 改写输出再喂一次, 结果一致 (0.8886ms)
+✔ 同时改写 field18 和 field23.field4 (1.0431ms)
+✔ field23 存在但无 field4: 仅改 field18, 不追加 field4 (0.6674ms)
+✔ 无 field23 的条目: 仅改 field18, 不报错 (0.4945ms)
+✔ field23.field4 幂等: 已是目标值时不改动 (0.5699ms)
+✔ 非 BYOK 条目的 field23.field4 不受影响 (0.5482ms)
+▶ classifyProbeBody
+  ✔ 空响应体 (1.5468ms)
+  ✔ 解析 SSE data 行中的 error (0.6255ms)
+  ✔ 非 JSON 回退为压缩文本 (0.4825ms)
+✔ classifyProbeBody (5.8296ms)
+▶ classifyProbeHttpStatus
+  ✔ 401 鉴权失败 (0.5296ms)
+  ✔ 429 限流 (0.6084ms)
+  ✔ 500+ 上游错误 (0.3376ms)
+✔ classifyProbeHttpStatus (2.3993ms)
+▶ classifyProbeSseError
+  ✔ 非错误事件返回 undefined (0.5847ms)
+  ✔ 鉴权类 SSE 错误 (0.7497ms)
+✔ classifyProbeSseError (2.2373ms)
+▶ classifyProbeNetworkError
+  ✔ DNS 失败 (0.4094ms)
+  ✔ 连接被重置 (0.2113ms)
+  ✔ TLS 证书错误 (0.5131ms)
+✔ classifyProbeNetworkError (3.8318ms)
+▶ 诊断模型路由
+  ✔ stripDiagnosticThinkingSuffix 去后缀 (0.3333ms)
+  ✔ isDiagnosticOpenAIModel 识别 gpt 前缀 (0.5166ms)
+  ✔ resolveDiagnosticModelRoute __DEFAULT__ 走默认模型 (0.3727ms)
+  ✔ resolveDiagnosticModelRoute 映射到具体模型并识别 OpenAI (0.2266ms)
+  ✔ -priority 标记 fast tier (0.178ms)
+✔ 诊断模型路由 (2.6159ms)
+▶ checkModelRoutingDiagnostic
+  ✔ 有默认模型时 status=ok (0.6865ms)
+  ✔ 无默认模型时 status=warning (0.3933ms)
+✔ checkModelRoutingDiagnostic (2.1887ms)
+▶ checkInlineFastTimeoutRisk
+  ✔ thinking 模型命中风险 (0.5198ms)
+  ✔ 普通快速模型无明显风险 (0.2584ms)
+✔ checkInlineFastTimeoutRisk (1.2953ms)
+▶ sanitizeDiagnosticText / sanitizeEnvConfig
+  ✔ 脱敏 api_key 赋值 (0.3958ms)
+  ✔ 脱敏 sk- 前缀令牌（无敏感键名前缀时） (0.3033ms)
+  ✔ 按键名脱敏配置对象 (0.4938ms)
+✔ sanitizeDiagnosticText / sanitizeEnvConfig (1.7681ms)
+▶ readJsonObject
+  ✔ 文件不存在返回 undefined (0.3303ms)
+✔ readJsonObject (0.6701ms)
+(node:5728) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/anthropic-stream.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  🔔 emitChatEnd: stopReason=null tools=[] eligible=true target=default → signalCompletion=true
+  🔊 __CHAT_DONE__ 触发完成声音 (reason=null, toolsCalled=0)
+__CHAT_DONE__{"reason":null}
+✔ 新建时 emittedContent 为 false (1.8209ms)
+✔ 只有 message_start 的空流：emittedContent 仍为 false (0.5719ms)
+✔ 文本 delta 写出后 emittedContent 为 true (1.2607ms)
+✔ tool_use 写出后 emittedContent 为 true (2.4343ms)
+✔ thinking 块不算内容写出（客户端未收到正文） (0.5967ms)
+✔ emittedContent 只增不减 (1.2439ms)
+▶ execFileText
+  ✔ 执行命令返回 stdout (124.1435ms)
+  ✔ 命令失败时 reject (118.031ms)
+✔ execFileText (244.6992ms)
+▶ isPortFree
+  ✔ 未占用端口返回 true (29.1788ms)
+  ✔ 被占用端口返回 false (5.1853ms)
+✔ isPortFree (35.3515ms)
+▶ getPortListeners
+  ✔ 端口为空返回空数组 (1.5844ms)
+✔ getPortListeners (2.1158ms)
+▶ readWindsurfProductInfo（注入 vscode）
+  ✔ 无 appRoot 时回退到 env 信息 (0.5829ms)
+✔ readWindsurfProductInfo（注入 vscode） (1.2919ms)
+▶ probeConfiguredModelStream 前置校验
+  ✔ 未设置默认模型 (0.6411ms)
+  ✔ 未配置 API Key (0.3431ms)
+  ✔ GPT 模型暂不覆盖 (0.6279ms)
+✔ probeConfiguredModelStream 前置校验 (2.5441ms)
+(node:59840) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/log-config.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 默认值: enabled=true, verbose=false, maxMb=10, retainDays=7 (3.0723ms)
+✔ env 字符串 'false' 关闭开关 (0.2881ms)
+✔ env 字符串 'true' 打开 verbose (0.2112ms)
+✔ 数值项非法时回落默认值 (0.2274ms)
+✔ 数值项有上限保护 (0.3728ms)
+✔ 非对象 env 入参回落默认值, 不抛异常 (0.5207ms)
+✔ configureLog 热更新 verbose 生效 (0.5512ms)
+✔ configureLog 只改传入的键, 不动其他键 (0.3481ms)
+✔ configureLog 传 null / 非对象不抛异常 (0.4916ms)
+✔ configureLog 接受 camelCase 运行态字段 (0.3761ms)
+✔ configureLog 返回当前配置快照 (1.2247ms)
+✔ getLogConfig 返回副本, 外部改动不污染内部状态 (0.1956ms)
+✔ configureLog 忽略无关键名（如 BYOK 配置） (0.2227ms)
+✔ setRuntimeConfig 推送 LOG_* 到日志配置（单向依赖不产生循环引用） (42.2699ms)
+(node:65312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/log-file.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ dailyFileName 按日期生成 (1.9088ms)
+✔ blobFileName 按 turnId + kind 生成 (0.3155ms)
+✔ blobFileName 清洗路径穿越字符 (0.2421ms)
+✔ needsRotation: 超过阈值返回 true (0.1664ms)
+✔ nextRotationPath 递增序号 (3.8475ms)
+✔ isExpired: 按天数判断 (0.4201ms)
+✔ ensureLogDir 创建目录与 blobs 子目录 (3.9771ms)
+✔ ensureLogDir 重复调用不抛异常 (3.3773ms)
+✔ cleanupExpired 只删过期的 jsonl, 保留新文件 (4.3207ms)
+✔ cleanupExpired 不碰非日志文件 (3.1328ms)
+✔ cleanupExpired 目录不存在时不抛异常 (0.3117ms)
+(node:54356) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/log-queue.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 多条普通事件攒批合并为一次写入 (33.1934ms)
+✔ 写入串行, 不并发交错 (65.7655ms)
+✔ high 事件立即触发 flush (30.2767ms)
+✔ 背压: 超过行数上限丢最旧的普通事件 (0.6623ms)
+✔ 背压: high 事件优先保留 (0.512ms)
+✔ 背压: 全是 high 时不丢弃 (0.2654ms)
+✔ 丢弃后 flush 会写出 log_dropped 计数行 (30.2946ms)
+✔ flushSync 写出队列剩余内容 (0.5609ms)
+✔ flushSync 队列为空时不写入 (1.255ms)
+✔ appendAsync 抛错不冒泡, 后续写入仍工作 (66.7717ms)
+✔ appendAsync 同步抛错不冒泡 (0.5538ms)
+✔ appendSync 抛错不冒泡 (0.2745ms)
+✔ 每行以换行结尾, 可逐行解析 (30.9005ms)
+✔ 空字符串 / 非字符串入参被忽略, 不抛异常 (0.4068ms)
+(node:58180) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/log-writer.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ chat_turn 的新字段不被白名单丢弃 (9.7353ms)
+✔ turn_start 事件可落盘且带关联键 (5.0415ms)
+(node:66148) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/log-writer.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ logEvent 产出可逐行 JSON.parse 的 JSONL (10.5348ms)
+✔ 信封含 ts / pid / proc 字段 (6.1992ms)
+✔ 白名单外的字段被丢弃 (5.1919ms)
+✔ 超长字段截断到 2KB 并标记 truncated (5.8023ms)
+✔ 单行长度控制在 4KB 内(保证追加写原子性) (5.7324ms)
+✔ LOG_ENABLED=false 时零 IO (43.0791ms)
+✔ LOG_VERBOSE=false 时 logBlob 的 supplier 不被调用 (1.7156ms)
+✔ LOG_VERBOSE=true 时写出 blob 文件并落指针行 (46.7627ms)
+✔ blob 指针行不内联大文本 (46.0755ms)
+  ⚠️  日志写入失败，后续不再告警: 无法创建日志目录 C:\Users\cz\AppData\Local\Temp\byok-writer-test-8EIn22\blocker\logs
+✔ blob 文件名清洗路径穿越, 不写到目录外 (44.3071ms)
+✔ 循环引用不抛异常 (4.4839ms)
+✔ supplier 自身抛错不冒泡 (2.8177ms)
+✔ null / undefined / 非对象入参不抛异常 (1.9806ms)
+✔ 目录不可创建时不抛异常 (3.7214ms)
+✔ high severity 的 anomaly 立即落盘 (43.8457ms)
+✖ test\unit\log-writer.test.mjs (426.3755ms)
+(node:33980) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/chat.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ requiresConfiguredDefaultModel blocks __DEFAULT__ models when not configured (2.9845ms)
+✔ requiresConfiguredDefaultModel allows __DEFAULT__ when configured (0.4557ms)
+✔ requiresConfiguredDefaultModel checks BYOK slots independently (0.6695ms)
+✔ requiresConfiguredDefaultModel allows explicit model names (0.4464ms)
+▶ normalizeModelsResponse
+  ✔ data 数组按 provider 分流 (2.6047ms)
+  ✔ 已是 providers 结构则原样返回 (0.2645ms)
+  ✔ 未知格式抛错 (0.5387ms)
+✔ normalizeModelsResponse (6.7434ms)
+▶ getModelListUrl
+  ✔ 空值抛错 (0.3291ms)
+  ✔ messages 路径转为 /models (0.4822ms)
+  ✔ 已是 /models 保持不变 (0.3234ms)
+  ✔ 本地非标端口用 http (0.4917ms)
+✔ getModelListUrl (2.7978ms)
+▶ flattenModelIds / modelIdMatches
+  ✔ 扁平化并去重 (0.7441ms)
+  ✔ 空目标视为匹配 (0.3603ms)
+  ✔ 忽略 -thinking 后缀匹配 (0.331ms)
+✔ flattenModelIds / modelIdMatches (2.595ms)
+▶ isSslProtocolMismatch / toggleGatewayProtocol
+  ✔ 识别 SSL 协议不匹配 (0.511ms)
+  ✔ https<->http 切换 (0.2484ms)
+✔ isSslProtocolMismatch / toggleGatewayProtocol (1.3145ms)
+▶ formatModelFetchError
+  ✔ SSL 错误给出协议提示 (0.5238ms)
+  ✔ 401 给出 key 无效提示 (0.5146ms)
+✔ formatModelFetchError (1.5183ms)
+▶ normalizeProviderBaseUrl
+  ✔ 拆出 host 并推导路径 (0.4402ms)
+✔ normalizeProviderBaseUrl (0.7708ms)
+▶ fetchModelsFromGateway（注入 proxyManager）
+  ✔ 无 baseUrl 且代理未运行时抛错 (0.5618ms)
+✔ fetchModelsFromGateway（注入 proxyManager） (0.8826ms)
+(node:51000) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/chat.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ⚠️  Synthesized tool definition for forced tool_choice "finish" (not in request/history) so the model can call it
+  ⚠️  Synthesized tool definition for forced tool_choice "finish" (not in request/history) so the model can call it
+✔ synthesizes missing named tool_choice target and allows forwarding (3.4457ms)
+✔ does not duplicate when named tool already present (0.6871ms)
+✔ ignores non-named tool_choice (auto/any) (0.3155ms)
+✔ handles undefined/empty tools list (0.495ms)
+✔ handles undefined tool_choice (0.3629ms)
+✔ placeholder test - project structure (1.4946ms)
+✔ placeholder test - basic assertions (0.3728ms)
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964529_zf357mqg7
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964538_h3lvmtknl
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964546_5h87q1ocf
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964558_03gvxgbpj
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964572_4zddllr8z
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964592_k0v8t98dv
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964604_grqwru37e
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964615_jf0ygus6s
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964630_u714fsk0k
+✔ createDefaultProfile generates valid profile structure (12.8806ms)
+✖ ensureProfilesExist migrates .env to profiles.json on first load (8.7305ms)
+✔ listProfiles returns profile summaries with correct flags (8.4594ms)
+✔ createProfile adds new profile to list (10.3609ms)
+✔ updateProfile modifies profile fields and timestamp (14.7286ms)
+✔ activateProfile switches activeId (21.4166ms)
+✔ renameProfile updates profile name (11.4167ms)
+✔ duplicateProfile creates copy with (副本) suffix (10.0356ms)
+✔ deleteProfile removes profile and switches activeId if deleted (14.793ms)
+✔ deleteProfile prevents deleting last profile (7.8972ms)
+✔ projectToEnvConfig generates full env key set (1.8959ms)
+(node:39732) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/prompt-cache.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ getPromptCacheConfig defaults: enabled, anthropic on, openai observe, tail 2 (4.2481ms)
+✔ PROMPT_CACHE_ENABLED=false disables anthropic cache too (0.6565ms)
+✔ normalizeOpenAIPromptCacheMode falls back to observe on invalid values (0.4579ms)
+✔ shouldOptimizeOpenAIPrefix honors off mode and global switch (0.3598ms)
+✔ sortToolsForStablePrefix sorts by name and stabilizes key order (28.6196ms)
+✔ prepareToolsForPromptCache respects disabled config and off mode (0.5906ms)
+✔ applyAnthropicPromptCache marks system, last tool, and message prefix breakpoint (0.9403ms)
+✔ applyAnthropicPromptCache shifts breakpoint before volatile tail messages (0.5836ms)
+✔ applyAnthropicPromptCache leaves short conversations untouched (0.3628ms)
+✔ applyAnthropicPromptCache no-ops when disabled (0.4178ms)
+✔ shouldRetryWithoutPromptCache detects cache_control rejections only (0.5014ms)
+▶ DEFAULT_SYSTEM_PROMPT
+  ✔ 包含三行核心定义 (1.8195ms)
+✔ DEFAULT_SYSTEM_PROMPT (4.238ms)
+▶ BUILT_IN_PROMPT_TEMPLATES
+  ✔ 共 6 个模板 (1.8496ms)
+  ✔ 默认模板内容等于 DEFAULT_SYSTEM_PROMPT (0.2917ms)
+  ✔ 每个模板含 id/label/description/content (0.3864ms)
+  ✔ id 唯一 (0.2567ms)
+  ✔ 非默认模板均以默认提示词为前缀 (0.5605ms)
+✔ BUILT_IN_PROMPT_TEMPLATES (5.0287ms)
+[ProfileStore] Migrated .env to profiles.json, activeId: profile_1789483964615_7nqnn4jr1
+✔ sanitizeProtocol 白名单严格 (13.9466ms)
+✔ sanitizeProtocol 忽略大小写与首尾空格 (1.937ms)
+✔ sanitizeProtocol 拒绝非法值 (3.6258ms)
+✔ detectModelProtocol 按模型名前缀识别 (2.4729ms)
+✔ detectModelProtocol 空/未知返回 "" (1.6033ms)
+✔ detectModelProtocol 去掉 -thinking 后缀 (1.5453ms)
+✔ resolveEffectiveProtocol 手动协议覆盖模型识别 (1.5075ms)
+✔ resolveEffectiveProtocol 手动为空时按模型名后备 (1.4802ms)
+✔ resolveEffectiveProtocol 两者都空返回 "" (1.6661ms)
+✔ resolveEffectiveProtocol 非法手动值回退到自动检测 (1.7414ms)
+✔ listProfiles 输出 byokNProtocol / ProtocolManual / ThinkingEffort（四槽位） (9.654ms)
+✔ projectToEnvConfig 输出 BYOK1..4_PROTOCOL (1.8365ms)
+✔ projectToEnvConfig 非法协议在 normalize 中被清空 (1.3448ms)
+✔ normalizeSlot 对缺失 protocol 字段的老 profile 添加空 protocol（读盘迁移） (7.1044ms)
+✔ protocolToThinkingProvider 三向映射 (3.5028ms)
+✔ buildThinkingEffortOptionsHtmlForProvider 返回带 selected 的 HTML (2.0093ms)
+✔ buildThinkingEffortOptionsHtmlForProvider 未指定 provider 返回占位 (1.1813ms)
+✔ sanitizeSlotProtocol（proxy 侧）与 profileStore.sanitizeProtocol 语义一致 (2.6612ms)
+(node:24952) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/byok-slots.js?t=17894839646380.27713111403618707 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ redactSecret
+  ✔ 空值返回空字符串 (2.738ms)
+  ✔ 短密钥（<=8）保留前2位并标注长度 (0.336ms)
+  ✔ 长密钥保留首尾4位并标注长度 (0.3462ms)
+  ✔ 去除首尾空白 (0.3236ms)
+✔ redactSecret (8.6391ms)
+▶ shellQuote
+  ✔ 普通字符串包裹单引号 (0.2784ms)
+  ✔ 转义内部单引号 (0.312ms)
+✔ shellQuote (1.1606ms)
+▶ isValidPortValue
+  ✔ 空值视为合法 (0.3411ms)
+  ✔ 合法端口范围 1-65535 (0.321ms)
+  ✔ 越界端口非法 (0.2026ms)
+✔ isValidPortValue (1.7607ms)
+▶ isValidCompletionTimeoutValue
+  ✔ 空值视为合法 (0.2791ms)
+  ✔ 合法范围 2000-60000 (0.2425ms)
+  ✔ 越界非法 (0.6598ms)
+✔ isValidCompletionTimeoutValue (2.0913ms)
+▶ envCheckItem
+  ✔ 构造检查项对象 (1.4759ms)
+✔ envCheckItem (1.9006ms)
+▶ jsonBlock / textBlock
+  ✔ jsonBlock 生成 json 代码块 (0.2599ms)
+  ✔ textBlock 生成 text 代码块 (0.1855ms)
+  ✔ textBlock 空值回退为「无」 (0.1243ms)
+✔ jsonBlock / textBlock (1.2514ms)
+▶ sidebarTemplate.js 模块加载
+  ✖ 应该能够加载模块 (1.6746ms)
+✖ sidebarTemplate.js 模块加载 (4.8862ms)
+▶ HTML 结构渲染
+  ✖ 应该返回有效的 HTML 字符串 (0.3395ms)
+  ✖ 应该包含必要的 meta 标签 (0.2458ms)
+  ✖ 应该包含三个 Tab 按钮 (0.2501ms)
+  ✖ 应该包含使用教程 (0.2606ms)
+  ✖ 应该包含方案编辑器与保存按钮 (0.2419ms)
+  ✖ 应该包含日志控制按钮 (0.231ms)
+  ✖ 应该包含高级路由配置 (0.3841ms)
+✖ HTML 结构渲染 (4.1535ms)
+▶ XSS 防护
+  ✖ 应该转义用户输入 (0.3844ms)
+✖ XSS 防护 (0.9391ms)
+▶ 边界情况处理
+  ✖ 应该处理空值 (0.3746ms)
+  ✖ 应该处理未定义的值 (0.2546ms)
+✖ 边界情况处理 (1.3804ms)
+▶ DOM id 完整性
+  ✖ 应该包含所有关键 DOM id (0.3114ms)
+  ✖ 不应该有重复的 id (0.2595ms)
+✖ DOM id 完整性 (1.2348ms)
+(node:51700) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/stream-end.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ StreamEnd 是冻结常量 (1.4138ms)
+✔ 收到终止事件 → NORMAL (0.3037ms)
+✔ 无终止事件且零内容写出 → EMPTY (0.4262ms)
+✔ 无终止事件但已写出内容 → PARTIAL (0.253ms)
+✔ closedByClient 优先于其它条件 (0.3095ms)
+✔ 畸形入参一律返回最保守的 PARTIAL 且不抛 (0.3583ms)
+✔ 只有 EMPTY 且未达上限才重试 (0.3306ms)
+✔ 非 EMPTY 一律不重试 (0.277ms)
+✔ max=0 表示关闭空流重试 (0.3765ms)
+✔ 非数字入参不抛且不重试 (0.5205ms)
+(node:53556) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/stream-lifecycle.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ detach 后心跳不再向客户端写入 (5.3236ms)
+✔ detach 后 close 监听归零，且重复调用幂等不抛 (0.4813ms)
+✔ 多次重建 lifecycle 且每次 detach 时监听不累积 (0.2965ms)
+✔ finalize 幂等：第二次返回 false (0.7799ms)
+✔ fail 写出错误块并收尾，重复调用返回 false (2.0495ms)
+✔ 客户端 close 后 wasClosedByClient 为真 (0.4833ms)
+(node:20496) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/chat.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ⚠️  Synthesized 1 tool definition(s) from history for Bedrock toolConfig compatibility: [run_command]
+✔ collectToolUseNames detects tool_use and tool_result blocks (2.765ms)
+✔ synthesizeToolsFromMessages backfills tools when history has tool blocks but request omits tools (0.7707ms)
+✔ synthesizeToolsFromMessages keeps existing tools untouched (0.201ms)
+✔ synthesizeToolsFromMessages returns input unchanged when no tool blocks present (0.2201ms)
+✔ synthesizeToolsFromMessages handles tool_result-only history (orphaned tool result) (0.3103ms)
+(node:38076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/tool-normalization.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ normalizeToolInvocation does not throw on truncated JSON arguments (2.3932ms)
+✔ normalizeToolInvocation handles plain non-JSON string arguments (0.2721ms)
+✔ normalizeToolInvocation still remaps keys for valid JSON object arguments (0.4044ms)
+✔ normalizeToolInvocation handles array arguments without throwing (0.2785ms)
+✔ normalizeToolInvocation handles null/undefined arguments (0.843ms)
+(node:40432) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/logging/turn-log.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ finish 落一条 chat_turn 汇总 (1.9095ms)
+✔ set 浅合并, 后写覆盖先写 (0.2572ms)
+✔ anomaly 各落一条独立事件, severity 由 code 推导 (0.4909ms)
+✔ anomaly 事件带 turnId, 可与 chat_turn 关联 (0.3671ms)
+✔ anomaly 汇总进 chat_turn.anomalies 且去重 (1.4728ms)
+✔ 无 anomaly 时 anomalies 为空数组 (2.006ms)
+✔ finish 幂等: 重复调用只落一次 (0.2338ms)
+✔ finish 后 set / anomaly 不再产生事件 (0.1754ms)
+✔ finish 可传 extra 字段并合并 (0.2629ms)
+✔ durationMs 自动计算 (0.5699ms)
+✔ meta 里的 target / initiator 透传 (0.2242ms)
+✔ detail 为对象时序列化为字符串 (0.2277ms)
+✔ 畸形入参不抛异常 (0.4842ms)
+✔ 循环引用 detail 不抛异常且仍落事件 (0.1961ms)
+✔ writer 抛错不冒泡 (0.3866ms)
+✔ writer=null 时静默, 不抛异常也不落盘 (0.1707ms)
+✔ 无参构造不抛异常 (0.1553ms)
+(node:22916) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/usage-log.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mergeUsage accumulates known fields and ignores null patch values (1.4269ms)
+✔ computeCacheHitRate caps at 100 and handles zero input (0.276ms)
+✔ formatUsageLog includes provider, cache stats and meta fields (0.4549ms)
+✔ formatUsageLog omits hit rate when nothing cached (0.1907ms)
+✔ extractAnthropicUsage reads message_start and message_delta shapes (0.2518ms)
+✔ merging message_delta usage keeps input tokens from message_start (regression) (0.2557ms)
+✔ extractOpenAIResponsesUsage reads response.usage with cached details (0.3094ms)
+✔ extractChatCompletionsUsage reads prompt/completion tokens with cached details (0.2076ms)
+✔ toInjectedTailMessage marks runtime-injected messages as volatile tail (0.2738ms)
+(node:49788) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/repository/devin-byok-plus/src/proxy/handlers/userstatus-shape.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\repository\devin-byok-plus\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ readModelUid 读出 field22 (1.6108ms)
+✔ mapEntry 全返回 null: round-trip 无损 (1.3498ms)
+✔ mapEntry 改写命中条目, 其余原样 (0.597ms)
+✔ appendEntries 拿到已存在 uid 集合并追加 (0.4023ms)
+✔ appendEntries 返回空数组: changed=false 且字节不变 (0.339ms)
+✔ 两键同传: 抛错 (0.3364ms)
+✔ 畸形 buffer: 不抛异常 (0.2573ms)
+✔ readSortName 读出 field1 (0.2824ms)
+✔ transformModelSorts mapSort 全 null: round-trip 无损 (0.9996ms)
+✔ transformModelSorts mapSort 改写命中 sort, 其余原样 (0.8881ms)
+✔ transformModelSorts appendSorts 拿到现有 name 集合并追加 (0.6707ms)
+✔ transformModelSorts appendSorts 空数组: changed=false 字节不变 (0.4507ms)
+✔ transformModelSorts 不触碰同层 field1 模型数组 (0.4129ms)
+✔ transformModelSorts 两键同传: 抛错 (0.1604ms)
+✔ transformModelSorts 畸形 buffer: 不抛异常 (0.2247ms)
+ℹ tests 427
+ℹ suites 2
+ℹ pass 407
+ℹ fail 20
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 975.1849
+
+✖ failing tests:
+
+test at test\unit\log-writer.test.mjs:1:1
+✖ test\unit\log-writer.test.mjs (426.3755ms)
+  Error: Unable to deserialize cloned data due to invalid or unsupported version.
+      at #processRawBuffer (node:internal/test_runner/runner:375:20)
+      at FileTest.parseMessage (node:internal/test_runner/runner:311:27)
+      at Socket.<anonymous> (node:internal/test_runner/runner:421:15)
+      at Socket.emit (node:events:508:28)
+      at addChunk (node:internal/streams/readable:559:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+      at Readable.push (node:internal/streams/readable:390:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+
+test at test\unit\profileStore.test.mjs:46:1
+✖ ensureProfilesExist migrates .env to profiles.json on first load (8.7305ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '666' !== '600'
+  
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/profileStore.test.mjs:70:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '666',
+    expected: '600',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\unit\sidebarTemplate.test.mjs:20:11
+✖ 应该能够加载模块 (1.6746ms)
+  Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'd:'
+      at throwIfUnsupportedURLScheme (node:internal/modules/esm/load:195:11)
+      at defaultLoadSync (node:internal/modules/esm/load:142:3)
+      at #loadAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:795:12)
+      at #loadSync (node:internal/modules/esm/loader:815:49)
+      at ModuleLoader.load (node:internal/modules/esm/loader:780:26)
+      at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:526:31)
+      at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:571:36)
+      at afterResolve (node:internal/modules/esm/loader:624:52)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:630:12)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:649:32) {
+    code: 'ERR_UNSUPPORTED_ESM_URL_SCHEME'
+  }
+
+test at test\unit\sidebarTemplate.test.mjs:48:11
+✖ 应该返回有效的 HTML 字符串 (0.3395ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:49:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:48:11)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+
+test at test\unit\sidebarTemplate.test.mjs:55:11
+✖ 应该包含必要的 meta 标签 (0.2458ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:56:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:55:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:61:11
+✖ 应该包含三个 Tab 按钮 (0.2501ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:62:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:61:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:68:11
+✖ 应该包含使用教程 (0.2606ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:69:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:68:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:74:11
+✖ 应该包含方案编辑器与保存按钮 (0.2419ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:75:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:74:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:84:11
+✖ 应该包含日志控制按钮 (0.231ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:85:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:84:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:91:11
+✖ 应该包含高级路由配置 (0.3841ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:92:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:91:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:121:11
+✖ 应该转义用户输入 (0.3844ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:122:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:121:11)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+
+test at test\unit\sidebarTemplate.test.mjs:132:11
+✖ 应该处理空值 (0.3746ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:141:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:132:11)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+
+test at test\unit\sidebarTemplate.test.mjs:145:11
+✖ 应该处理未定义的值 (0.2546ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:163:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:145:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test\unit\sidebarTemplate.test.mjs:188:11
+✖ 应该包含所有关键 DOM id (0.3114ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:189:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:188:11)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+
+test at test\unit\sidebarTemplate.test.mjs:206:11
+✖ 不应该有重复的 id (0.2595ms)
+  TypeError: renderSidebarHtml is not a function
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:207:18)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///D:/repository/devin-byok-plus/test/unit/sidebarTemplate.test.mjs:206:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+ ELIFECYCLE  Test failed. See above for more details.

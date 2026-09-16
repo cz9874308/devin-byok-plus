@@ -1,0 +1,25 @@
+
+> devin-byok-plus@2.6.0 build D:\repository\devin-byok-plus
+> node scripts/build.js
+
+🎨 Building Tailwind CSS...
+npm warn Unknown env config "npm-globalconfig". This will stop working in the next major version of npm.
+npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm.
+npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm.
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+Rebuilding...
+
+Done in 601ms.
+✅ Tailwind CSS built successfully
+🔨 Building extension...
+
+  dist\extension.js      291.4kb
+  dist\extension.js.map  463.0kb
+
+Done in 34ms
+✅ Build completed successfully
+📦 Copying proxy runtime...
+✅ Proxy runtime copied successfully

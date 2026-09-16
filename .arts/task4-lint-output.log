@@ -1,0 +1,104 @@
+
+> devin-byok-plus@2.6.0 lint D:\repository\devin-byok-plus
+> eslint src/**/*.js --max-warnings 50
+
+
+D:\repository\devin-byok-plus\src\managers\patchManager.js
+  252:11  warning  The value assigned to 'tmp42' is not used in subsequent statements  no-useless-assignment
+  712:13  warning  'tmp03' is never reassigned. Use 'const' instead                    prefer-const
+  808:13  warning  'tmp04' is never reassigned. Use 'const' instead                    prefer-const
+
+D:\repository\devin-byok-plus\src\managers\proxy-process.js
+    8:9   warning  'exec' is assigned a value but never used  no-unused-vars
+   46:12  warning  'error' is defined but never used          no-unused-vars
+   80:14  warning  'error' is defined but never used          no-unused-vars
+  107:16  warning  'error' is defined but never used          no-unused-vars
+  217:12  warning  'error' is defined but never used          no-unused-vars
+
+D:\repository\devin-byok-plus\src\managers\proxyManager.js
+    17:7   warning  'proxyProcess' is assigned a value but never used                  no-unused-vars
+   699:11  warning  'tmp6' is never reassigned. Use 'const' instead                    prefer-const
+  1022:11  warning  The value assigned to 'tmp6' is not used in subsequent statements  no-useless-assignment
+
+D:\repository\devin-byok-plus\src\providers\sidebarProvider.js
+    46:7   warning  'net' is assigned a value but never used                                 no-unused-vars
+    47:7   warning  'crypto' is assigned a value but never used                              no-unused-vars
+   137:35  warning  'tmp03' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+   423:9   warning  The value assigned to 'tmp5' is not used in subsequent statements        no-useless-assignment
+   716:11  warning  'tmp16' is assigned a value but never used                               no-unused-vars
+  2322:10  warning  'buildThinkingEffortOptions' is defined but never used                   no-unused-vars
+  2328:10  warning  'stripProtoServer' is defined but never used                             no-unused-vars
+  2331:10  warning  'shouldUseHttpGateway' is defined but never used                         no-unused-vars
+  2334:10  warning  'ensureGatewayUrl' is defined but never used                             no-unused-vars
+  2337:10  warning  'formatUptime' is defined but never used                                 no-unused-vars
+
+D:\repository\devin-byok-plus\src\proxy\handlers\anthropic-stream.js
+  157:32  warning  'tmp1' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\repository\devin-byok-plus\src\proxy\handlers\chat.js
+     7:27  warning  'buildStopChunk' is defined but never used                              no-unused-vars
+     7:43  warning  'buildTextDelta' is defined but never used                              no-unused-vars
+     7:59  warning  'STOP_REASON' is defined but never used                                 no-unused-vars
+    96:29  warning  'arg1' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+   413:10  warning  'isOpenAICompatibleModel' is defined but never used                     no-unused-vars
+   456:7   warning  The value assigned to 'tmp9' is not used in subsequent statements       no-useless-assignment
+   457:7   warning  The value assigned to 'tmp10' is not used in subsequent statements      no-useless-assignment
+   488:15  warning  'tmp4' is never reassigned. Use 'const' instead                         prefer-const
+   490:17  warning  'tmp6' is never reassigned. Use 'const' instead                         prefer-const
+   491:21  warning  'tmp7' is never reassigned. Use 'const' instead                         prefer-const
+   492:16  warning  'tmp8' is never reassigned. Use 'const' instead                         prefer-const
+   785:13  warning  '_volatileTail' is assigned a value but never used                      no-unused-vars
+   866:14  warning  'tmp9' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  1357:7   warning  'tmp17' is never reassigned. Use 'const' instead                        prefer-const
+
+D:\repository\devin-byok-plus\src\proxy\handlers\embeddings.js
+  25:11  warning  'retryPrefix' is assigned a value but never used  no-unused-vars
+
+D:\repository\devin-byok-plus\src\proxy\handlers\models.js
+  88:5  warning  '_runtimeConfig' is never reassigned. Use 'const' instead  prefer-const
+
+D:\repository\devin-byok-plus\src\proxy\handlers\tool-normalization.js
+  230:9  warning  'tmp02' is never reassigned. Use 'const' instead  prefer-const
+
+D:\repository\devin-byok-plus\src\proxy\handlers\web-search.js
+    5:28  warning  'writeVarintField' is defined but never used      no-unused-vars
+   18:11  warning  'retryPrefix' is assigned a value but never used  no-unused-vars
+  118:17  warning  'tmp1' is never reassigned. Use 'const' instead   prefer-const
+
+D:\repository\devin-byok-plus\src\proxy\retry-utils.js
+  139:7  warning  The value assigned to 'lastStatusCode' is not used in subsequent statements  no-useless-assignment
+  140:7  warning  The value assigned to 'lastHeaders' is not used in subsequent statements     no-useless-assignment
+
+D:\repository\devin-byok-plus\src\proxy\ws-bridge.js
+  3:7  warning  'WS_PORT_OFFSET' is assigned a value but never used  no-unused-vars
+  4:5  warning  'clients' is never reassigned. Use 'const' instead   prefer-const
+
+D:\repository\devin-byok-plus\src\services\environmentProbe.js
+   54:7  warning  The value assigned to 'out' is not used in subsequent statements  no-useless-assignment
+  195:9  warning  'req' is never reassigned. Use 'const' instead                    prefer-const
+
+D:\repository\devin-byok-plus\src\services\versionChecker.js
+  85:22  warning  'err' is defined but never used  no-unused-vars
+
+D:\repository\devin-byok-plus\src\views\sidebarTemplate.js
+  18:5   warning  'nonce' is assigned a value but never used      no-unused-vars
+  18:12  warning  'cspSource' is assigned a value but never used  no-unused-vars
+  18:23  warning  'scriptUri' is assigned a value but never used  no-unused-vars
+  19:12  warning  'tmp1' is assigned a value but never used       no-unused-vars
+  19:48  warning  'tmp7' is assigned a value but never used       no-unused-vars
+  20:5   warning  'tmp13' is assigned a value but never used      no-unused-vars
+  20:12  warning  'tmp14' is assigned a value but never used      no-unused-vars
+  20:19  warning  'tmp15' is assigned a value but never used      no-unused-vars
+  20:40  warning  'tmp18' is assigned a value but never used      no-unused-vars
+  20:47  warning  'tmp19' is assigned a value but never used      no-unused-vars
+  20:54  warning  'tmp20' is assigned a value but never used      no-unused-vars
+  20:68  warning  'tmp22' is assigned a value but never used      no-unused-vars
+  20:75  warning  'tmp23' is assigned a value but never used      no-unused-vars
+  20:82  warning  'tmp24' is assigned a value but never used      no-unused-vars
+  21:61  warning  'tmp33' is assigned a value but never used      no-unused-vars
+
+✖ 64 problems (0 errors, 64 warnings)
+  0 errors and 5 warnings potentially fixable with the `--fix` option.
+
+ESLint found too many warnings (maximum: 50).
+ ELIFECYCLE  Command failed with exit code 1.
