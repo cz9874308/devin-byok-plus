@@ -527,6 +527,7 @@
     if (!arg0) {
       return;
     }
+    const dl = arg0.list;
     const tmp32 = String(arg2 || "").trim();
     const tmp4 = [];
     const tmp5 = new Set();
@@ -542,36 +543,28 @@
       id: tmp32,
       name: tmp32
     }].concat(tmp4) : tmp4;
-    const tmp7 = Array.from(arg0.options).map(arg02 => arg02.value + "\0" + (arg02.textContent || "")).join("");
-    const tmp8 = tmp6.length ? tmp6.map(arg02 => fn21(arg02) + "\0" + (fn22(arg02) || fn21(arg02))).join("") : (tmp32 || "") + "\0" + (tmp32 ? tmp32 : "请先加载模型列表");
-    if (tmp7 === tmp8) {
-      if (tmp32 && arg0.value !== tmp32) {
-        arg0.value = tmp32;
+    if (dl) {
+      const tmp7 = Array.from(dl.options).map(arg02 => arg02.value + "\0" + (arg02.textContent || "")).join("");
+      const tmp8 = tmp6.map(arg02 => fn21(arg02) + "\0" + (fn22(arg02) || fn21(arg02))).join("");
+      if (tmp7 === tmp8) {
+        if (tmp32 && arg0.value !== tmp32) {
+          arg0.value = tmp32;
+        }
+        return;
       }
-      return;
-    }
-    arg0.innerHTML = "";
-    if (!tmp6.length) {
-      const tmp02 = document.createElement("option");
-      tmp02.value = tmp32 || "";
-      tmp02.textContent = tmp32 ? tmp32 : "请先加载模型列表";
-      tmp02.selected = true;
-      arg0.appendChild(tmp02);
-      return;
-    }
-    for (const tmp02 of tmp6) {
-      const tmp03 = document.createElement("option");
-      tmp03.value = fn21(tmp02);
-      tmp03.textContent = fn22(tmp02) || tmp03.value;
-      if (tmp03.value === tmp32) {
-        tmp03.selected = true;
+      dl.innerHTML = "";
+      for (const tmp02 of tmp6) {
+        const tmp03 = document.createElement("option");
+        tmp03.value = fn21(tmp02);
+        tmp03.textContent = fn22(tmp02) || tmp03.value;
+        dl.appendChild(tmp03);
       }
-      arg0.appendChild(tmp03);
     }
     if (tmp32) {
       arg0.value = tmp32;
     }
   }
+
   function fn26(arg0) {
     const tmp12 = fn2(arg0);
     const tmp22 = fn11(tmp12);
@@ -882,7 +875,7 @@
     const tmp32 = tmp22.classList.toggle("hidden");
     arg0.classList.toggle("collapsed", tmp32);
   }
-  function tmp43() {}
+  function tmp43() { }
   document.addEventListener("click", arg0 => {
     // 标签页切换
     const tabBtn = arg0.target && arg0.target.closest ? arg0.target.closest(".tab-btn") : null;
@@ -1231,31 +1224,31 @@
       fnPlayCompletionSound();
     }
   });
-  
+
   // ========== 版本更新提示功能 ==========
   function showVersionUpdateBanner(updateInfo) {
     const banner = fn4("versionUpdateBanner");
     const textEl = fn4("versionUpdateText");
     if (!banner || !textEl) return;
-    
+
     textEl.innerHTML = "v" + fn6(updateInfo.currentVersion) + " → <span class=\"version-tag\">v" + fn6(updateInfo.latestVersion) + "</span>";
     banner.classList.remove("hidden");
   }
-  
+
   function hideVersionUpdateBanner() {
     const banner = fn4("versionUpdateBanner");
     if (banner) {
       banner.classList.add("hidden");
     }
   }
-  
+
   const btnOpenRelease = fn4("btnOpenRelease");
   if (btnOpenRelease) {
     btnOpenRelease.addEventListener("click", () => {
       fn5("openReleaseUrl");
     });
   }
-  
+
   const btnDismissUpdate = fn4("btnDismissUpdate");
   if (btnDismissUpdate) {
     btnDismissUpdate.addEventListener("click", () => {
@@ -1274,9 +1267,9 @@
         tmp_audio.currentTime = 0;
         const tmp_p = tmp_audio.play();
         if (tmp_p && typeof tmp_p.catch === "function") {
-          tmp_p.catch(() => {});
+          tmp_p.catch(() => { });
         }
-      } catch {}
+      } catch { }
     }
   }
   const tmp_csToggle = fn4("cfgCompletionSound");
