@@ -535,7 +535,7 @@ class PatchManager {
     return /label:"([^"]*)",icon:\(0,[A-Za-z_$][\w$]*\.jsx\)\([A-Za-z_$][\w$]*\.WindsurfLogo/g;
   }
 
-  // product.json 里这两个 bundle 对应的 checksum key
+  // product.json 里 bundle 对应的 checksum key
   static labelBundleChecksumKey(tmp0) {
     const tmp1 = path.normalize(tmp0).replace(/\\/g, "/").toLowerCase();
     if (tmp1.includes("/workbench/workbench.desktop.main.js")) {
@@ -543,6 +543,9 @@ class PatchManager {
     }
     if (tmp1.includes("/sessions/sessions.desktop.main.js")) {
       return "vs/sessions/sessions.desktop.main.js";
+    }
+    if (tmp1.includes("/windsurf-chat-client/index.js")) {
+      return "vs/workbench/windsurf-chat-client/index.js";
     }
     return null;
   }
@@ -879,6 +882,184 @@ class PatchManager {
       reverted: tmp3,
       details: tmp2
     };
+  }
+
+  // ============================================================
+  // P6: UI 层 BYOK 模型注入
+  // 在 windsurf-chat-client/index.js 的模型处理回调里追加 BYOK 条目，
+  // 使 BYOK 模型在下拉菜单中显示。
+  // ============================================================
+
+  static byokUiModelEntries() {
+    return [
+      { uid: "MODEL_CLAUDE_4_OPUS_BYOK", label: "Claude Opus 4 BYOK" },
+      { uid: "MODEL_CLAUDE_4_OPUS_THINKING_BYOK", label: "Claude Opus 4 Thinking BYOK" },
+      { uid: "MODEL_CLAUDE_4_SONNET_BYOK", label: "Claude Sonnet 4 BYOK" },
+      { uid: "MODEL_CLAUDE_4_SONNET_THINKING_BYOK", label: "Claude Sonnet 4 Thinking BYOK" }
+    ];
+  }
+
+  static buildByokConfigObject(label, modelUid) {
+    return '{'
+      + 'label:"' + label + '",'
+      + 'modelUid:"' + modelUid + '",'
+      + 'creditMultiplier:0,'
+      + 'pricingType:0,'
+      + 'disabled:!1,'
+      + 'supportsImages:!0,'
+      + 'supportsLegacy:!1,'
+      + 'isPremium:!1,'
+      + 'betaWarningMessage:"",'
+      + 'isBeta:!1,'
+      + 'provider:0,'
+      + 'isRecommended:!1,'
+      + 'allowedTiers:[],'
+      + 'apiProvider:0,'
+      + 'isNew:!1,'
+      + 'partialRollout:!1,'
+      + 'rolloutFraction:0,'
+      + 'maxTokens:0,'
+      + 'isCapacityLimited:!1,'
+      + 'modelCostTier:0,'
+      + 'isDefaultModelInFamily:!1,'
+      + 'modelDimensions:[],'
+      + 'complianceLevels:[]'
+      + '}';
+  }
+
+  static buildByokConfigsString() {
+    return PatchManager.byokUiModelEntries()
+      .map(e => PatchManager.buildByokConfigObject(e.label, e.uid))
+      .join(',');
+  }
+
+  static buildByokSortString() {
+    const labels = PatchManager.byokUiModelEntries().map(e => '"' + e.label + '"').join(',');
+    return '{name:"BYOK",groups:[{groupName:"BYOK",modelLabels:[' + labels + ']}]}';
+  }
+
+  // 匹配注入点：VAR1=VAR2?.clientModelConfigs||[],VAR3=VAR2?.clientModelSorts||[]
+  static chatClientPatchRegex() {
+    return /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\?\.clientModelConfigs\|\|\[\],([A-Za-z_$][\w$]*)=\2\?\.clientModelSorts\|\|\[\]/;
+  }
+
+  // 检测是否已注入：clientModelConfigs 后面紧跟 .concat
+  static chatClientPatchedRegex() {
+    return /\.clientModelConfigs\|\|\[\]\)\.concat\(/;
+  }
+
+  static findChatClientBundle(tmp0) {
+    const tmp1 = PatchManager.resolveAppRoot(tmp0);
+    if (!tmp1) {
+      return null;
+    }
+    const tmp2 = path.join(tmp1, "out", "vs", "workbench", "windsurf-chat-client", "index.js");
+    return fs.existsSync(tmp2) ? tmp2 : null;
+  }
+
+  static chatClientBackupPath(tmp0) {
+    return tmp0 + ".devin-p6-bak";
+  }
+
+  static isChatClientPatched(tmp0) {
+    const tmp1 = PatchManager.findChatClientBundle(tmp0);
+    if (!tmp1) {
+      return false;
+    }
+    try {
+      const tmp2 = fs.readFileSync(tmp1, "utf-8");
+      return PatchManager.chatClientPatchedRegex().test(tmp2);
+    } catch {
+      return false;
+    }
+  }
+
+  static getChatClientPatchStatus(tmp0) {
+    const tmp1 = PatchManager.findChatClientBundle(tmp0);
+    if (!tmp1) {
+      return { found: false, applied: false, path: null };
+    }
+    try {
+      const tmp2 = fs.readFileSync(tmp1, "utf-8");
+      const tmp3 = PatchManager.chatClientPatchedRegex().test(tmp2);
+      const tmp4 = PatchManager.chatClientPatchRegex().test(tmp2);
+      const tmp5 = PatchManager.isBundleChecksumSynced(tmp1);
+      return {
+        found: true,
+        applied: tmp3,
+        available: tmp4,
+        path: tmp1,
+        checksumSynced: !!(tmp5 && tmp5.synced),
+        checksumReason: (tmp5 && tmp5.reason) || ""
+      };
+    } catch {
+      return { found: true, applied: false, available: false, path: tmp1 };
+    }
+  }
+
+  static applyChatClientPatch(tmp0) {
+    const tmp1 = PatchManager.findChatClientBundle(tmp0);
+    if (!tmp1) {
+      return { success: false, applied: 0, details: ["未找到 windsurf-chat-client/index.js"] };
+    }
+    try {
+      let tmp2 = fs.readFileSync(tmp1, "utf-8");
+      if (PatchManager.chatClientPatchedRegex().test(tmp2)) {
+        return { success: true, applied: 0, skipped: 1, details: ["[跳过] P6 (已应用)"] };
+      }
+      const tmp3 = PatchManager.chatClientPatchRegex();
+      const tmp4 = tmp3.exec(tmp2);
+      if (!tmp4) {
+        return { success: false, applied: 0, details: ["[缺失] P6 (未找到注入点)"] };
+      }
+      const tmp5 = PatchManager.buildByokConfigsString();
+      const tmp6 = PatchManager.buildByokSortString();
+      const tmp7 = tmp4[1] + "=(" + tmp4[2] + "?.clientModelConfigs||[]).concat([" + tmp5 + "])," + tmp4[3] + "=(" + tmp4[2] + "?.clientModelSorts||[]).concat([" + tmp6 + "])";
+      const tmp8 = tmp2.replace(tmp4[0], tmp7);
+      if (tmp8 === tmp2) {
+        return { success: false, applied: 0, details: ["[失败] P6 (替换未生效)"] };
+      }
+      const tmp9 = PatchManager.chatClientBackupPath(tmp1);
+      if (!fs.existsSync(tmp9)) {
+        fs.writeFileSync(tmp9, tmp2, "utf-8");
+      }
+      fs.writeFileSync(tmp1, tmp8, "utf-8");
+      const tmp10 = PatchManager.updateBundleChecksum(tmp1);
+      if (!tmp10 || !tmp10.ok) {
+        let tmp11 = "";
+        try {
+          fs.writeFileSync(tmp1, tmp2, "utf-8");
+          tmp11 = "，已自动回滚";
+        } catch (tmp0e) {
+          tmp11 = "，且回滚失败(" + ((tmp0e && tmp0e.message) || "未知") + ")";
+        }
+        return { success: false, applied: 0, details: ["[失败] P6 (checksum 同步失败：" + ((tmp10 && tmp10.reason) || "未知") + tmp11 + ")"] };
+      }
+      return { success: true, applied: 1, details: ["[成功] P6: UI 层 BYOK 模型注入"] };
+    } catch (tmp0e) {
+      return { success: false, applied: 0, details: ["[失败] P6 (" + ((tmp0e && tmp0e.message) || "未知错误") + ")"] };
+    }
+  }
+
+  static revertChatClientPatch(tmp0) {
+    const tmp1 = PatchManager.findChatClientBundle(tmp0);
+    if (!tmp1) {
+      return { success: false, reverted: 0, details: ["未找到 windsurf-chat-client/index.js"] };
+    }
+    const tmp2 = PatchManager.chatClientBackupPath(tmp1);
+    if (!fs.existsSync(tmp2)) {
+      return { success: false, reverted: 0, details: ["未找到 P6 备份"] };
+    }
+    try {
+      fs.copyFileSync(tmp2, tmp1);
+      const tmp3 = PatchManager.updateBundleChecksum(tmp1);
+      if (!tmp3 || !tmp3.ok) {
+        return { success: false, reverted: 0, details: ["已还原文件但 checksum 同步失败：" + ((tmp3 && tmp3.reason) || "未知")] };
+      }
+      return { success: true, reverted: 1, details: ["[还原] P6 (来自备份)"] };
+    } catch (tmp0e) {
+      return { success: false, reverted: 0, details: ["[失败] (" + ((tmp0e && tmp0e.message) || "未知错误") + ")"] };
+    }
   }
 }
 exports.PatchManager = PatchManager;

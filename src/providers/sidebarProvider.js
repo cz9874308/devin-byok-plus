@@ -130,7 +130,7 @@ class SidebarProvider {
       tmp02.webview.html = this.renderFallbackHtml(tmp03);
       vscode.window.showErrorMessage(
         'Devin BYOK Bridge 控制面板加载失败：' +
-          (tmp03 instanceof Error ? tmp03.message : String(tmp03))
+        (tmp03 instanceof Error ? tmp03.message : String(tmp03))
       );
     }
     tmp02.webview.onDidReceiveMessage((arg0) => this.handleMessage(arg0));
@@ -391,7 +391,7 @@ class SidebarProvider {
         message = started
           ? '已切换方案；端口变更，代理已重启'
           : '已切换方案；端口变更但代理重启失败：' +
-            (this.proxyManager.getLastStartError() || '未知错误');
+          (this.proxyManager.getLastStartError() || '未知错误');
       } else {
         const result = await this.proxyManager.reloadRuntimeConfig(runtime, {
           hybridPort,
@@ -407,7 +407,7 @@ class SidebarProvider {
           message = started
             ? '已切换方案；热更新失败但已自动重启代理生效（' + errMsg + '）'
             : '已切换方案；热更新失败且代理重启失败：' +
-              (this.proxyManager.getLastStartError() || errMsg);
+            (this.proxyManager.getLastStartError() || errMsg);
         }
       }
     }
@@ -452,11 +452,11 @@ class SidebarProvider {
         '进程路由参数',
         'ok',
         '检测到 ' +
-          tmp5.length +
-          ' 个相关进程，命令行包含 Hybrid ' +
-          tmp1 +
-          ' 与 Inference ' +
-          tmp2,
+        tmp5.length +
+        ' 个相关进程，命令行包含 Hybrid ' +
+        tmp1 +
+        ' 与 Inference ' +
+        tmp2,
         false
       );
     }
@@ -572,10 +572,10 @@ class SidebarProvider {
           'powershell',
           ['-NoProfile', '-Command', psScript],
           { windowsHide: true },
-          () => {}
+          () => { }
         );
       } else if (platform === 'darwin') {
-        child_process_1.execFile('afplay', [soundPath], () => {});
+        child_process_1.execFile('afplay', [soundPath], () => { });
       } else {
         child_process_1.execFile(
           'ffplay',
@@ -585,13 +585,13 @@ class SidebarProvider {
               child_process_1.execFile(
                 'mpv',
                 ['--no-video', '--really-quiet', soundPath],
-                () => {}
+                () => { }
               );
             }
           }
         );
       }
-    } catch {}
+    } catch { }
   }
   playInteractionSound() {
     if (this.getStoredCompletionSoundEnabled()) {
@@ -732,14 +732,14 @@ class SidebarProvider {
         tmp19 ? 'ok' : 'warning',
         tmp20
           ? 'BYOK #1=' +
-              (tmp17 || '关闭') +
-              '；BYOK #2=' +
-              (tmp18 || '关闭') +
-              '；BYOK #3=' +
-              (tmp18a || '关闭') +
-              '；BYOK #4=' +
-              (tmp18b || '关闭') +
-              '（Claude→adaptive/budget，GPT→reasoning.effort，Gemini→thinking_level）'
+          (tmp17 || '关闭') +
+          '；BYOK #2=' +
+          (tmp18 || '关闭') +
+          '；BYOK #3=' +
+          (tmp18a || '关闭') +
+          '；BYOK #4=' +
+          (tmp18b || '关闭') +
+          '（Claude→adaptive/budget，GPT→reasoning.effort，Gemini→thinking_level）'
           : '未配置思考强度；将按模型名决定是否思考',
         !tmp19
       )
@@ -781,11 +781,11 @@ class SidebarProvider {
           : tmp23.length === 0
             ? '已安装'
             : '未就绪 ' +
-              tmp23.length +
-              '/' +
-              tmp22.patches.length +
-              '；可能是端口变更或 Devin 版本不兼容；' +
-              tmp25,
+            tmp23.length +
+            '/' +
+            tmp22.patches.length +
+            '；可能是端口变更或 Devin 版本不兼容；' +
+            tmp25,
         tmp24
       )
     );
@@ -1032,19 +1032,33 @@ class SidebarProvider {
   async ensurePatchAppliedAfterProxyStart(tmp02 = true) {
     const tmp1 = this.getPatchStatus();
     const tmp2 = tmp1.patches.some((arg0) => arg0.status !== 'applied');
-    if (!tmp2 || !tmp1.path) {
+    const tmp0p6 = !patchManager_1.PatchManager.isChatClientPatched(this.getStoredPatchExtensionPath());
+    if ((!tmp2 || !tmp1.path) && !tmp0p6) {
       return;
     }
     const tmp3 = this.proxyManager.getStatus();
     const tmp4 = patchManager_1.PatchManager.loopbackApiUrl(tmp3.hybridPort);
     const tmp5 = patchManager_1.PatchManager.loopbackApiUrl(tmp3.inferencePort);
     const tmp6 = this.getStoredPatchExtensionPath();
-    const tmp7 = patchManager_1.PatchManager.applyWithCustomUrls(tmp4, tmp5, tmp6);
-    if (tmp7.applied <= 0) {
+    let tmpApplied = 0;
+    const tmpDetails = [];
+    if (tmp2 && tmp1.path) {
+      const tmp7 = patchManager_1.PatchManager.applyWithCustomUrls(tmp4, tmp5, tmp6);
+      tmpApplied += tmp7.applied;
+      if (tmp7.details) tmpDetails.push(...tmp7.details);
+    }
+    if (tmp0p6) {
+      const tmp7p6 = patchManager_1.PatchManager.applyChatClientPatch(tmp6);
+      if (tmp7p6.applied > 0) {
+        tmpApplied += tmp7p6.applied;
+      }
+      if (tmp7p6.details) tmpDetails.push(...tmp7p6.details);
+    }
+    if (tmpApplied <= 0) {
       return;
     }
     const tmp8 =
-      '检测到 Devin Desktop 补丁丢失，已自动恢复 ' + tmp7.applied + ' 个，需重载窗口生效';
+      '检测到 Devin Desktop 补丁丢失，已自动恢复 ' + tmpApplied + ' 个，需重载窗口生效';
     this.logLines.push(tmp8);
     if (this.logLines.length > 200) {
       this.logLines = this.logLines.slice(-100);
@@ -1079,8 +1093,8 @@ class SidebarProvider {
         [
           '-e',
           'tell application "Terminal" to do script "sh ' +
-            sidebarUtils_1.shellQuote(tmp02).replace(/"/g, '\\"') +
-            '"',
+          sidebarUtils_1.shellQuote(tmp02).replace(/"/g, '\\"') +
+          '"',
         ],
         {
           detached: true,
@@ -1996,10 +2010,10 @@ class SidebarProvider {
         const tmp7 =
           tmp6.applied > 0
             ? '补丁已应用 ' +
-              tmp6.applied +
-              '/' +
-              (tmp6.applied + tmp6.skipped + tmp6.failed) +
-              '，需重载窗口生效'
+            tmp6.applied +
+            '/' +
+            (tmp6.applied + tmp6.skipped + tmp6.failed) +
+            '，需重载窗口生效'
             : tmp6.skipped > 0
               ? '所有补丁已是最新'
               : '未找到可应用的补丁';
@@ -2218,16 +2232,16 @@ class SidebarProvider {
       this.logLines.length === 0
         ? '<div class="log-line dim">等待日志...</div>'
         : this.logLines
-            .slice(-30)
-            .map((arg0) => {
-              const tmp110 = /→.*GetChatMessage|GetStreamingCompletions|GetEmbeddings/.test(arg0)
-                ? ' hi'
-                : /err|stderr/i.test(arg0)
-                  ? ' err'
-                  : '';
-              return '<div class="log-line' + tmp110 + '">' + esc(arg0) + '</div>';
-            })
-            .join('');
+          .slice(-30)
+          .map((arg0) => {
+            const tmp110 = /→.*GetChatMessage|GetStreamingCompletions|GetEmbeddings/.test(arg0)
+              ? ' hi'
+              : /err|stderr/i.test(arg0)
+                ? ' err'
+                : '';
+            return '<div class="log-line' + tmp110 + '">' + esc(arg0) + '</div>';
+          })
+          .join('');
 
     const labelStatus = this.getLabelPatchStatus();
     const labelText = this.getStoredLabelPatchText();
@@ -2252,7 +2266,7 @@ class SidebarProvider {
       ? '未找到 workbench/sessions bundle，请在上方"选择路径"指向 Devin 安装目录'
       : labelChecksumBroken
         ? 'product.json checksum 未同步，Devin 可能报安装损坏，请点"应用"重新同步：' +
-          ((labelStatus.checksumIssues && labelStatus.checksumIssues.join('；')) || '')
+        ((labelStatus.checksumIssues && labelStatus.checksumIssues.join('；')) || '')
         : labelStatus.currentText
           ? '当前显示：' + labelStatus.currentText
           : '当前显示：Cascade（默认）';

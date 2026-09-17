@@ -21,7 +21,7 @@ function activate(context) {
   proxyManager = new ProxyManager(context, deviceId, clientVersion);
   versionChecker = new VersionChecker(context, clientVersion);
   const sidebar = new SidebarProvider(context, proxyManager, versionChecker);
-  
+
   versionChecker.start();
 
   if (context.globalState.get(KEY_AUTO_START_PROXY) === undefined && context.globalState.get(LEGACY_KEY_AUTO_START_PROXY) === true) {
@@ -54,12 +54,14 @@ function activate(context) {
         PatchManager.loopbackApiUrl(status.hybridPort),
         PatchManager.loopbackApiUrl(status.inferencePort)
       );
-      if (result.applied > 0) {
+      const p6Result = PatchManager.applyChatClientPatch();
+      const totalApplied = result.applied + p6Result.applied;
+      if (totalApplied > 0) {
         sidebar.playInteractionSound();
-        vscode.window.showInformationMessage('已应用 ' + result.applied + ' 个补丁，需重启 Devin Desktop', '重启 Devin').then(choice => {
+        vscode.window.showInformationMessage('已应用 ' + totalApplied + ' 个补丁，需重启 Devin Desktop', '重启 Devin').then(choice => {
           if (choice === '重启 Devin') reloadWorkbenchWindow();
         });
-      } else if (result.skipped > 0) {
+      } else if (result.skipped > 0 && p6Result.skipped > 0) {
         vscode.window.showInformationMessage('所有补丁已是最新');
       } else {
         vscode.window.showWarningMessage('未找到可应用的补丁，可能 Devin Desktop 版本不兼容');
