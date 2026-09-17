@@ -40,7 +40,8 @@
             </div>
             <div class="fg"><label title="选择上游使用的 API 协议。「自动」按模型名识别；手动选择将覆盖识别结果并联动下方思考深度选项">API 协议 <span class="hint">（自动=按模型名识别）</span></label><select id="cfgByok1Protocol" title="选择上游使用的 API 协议；「自动」按模型名识别，手动会覆盖识别结果">{{byok1ProtocolOptions}}</select></div>
             <div class="row" style="gap:6px;margin-bottom:6px">
-                <select id="cfgByok1Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok1ModelOption}}</select>
+                <input list="cfgByok1ModelList" id="cfgByok1Model" value="{{byok1ModelValue}}" placeholder="输入或选择模型名" style="flex:1;font-size:12px;padding:5px 8px" autocomplete="off">
+                <datalist id="cfgByok1ModelList">{{byok1ModelOptions}}</datalist>
                 <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="1" style="padding:4px 8px">加载模型</button>
             </div>
             <div class="fg" id="cfgByok1ThinkingEffortRow"><label id="cfgByok1ThinkingLabel">{{byok1ThinkingLabel}}</label><select id="cfgByok1ThinkingEffort">{{byok1ThinkingOptions}}</select></div>
@@ -65,7 +66,8 @@
             </div>
             <div class="fg"><label title="选择上游使用的 API 协议。「自动」按模型名识别；手动选择将覆盖识别结果并联动下方思考深度选项">API 协议 <span class="hint">（自动=按模型名识别）</span></label><select id="cfgByok2Protocol" title="选择上游使用的 API 协议；「自动」按模型名识别，手动会覆盖识别结果">{{byok2ProtocolOptions}}</select></div>
             <div class="row" style="gap:6px;margin-bottom:6px">
-                <select id="cfgByok2Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok2ModelOption}}</select>
+                <input list="cfgByok2ModelList" id="cfgByok2Model" value="{{byok2ModelValue}}" placeholder="输入或选择模型名" style="flex:1;font-size:12px;padding:5px 8px" autocomplete="off">
+                <datalist id="cfgByok2ModelList">{{byok2ModelOptions}}</datalist>
                 <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="2" style="padding:4px 8px">加载模型</button>
             </div>
             <div class="fg" id="cfgByok2ThinkingEffortRow"><label id="cfgByok2ThinkingLabel">{{byok2ThinkingLabel}}</label><select id="cfgByok2ThinkingEffort">{{byok2ThinkingOptions}}</select></div>
@@ -90,7 +92,8 @@
             </div>
             <div class="fg"><label title="选择上游使用的 API 协议。「自动」按模型名识别；手动选择将覆盖识别结果并联动下方思考深度选项">API 协议 <span class="hint">（自动=按模型名识别）</span></label><select id="cfgByok3Protocol" title="选择上游使用的 API 协议；「自动」按模型名识别，手动会覆盖识别结果">{{byok3ProtocolOptions}}</select></div>
             <div class="row" style="gap:6px;margin-bottom:6px">
-                <select id="cfgByok3Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok3ModelOption}}</select>
+                <input list="cfgByok3ModelList" id="cfgByok3Model" value="{{byok3ModelValue}}" placeholder="输入或选择模型名" style="flex:1;font-size:12px;padding:5px 8px" autocomplete="off">
+                <datalist id="cfgByok3ModelList">{{byok3ModelOptions}}</datalist>
                 <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="3" style="padding:4px 8px">加载模型</button>
             </div>
             <div class="fg" id="cfgByok3ThinkingEffortRow"><label id="cfgByok3ThinkingLabel">{{byok3ThinkingLabel}}</label><select id="cfgByok3ThinkingEffort">{{byok3ThinkingOptions}}</select></div>
@@ -115,7 +118,8 @@
             </div>
             <div class="fg"><label title="选择上游使用的 API 协议。「自动」按模型名识别；手动选择将覆盖识别结果并联动下方思考深度选项">API 协议 <span class="hint">（自动=按模型名识别）</span></label><select id="cfgByok4Protocol" title="选择上游使用的 API 协议；「自动」按模型名识别，手动会覆盖识别结果">{{byok4ProtocolOptions}}</select></div>
             <div class="row" style="gap:6px;margin-bottom:6px">
-                <select id="cfgByok4Model" style="flex:1;font-size:12px;padding:5px 8px">{{byok4ModelOption}}</select>
+                <input list="cfgByok4ModelList" id="cfgByok4Model" value="{{byok4ModelValue}}" placeholder="输入或选择模型名" style="flex:1;font-size:12px;padding:5px 8px" autocomplete="off">
+                <datalist id="cfgByok4ModelList">{{byok4ModelOptions}}</datalist>
                 <button type="button" class="btn btn-s sm" data-ws-action="fetchModels" data-ws-slot="4" style="padding:4px 8px">加载模型</button>
             </div>
             <div class="fg" id="cfgByok4ThinkingEffortRow"><label id="cfgByok4ThinkingLabel">{{byok4ThinkingLabel}}</label><select id="cfgByok4ThinkingEffort">{{byok4ThinkingOptions}}</select></div>

@@ -137,7 +137,8 @@ function renderSidebarHtml(ctx) {
     // BYOK #1 配置数据
     byok1Host: esc(tmp25),
     byok1Key: esc(tmp26),
-    byok1ModelOption: tmp27 ? `<option value="${esc(tmp27)}" selected>${esc(tmp27)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok1ModelValue: esc(tmp27 || ''),
+    byok1ModelOptions: '',
     byok1ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
       thinkingEffort.protocolToThinkingProvider(byok1Protocol) || thinkingEffort.detectModelProvider(tmp27)
     )),
@@ -156,7 +157,8 @@ function renderSidebarHtml(ctx) {
     // BYOK #2 配置数据
     byok2Host: esc(tmp28),
     byok2Key: esc(tmp29),
-    byok2ModelOption: tmp30 ? `<option value="${esc(tmp30)}" selected>${esc(tmp30)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok2ModelValue: esc(tmp30 || ''),
+    byok2ModelOptions: '',
     byok2ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
       thinkingEffort.protocolToThinkingProvider(byok2Protocol) || thinkingEffort.detectModelProvider(tmp30)
     )),
@@ -175,7 +177,8 @@ function renderSidebarHtml(ctx) {
     // BYOK #3 配置数据
     byok3Host: esc(tmp33a),
     byok3Key: esc(tmp33b),
-    byok3ModelOption: tmp33c ? `<option value="${esc(tmp33c)}" selected>${esc(tmp33c)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok3ModelValue: esc(tmp33c || ''),
+    byok3ModelOptions: '',
     byok3ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
       thinkingEffort.protocolToThinkingProvider(byok3Protocol) || thinkingEffort.detectModelProvider(tmp33c)
     )),
@@ -194,7 +197,8 @@ function renderSidebarHtml(ctx) {
     // BYOK #4 配置数据
     byok4Host: esc(tmp33e),
     byok4Key: esc(tmp33f),
-    byok4ModelOption: tmp33g ? `<option value="${esc(tmp33g)}" selected>${esc(tmp33g)}</option>` : '<option value="" disabled selected>请先加载模型</option>',
+    byok4ModelValue: esc(tmp33g || ''),
+    byok4ModelOptions: '',
     byok4ThinkingLabel: esc(thinkingEffort.getThinkingIntensityHint(
       thinkingEffort.protocolToThinkingProvider(byok4Protocol) || thinkingEffort.detectModelProvider(tmp33g)
     )),
@@ -258,8 +262,8 @@ function renderSidebarHtml(ctx) {
 
     flowHintText: !(tmp26 || tmp29) ? '💡 请先在「⚙️ 配置连接」页配置 BYOK #1 或 #2 的 API Key' :
       tmp34 !== 'badge-ok' ? '💡 配置完成！请在「🔧 系统补丁」页点击「安装补丁」' :
-      !tmp02.running ? '💡 补丁已就绪，点击下方「一键启动」按钮开始使用' :
-      '✅ 全部完成！代理正在运行中，可在 Windsurf 中使用 BYOK 模型',
+        !tmp02.running ? '💡 补丁已就绪，点击下方「一键启动」按钮开始使用' :
+          '✅ 全部完成！代理正在运行中，可在 Windsurf 中使用 BYOK 模型',
 
     // 控制状态数据
     hybridPort: esc(String(tmp02.hybridPort)),

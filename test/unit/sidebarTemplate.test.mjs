@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,7 +18,7 @@ let renderSidebarHtml;
 
 test('sidebarTemplate.js 模块加载', async (t) => {
   await t.test('应该能够加载模块', async () => {
-    const module = await import(join(projectRoot, 'src/views/sidebarTemplate.js'));
+    const module = await import(pathToFileURL(join(projectRoot, 'src/views/sidebarTemplate.js')).href);
     renderSidebarHtml = module.renderSidebarHtml;
     assert.ok(renderSidebarHtml, '模块应该导出 renderSidebarHtml 函数');
     assert.strictEqual(typeof renderSidebarHtml, 'function', 'renderSidebarHtml 应该是函数');
@@ -201,6 +201,18 @@ test('DOM id 完整性', async (t) => {
     criticalIds.forEach(id => {
       assert.ok(html.includes(`id="${id}"`), `应该包含 id="${id}"`);
     });
+  });
+
+  await t.test('应该将模型选择渲染为 input + datalist 组合控件', () => {
+    const html = renderSidebarHtml(mockContext);
+    // 4 个槽位都应有 input[list] + datalist
+    for (const n of [1, 2, 3, 4]) {
+      assert.ok(html.includes(`id="cfgByok${n}Model"`), `应包含 cfgByok${n}Model input`);
+      assert.ok(html.includes(`list="cfgByok${n}ModelList"`), `input 应关联 datalist cfgByok${n}ModelList`);
+      assert.ok(html.includes(`id="cfgByok${n}ModelList"`), `应包含 datalist cfgByok${n}ModelList`);
+    }
+    // 不应再有 select#cfgByokNModel（旧控件）
+    assert.ok(!html.includes('<select id="cfgByok1Model"'), '不应再使用 select 作为模型选择');
   });
 
   await t.test('不应该有重复的 id', () => {
